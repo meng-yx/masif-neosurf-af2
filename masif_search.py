@@ -124,7 +124,7 @@ def masif_search(params):
         site_vixs = target_vertices
 
     # Go through every selected site
-    for site_ix, site_vix in zip(site_ixs,site_vixs):
+    for site_ix, site_vix in zip(site_ixs, site_vixs):
         site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
         if not os.path.exists(site_outdir):
             os.makedirs(site_outdir)
@@ -142,6 +142,9 @@ def masif_search(params):
         with open(site_outdir + '/target.vert', 'w+') as out_patch:
             for point in target_patch.points:
                 out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
+
+        with open(site_outdir + '/target_info.txt', 'w') as out_info:
+            out_info.write(f'name: {target_ppi_pair_id}, site: {site_ix}, vix: {site_vix}')
 
         # Match the top descriptors in the database based on descriptor distance.
         print('Starting to match target descriptor to descriptors from {} proteins; this may take a while.'.format(len(seed_ppi_pair_ids)))
