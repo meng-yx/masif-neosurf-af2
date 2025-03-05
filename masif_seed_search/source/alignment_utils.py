@@ -414,7 +414,7 @@ def multidock(source_pcd, source_patch_coords, source_descs,
              CorrespondenceCheckerBasedOnDistance(1.0),
              CorrespondenceCheckerBasedOnNormal(np.pi/2)],
             RANSACConvergenceCriteria(ransac_iter, 500)
-        )
+        )  # this seems to have a random component, can we seed it somehow? (Open3D version 0.8.0 doesn't support o3d.utility.random.seed(seed))
         ransac_transformation = result.transformation 
         
         # TODO: there is a potential bug here in benchmark cases only. If a random rotation is not previously applied, 

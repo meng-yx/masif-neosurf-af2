@@ -127,7 +127,7 @@ def masif_search(params):
     for site_ix, site_vix in zip(site_ixs, site_vixs):
         site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
         if not os.path.exists(site_outdir):
-            os.makedirs(site_outdir)
+            os.makedirs(site_outdir, exist_ok=True)
 
         # Get the geodesic patch and descriptor patch for each target patch
         target_patch, target_patch_descs, target_patch_idx = get_patch_geo(
@@ -152,6 +152,12 @@ def masif_search(params):
 
         if len(matched_dict.keys())==0:
             continue
+
+        # for (matched_name, _), matched_inds in matched_dict.items():
+        #     matched_outdir = os.path.join(site_outdir, matched_name)
+        #     os.makedirs(matched_outdir, exist_ok=True)
+        #     with open(matched_outdir + '/first_stage_matches.txt', 'w') as f:
+        #         f.write(' '.join(map(str, matched_inds)))
 
         print(" ")
         print("Second stage of MaSIF seed search: each matched descriptor is aligned and scored; this may take a while..")
