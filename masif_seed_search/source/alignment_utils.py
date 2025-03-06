@@ -408,12 +408,15 @@ def multidock(source_pcd, source_patch_coords, source_descs,
            
         result = registration_ransac_based_on_feature_matching(
             source_patch, target_pcd, source_patch_descs[0], target_descs[0],
-            ransac_radius,
-            TransformationEstimationPointToPoint(False), 3,
-            [CorrespondenceCheckerBasedOnEdgeLength(0.9),
-             CorrespondenceCheckerBasedOnDistance(1.0),
-             CorrespondenceCheckerBasedOnNormal(np.pi/2)],
-            RANSACConvergenceCriteria(ransac_iter, 500)
+            max_correspondence_distance=ransac_radius,
+            estimation_method=TransformationEstimationPointToPoint(False), 
+            ransac_n=3,
+            checkers=[
+                CorrespondenceCheckerBasedOnEdgeLength(0.9),
+                CorrespondenceCheckerBasedOnDistance(1.0),
+                CorrespondenceCheckerBasedOnNormal(np.pi/2)
+            ],
+            criteria=RANSACConvergenceCriteria(ransac_iter, 500)
         )  # this seems to have a random component, can we seed it somehow? (Open3D version 0.8.0 doesn't support o3d.utility.random.seed(seed))
         ransac_transformation = result.transformation 
         
@@ -421,8 +424,12 @@ def multidock(source_pcd, source_patch_coords, source_descs,
         # there exists a possibility that masif-search/masif-site will get the right patches, but ransac will fail to 
         # get a transformation. In these rare cases, icp will start from the ground truth. To get around this, make
         # sure a rotation is applied beforehand (for benchmarks at least)
-        result_icp = registration_icp(source_patch, target_pcd,
-                    1.0, result.transformation, TransformationEstimationPointToPlane())
+        result_icp = registration_icp(
+            source_patch, target_pcd,
+            max_correspondence_distance=1.0, 
+            init=result.transformation, 
+            estimation_method=TransformationEstimationPointToPlane()
+        )
 
         source_patch.transform(result_icp.transformation)
         all_results.append(result_icp)

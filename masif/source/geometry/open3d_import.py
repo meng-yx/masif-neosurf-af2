@@ -1,13 +1,16 @@
 #This header file imports open3d with the correct version to support version 0.5.0 and 0.9.0
 import open3d as o3d
 from packaging import version
+from functools import partial
+
+
 if version.parse('0.12.0') <= version.parse(o3d.__version__):
     PointCloud = o3d.geometry.PointCloud
     Vector3dVector = o3d.utility.Vector3dVector
     Feature = o3d.pipelines.registration.Feature
     read_point_cloud = o3d.io.read_point_cloud
     read_triangle_mesh = o3d.io.read_triangle_mesh
-    registration_ransac_based_on_feature_matching = o3d.pipelines.registration.registration_ransac_based_on_feature_matching
+    registration_ransac_based_on_feature_matching = partial(o3d.pipelines.registration.registration_ransac_based_on_feature_matching, mutual_filter=False)
     registration_icp = o3d.pipelines.registration.registration_icp
     TransformationEstimationPointToPoint = o3d.pipelines.registration.TransformationEstimationPointToPoint
     CorrespondenceCheckerBasedOnEdgeLength = o3d.pipelines.registration.CorrespondenceCheckerBasedOnEdgeLength
