@@ -393,8 +393,7 @@ def count_clashes(transformation, source_surface_vertices, source_structure, \
 
 
 def multidock(source_pcd, source_patch_coords, source_descs, 
-            cand_pts, target_pcd, target_descs,
-               params):
+              cand_pts, target_pcd, target_descs, params):
     ransac_radius=params['ransac_radius'] 
     ransac_iter=params['ransac_iter']
     all_results = []
@@ -405,7 +404,7 @@ def multidock(source_pcd, source_patch_coords, source_descs,
     for pt in cand_pts:
         source_patch, source_patch_descs, source_patch_idx = get_patch_geo(
             source_pcd, source_patch_coords, pt, source_descs, outward_shift=params['surface_outward_shift'])
-           
+        
         result = registration_ransac_based_on_feature_matching(
             source_patch, target_pcd, source_patch_descs[0], target_descs[0],
             max_correspondence_distance=ransac_radius,
@@ -416,8 +415,9 @@ def multidock(source_pcd, source_patch_coords, source_descs,
                 CorrespondenceCheckerBasedOnDistance(1.0),
                 CorrespondenceCheckerBasedOnNormal(np.pi/2)
             ],
-            criteria=RANSACConvergenceCriteria(ransac_iter, 500)
-        )  # this seems to have a random component, can we seed it somehow? (Open3D version 0.8.0 doesn't support o3d.utility.random.seed(seed))
+            criteria=RANSACConvergenceCriteria(ransac_iter, 500),
+            **params.get('maybe_seed', {}),  # either dict(seed=my_seed) or empty dictionary because not all Open3D versions support a seed
+        )
         ransac_transformation = result.transformation 
         
         # TODO: there is a potential bug here in benchmark cases only. If a random rotation is not previously applied, 

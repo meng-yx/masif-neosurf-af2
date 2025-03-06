@@ -184,17 +184,18 @@ def masif_search(params):
 if __name__ == "__main__":
 
     parser = ArgumentParser()
-    parser.add_argument("--database", dest="top_seed_dir", type=Path)
-    parser.add_argument("--subset", dest="database_subset", type=Path, default=None)
-    parser.add_argument("--out_dir", type=Path)
-    parser.add_argument("--target_dir", dest="masif_target_root", type=Path)
     parser.add_argument("--target", dest="target_name", type=str)
-    parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
-    parser.add_argument("--num_sites", type=int, default=1)
+    parser.add_argument("--target_dir", dest="masif_target_root", type=Path)
+    parser.add_argument("--database", dest="top_seed_dir", type=Path)
+    parser.add_argument("--out_dir", type=Path)
     parser.add_argument("--resid", dest="target_resid", type=int, default=None)
     parser.add_argument("--chain", dest="target_chain", type=str, default=None)
     parser.add_argument("--atom_id", dest="target_atom_id", type=str, default=None)
     parser.add_argument("--coord", dest="target_coord", type=float, nargs="+", default=None)
+    
+    parser.add_argument("--subset", dest="database_subset", type=Path, default=None)
+    parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
+    parser.add_argument("--num_sites", type=int, default=1)
     parser.add_argument("--desc_dist_cutoff", type=float, default=2.0, help="Recommended values: [1.5-2.0] (lower is stricter)")
     parser.add_argument("--iface_cutoff", type=float, default=0.75, help="Recommended values: [0.75-0.95] range (higher is stricter)")
     parser.add_argument("--nn_score_cutoff", type=float, default=0.8, help="# Recommended values: [0.8-0.95] (higher is stricter)")
@@ -202,7 +203,15 @@ if __name__ == "__main__":
     parser.add_argument("--allowed_CA_clashes", type=int, default=0)
     parser.add_argument("--allowed_heavy_atom_clashes", type=int, default=5)
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
+    parser.add_argument("--random_seed", type=int, default=None)
     args = parser.parse_args()
+
+    if args.random_seed is not None:
+        from packaging import version
+        import open3d as o3d
+        assert version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'), "Random seed not supported by all Open3D versions"
+        np.random.seed(args.random_seed)
+        args.maybe_seed = {"seed": args.random_seed}
 
     # Definition of the target patch
     assert ((args.target_resid is not None) and (args.target_chain is not None) and (args.target_atom_id is not None)) ^ (args.target_coord is not None)
@@ -249,7 +258,7 @@ if __name__ == "__main__":
 
     # Some hard-coded parameters
     # Neural network scores.
-    args.nn_score_atomic_fn = os.path.join(masif_neosurf_dir, "masif_seed_search/data/scoring_nn/models_std/weights_12A_0129.hdf5")
+    args.nn_score_atomic_fn = os.path.join(masif_neosurf_dir, "masif_seed_search/data/scoring_nn/models_std/weights_12A_0129")
     args.max_npoints = 200
 
     # Ransac parameters
