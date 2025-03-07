@@ -415,7 +415,7 @@ def multidock(source_pcd, source_patch_coords, source_descs,
                 CorrespondenceCheckerBasedOnDistance(1.0),
                 CorrespondenceCheckerBasedOnNormal(np.pi/2)
             ],
-            criteria=RANSACConvergenceCriteria(ransac_iter, 500),
+            criteria=RANSACConvergenceCriteria(ransac_iter, **params.get('ransac_convergence_kwargs', {'max_validation': 500})),
             **params.get('maybe_seed', {}),  # either dict(seed=my_seed) or empty dictionary because not all Open3D versions support a seed
         )
         ransac_transformation = result.transformation 

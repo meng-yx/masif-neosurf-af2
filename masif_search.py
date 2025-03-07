@@ -3,11 +3,13 @@ import sys
 import shutil
 from pathlib import Path
 from argparse import ArgumentParser
+from packaging import version
 
 import pymesh
 from scipy.spatial import cKDTree
 import numpy as np
 from Bio.PDB import PDBParser
+import open3d as o3d
 
 # import MaSIF modules
 masif_neosurf_dir = Path(__file__).resolve().parent
@@ -207,8 +209,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.random_seed is not None:
-        from packaging import version
-        import open3d as o3d
         assert version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'), "Random seed not supported by all Open3D versions"
         np.random.seed(args.random_seed)
         args.maybe_seed = {"seed": args.random_seed}
@@ -262,7 +262,11 @@ if __name__ == "__main__":
     args.max_npoints = 200
 
     # Ransac parameters
-    args.ransac_iter = 2000
+    if version.parse(o3d.__version__) <= version.parse('0.11.0'):
+        args.ransac_iter = 2000
+    else:
+        args.ransac_iter = 100000
+        args.ransac_convergence_kwargs = {'confidence': 0.999}
     # Ransac radius - should not be changed.
     args.ransac_radius = 1.5
     # How much to expand the surface for alignment.
