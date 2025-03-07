@@ -1,6 +1,5 @@
 # Define base image
-#FROM pymesh/pymesh
-FROM --platform=linux/amd64 pymesh/pymesh
+FROM --platform=linux/amd64 pymesh/pymesh:py3.7-slim
 
 # install necessary dependencies
 RUN apt-get update && \
@@ -45,9 +44,8 @@ RUN make
 RUN make install
 
 # Install python libraries
-RUN pip3 install matplotlib 
-RUN pip3 install ipython Biopython sklearn tensorflow==1.12 networkx open3d==0.8.0.0 dask==1.2.2 packaging
-#RUN pip install StrBioInfo
+RUN pip3 install Biopython==1.79 scikit-learn==0.24.2 protobuf==3.20 tensorflow==1.13.1 networkx==2.5.1 open3d==0.15.2 dask==1.2.2
+RUN pip3 install matplotlib ipython packaging
 
 # Install small molecule dependencies
 RUN pip3 install rdkit-pypi==2021.9.4
@@ -60,7 +58,6 @@ RUN python2 update_het_dict.py
 ENV REDUCE_HET_DICT /install/reduce/reduce_wwPDB_het_dict.txt
 
 # Change working directory
-#WORKDIR /
 WORKDIR /home
 
 # We need to define the command to launch when we are going to run the image.

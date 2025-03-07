@@ -42,20 +42,19 @@ Currently, MaSIF takes a few seconds to preprocess every protein. We find the ma
 MaSIF relies on external software/libraries to handle protein databank files and surface files, 
 to compute chemical/geometric features and coordinates, and to perform neural network calculations. 
 The following is the list of required libraries and programs, as well as the version on which it was tested (in parentheses).
-* [Python](https://www.python.org/) (3.6)
-* [reduce](http://kinemage.biochem.duke.edu/software/reduce.php) (3.23). To add protons to proteins. 
+* [Python](https://www.python.org/) (3.7)
+* [reduce](http://kinemage.biochem.duke.edu/software/reduce.php) (4.14). To add protons to proteins. 
 * [MSMS](http://mgltools.scripps.edu/packages/MSMS/) (2.6.1). To compute the surface of proteins. 
-* [BioPython](https://github.com/biopython/biopython) (1.66). To parse PDB files. 
-* [PyMesh](https://github.com/PyMesh/PyMesh) (0.1.14). To handle ply surface files, attributes, and to regularize meshes.
-* PDB2PQR (2.1.1), multivalue, and [APBS](http://www.poissonboltzmann.org/) (1.5). These programs are necessary to compute electrostatics charges.
-* [Open3D](https://github.com/IntelVCL/Open3D) (0.5.0.0). Mainly used for RANSAC alignment.
-* [Tensorflow](https://www.tensorflow.org/) (1.9). Use to model, train, and evaluate the actual neural networks. Models were trained and evaluated on a NVIDIA Tesla K40 GPU.
-* [StrBioInfo](https://pypi.org/project/StrBioInfo/). Used for parsing PDB files and generate biological assembly for MaSIF-ligand.
-* [Dask](https://dask.org/) (2.2.0). Run function calls on multiple threads (optional for reproducing some benchmarks).
-* [Pymol](https://pymol.org/2/) (2.5.0). This optional program allows one to visualize surface files.
+* [BioPython](https://github.com/biopython/biopython) (1.79). To parse PDB files. 
+* [PyMesh2](https://github.com/PyMesh/PyMesh) (0.3). To handle ply surface files, attributes, and to regularize meshes.
+* PDB2PQR (3.5.2), multivalue, and [APBS](http://www.poissonboltzmann.org/) (1.5). These programs are necessary to compute electrostatics charges.
+* [Open3D](https://github.com/IntelVCL/Open3D) (0.16.0). Mainly used for RANSAC alignment.
+* [Tensorflow](https://www.tensorflow.org/) (1.13.1). Use to model, train, and evaluate the actual neural networks. Models were trained and evaluated on a NVIDIA Tesla K40 GPU.
+* [Dask](https://dask.org/) (1.2.2). Run function calls on multiple threads (optional for reproducing some benchmarks).
 * [RDKit](https://www.rdkit.org/) (2021.9.4). For handling small molecules, especially the proton donors and acceptors.
 * [OpenBabel](https://github.com/openbabel/openbabel) (3.1.1.7). For handling small molecules, especially the conversion into MOL2 files for APBS.
 * [ProDy](https://github.com/prody/ProDy) (2.0). For handling small molecules, especially the ligand extraction from a PDB.
+* [Pymol](https://pymol.org/2/) (2.5.0). This optional program allows one to visualize surface files.
 
 ## Installation with Docker
 MaSIF is written in Python and does not require compilation. Since MaSIF relies on a few external programs (MSMS, APBS) and libraries (PyMesh, Tensorflow, Scipy, Open3D), we strongly recommend you use the Dockerfile and Docker container. Setting up the environment should take a few minutes only. 
