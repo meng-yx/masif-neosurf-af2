@@ -17,7 +17,81 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif', 'source').resolve()))
 sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resolve()))
 from masif.source.default_config.masif_opts import masif_opts
 from masif_seed_search.source.alignment_evaluation_nn import AlignmentEvaluationNN
-from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, get_target_vix, match_descriptors, align_protein
+from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, get_target_vix, match_descriptors, align_protein, compute_nn_score
+
+
+def score_complex(
+    target_name,
+    target_vertices,
+    source_name,
+    target_pcd,
+    target_coord,
+    target_desc,
+    target_pcd_tree,
+    target_iface,
+    source_paths,
+    params,
+    nn_score,
+    flip_target_normals=True,
+):
+
+    # Go through every selected site
+    for site_ix, target_vix in enumerate(target_vertices):
+
+        # Get the geodesic patch and descriptor patch for each target patch
+        target_patch, target_patch_descs, target_patch_idx = get_patch_geo(
+            target_pcd, target_coord, target_vix, target_desc, 
+            flip_normals=flip_target_normals, 
+            outward_shift=params['surface_outward_shift']
+        )
+
+        # Make a ckdtree with the target vertices.
+        target_ckdtree = cKDTree(target_patch.points)
+
+        # Load binder
+        pid = 'p1'
+        if pid == 'p1':
+            chain = source_name.split('_')[1]
+            chain_number = 1
+        else: 
+            chain = source_name.split('_')[2]
+            chain_number = 2
+        source_pcd, source_desc, source_iface = load_protein_pcd(source_name, chain_number, source_paths, flipped_features=False, read_mesh=False)
+
+
+        # Find closest point on binder
+        target_vix_coord = np.asarray(target_pcd.points)[target_vix]
+        source_points = np.asarray(source_pcd.points)
+        dists = np.linalg.norm(target_vix_coord[None, :] - source_points, axis=-1)
+        source_vix = np.argmin(dists)
+
+        # Compute descriptor distance
+        desc_dist = np.sqrt(np.sum(np.square(source_desc[0, source_vix] - target_desc[0, target_vix]), axis=-1))
+
+        # Compute NN and descriptor distance scores
+        source_coord = get_patch_coords(params['seed_precomp_dir'], source_name, pid, cv=[source_vix])
+        source_patch, source_patch_descs, source_patch_idx = get_patch_geo(source_pcd, source_coord, source_vix, source_desc, outward_shift=params['surface_outward_shift'])
+        d_vi_at, _= target_pcd_tree.query(np.asarray(source_patch.points), k=1)
+
+        nn_score, desc_dist_score = compute_nn_score(
+            target_patch, source_patch, None, target_patch_descs, 
+            source_patch_descs, target_ckdtree, nn_score, d_vi_at, 1.0
+        )[0]
+
+        results = {
+            "query_name": target_name,
+            "query_site": site_ix,
+            "query_vix": target_vix,
+            "binder_name": source_name,
+            "binder_vix": source_vix,
+            "distance_between_center_points": dists[source_vix],
+            "query_iface_score": target_iface[target_vix],
+            "binder_iface_score": source_iface[source_vix],
+            "descriptor_distance": desc_dist, 
+            "nn_score": nn_score,
+            "desc_dist_score": desc_dist_score,
+        }
+        print(', '.join(f"{k}: {v}" for k, v in results.items()))
 
 
 def masif_search(params):
@@ -109,6 +183,24 @@ def masif_search(params):
         # Get a target vertex for every target site.
         target_vertices = get_target_vix(target_coord, iface,num_sites=params['num_sites'])
 
+
+    if params.get('score_binder', None) is not None:
+        score_complex(
+            target_name=target_ppi_pair_id,
+            target_vertices=target_vertices,
+            source_name=params['score_binder'],
+            target_pcd=target_pcd,
+            target_coord=target_coord,
+            target_desc=target_desc,
+            target_pcd_tree=target_pcd_tree,
+            target_iface=target_iface,
+            source_paths=source_paths,
+            params=params,
+            nn_score=nn_score_atomic,
+            flip_target_normals=True,
+        )
+        return  # descriptor matching and alignment are not necessary for scoring
+
     outdir = os.path.join(params['out_dir'], params['target_name'])
     if not os.path.exists(outdir):
         os.makedirs(outdir, exist_ok=True)
@@ -190,7 +282,7 @@ if __name__ == "__main__":
     parser.add_argument("--target", dest="target_name", type=str)
     parser.add_argument("--target_dir", dest="masif_target_root", type=Path)
     parser.add_argument("--database", dest="top_seed_dir", type=Path)
-    parser.add_argument("--out_dir", type=Path)
+    parser.add_argument("--out_dir", type=Path, default=None)
     parser.add_argument("--resid", dest="target_resid", type=int, default=None)
     parser.add_argument("--chain", dest="target_chain", type=str, default=None)
     parser.add_argument("--atom_id", dest="target_atom_id", type=str, default=None)
@@ -206,6 +298,7 @@ if __name__ == "__main__":
     parser.add_argument("--allowed_CA_clashes", type=int, default=0)
     parser.add_argument("--allowed_heavy_atom_clashes", type=int, default=5)
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
+    parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
     parser.add_argument("--random_seed", type=int, default=None)
     args = parser.parse_args()
 
