@@ -287,7 +287,7 @@ def test_alignments(transformation, source_structure, target_pcd_tree, interface
     rmsd = np.sqrt(np.mean(np.square(np.linalg.norm(structure_coords[interface_atoms,:]-np.asarray(structure_coord_pcd.points)[interface_atoms,:],axis=1))))
     return rmsd
 
-def match_descriptors(directory_list, pids, target_desc, params):
+def match_descriptors(directory_list, pids, target_desc, params, return_scores=False):
     """ 
         Match descriptors to the target descriptor.
     """
@@ -295,6 +295,7 @@ def match_descriptors(directory_list, pids, target_desc, params):
     all_matched_names = []
     all_matched_vix = []
     all_matched_desc_dist = []
+    all_matched_iface = []
     count_proteins = 0
     count_descriptors = 0
 
@@ -332,6 +333,7 @@ def match_descriptors(directory_list, pids, target_desc, params):
                 all_matched_names.append([name]*len(selected))
                 all_matched_vix.append(selected)
                 all_matched_desc_dist.append(diff[selected])
+                all_matched_iface.append(iface[selected])
                 #print('Matched {}'.format(ppi_pair_id))
                 #print('Scores: {} {}'.format(iface[selected], diff[selected]))
             if count_proteins % 1000 == 0:
@@ -344,17 +346,26 @@ def match_descriptors(directory_list, pids, target_desc, params):
         matched_vix = np.concatenate(all_matched_vix, axis=0)
         print('Iterated over {} fragments from {} proteins; matched {} based on descriptor similarity.'.format(count_descriptors, count_proteins, len(matched_vix)))
         matched_desc_dist = np.concatenate(all_matched_desc_dist, axis=0)
+        matched_iface = np.concatenate(all_matched_iface, axis=0)
     except:
         print("matched no descriptors")
         return {}
+    
     matched_dict = {}
+    desc_dist_dict = {}
+    iface_dict = {}
     for name_ix, name in enumerate(matched_names):
         name = (name[0], name[1])
         if name not in matched_dict:
             matched_dict[name] = []
+            desc_dist_dict[name] = []
+            iface_dict[name] = []
         matched_dict[name].append(matched_vix[name_ix])
-            
-    return matched_dict
+        desc_dist_dict[name].append(matched_desc_dist[name_ix])
+        iface_dict[name].append(matched_iface[name_ix])
+    
+    scores_dict = {name: {"desc_dist": desc_dist_dict[name], "iface_score": iface_dict[name]} for name in matched_dict.keys()}
+    return (matched_dict, scores_dict) if return_scores else matched_dict
 
 def count_clashes(transformation, source_surface_vertices, source_structure, \
         target_ca_pcd_tree, target_pcd_tree, radius=2.0, clashing_ca_thresh=1.0, clashing_thresh=5.0):
@@ -505,7 +516,8 @@ def compute_nn_score(target_pcd, source_pcd, corr,
     ret = (np.array([nn_score_pred[0][0], desc_dist_score]).T, point_importance)
     return ret 
 
-def align_protein(name, \
+def align_protein(
+        name, \
         target_patch, \
         target_patch_descs, \
         target_ckdtree, \
@@ -515,7 +527,9 @@ def align_protein(name, \
         matched_dict, \
         nn_score, \
         site_outdir, \
-        params):
+        params, \
+        first_stage_scores = None,
+    ):
     ppi_pair_id = name[0]
     pid = name[1]
     pdb = ppi_pair_id.split('_')[0]
@@ -613,8 +627,9 @@ def align_protein(name, \
                 print('Selected fragment: {} fragment_id: {} score: {:.4f} desc_dist_score: {:.4f} clashes(CA): {} clashes(total):{}\n'.format(j , ppi_pair_id, scores[j][0], scores[j][1], clashing_ca, clashing_total))
 
                 # Output the score for convenience. 
+                extra_info = '' if first_stage_scores is None else ', desc_dist: {}, iface_score: {}'.format(first_stage_scores['desc_dist'][j], first_stage_scores['iface_score'][j])
                 out_score = open(out_fn+'.score', 'w+')
-                out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1]))
+                out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}, match_vix: {}{}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1], source_vix[j], extra_info))
                 out_score.close()
                 
                 print ('Surface alignment is deactivated - aligning only pdbs. ')

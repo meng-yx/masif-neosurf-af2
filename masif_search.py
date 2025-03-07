@@ -150,7 +150,7 @@ def masif_search(params):
 
         # Match the top descriptors in the database based on descriptor distance.
         print('Starting to match target descriptor to descriptors from {} proteins; this may take a while.'.format(len(seed_ppi_pair_ids)))
-        matched_dict = match_descriptors(seed_ppi_pair_ids, ['p1', 'p2'], target_desc[0][site_vix], params)
+        matched_dict, scores_dict = match_descriptors(seed_ppi_pair_ids, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
 
         if len(matched_dict.keys())==0:
             continue
@@ -176,7 +176,8 @@ def masif_search(params):
                 matched_dict,\
                 nn_score_atomic, \
                 site_outdir, \
-                params
+                params, \
+                first_stage_scores=scores_dict[name],
             )
             if (ix + 1) % 1000 == 0:
                 print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments, ix + 1))
