@@ -88,7 +88,7 @@ python -W ignore preprocess_pdb.py example/4dri.pdb 4DRI_B -o example/processed
 ### Known limitations
 - The ligand processing pipeline fails for some ligands. In many cases, this can be fixed by manually modifying the created mol2 file and providing it explicitly using the `-m` flag.
 - To protonate ligands, `reduce` relies on a lookup file which might need to be updated in order for reduce to find the latest ligands from the PDB. To do so, use https://github.com/rlabduke/reduce/blob/master/update_het_dict.py and set the environment variable `REDUCE_HET_DICT` to the location of the updated file.
-- Ligands with many rings can be a problem for pdb2pqr (because of [this line](https://github.com/Electrostatics/pdb2pqr/blob/727bd13ec9c8bbd62c051a67fe49b9e94442c8be/pdb2pqr/ligand/mol2.py#L438)). If pdb2pqr fails, you can try to replace the affected script with our [patched version](masif/data/masif_neosurf/pdb2pqr_mol2_patch.py). E.g. in the docker container `cp ${MASIF_NEOSURF_ROOT}/masif/data/masif_neosurf/pdb2pqr_mol2_patch.py /usr/local/lib/python3.6/site-packages/pdb2pqr/ligand/mol2.py`. 
+- Ligands with many rings can be a problem for pdb2pqr (because of [this line](https://github.com/Electrostatics/pdb2pqr/blob/727bd13ec9c8bbd62c051a67fe49b9e94442c8be/pdb2pqr/ligand/mol2.py#L438)). If pdb2pqr fails, you can try to replace the affected script with our [patched version](masif/data/masif_neosurf/pdb2pqr_mol2_patch.py). E.g. in the docker container: `cp ${MASIF_NEOSURF_ROOT}/masif/data/masif_neosurf/pdb2pqr_mol2_patch.py /usr/local/lib/python3.6/site-packages/pdb2pqr/ligand/mol2.py`. 
 
 
 ## Running a search
