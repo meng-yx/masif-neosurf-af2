@@ -2,6 +2,7 @@ import numpy as np
 from rdkit import Chem
 from rdkit.Chem import Crippen
 from rdkit.Chem import BRICS
+from triangulation.nucleotide_utils import NUCLEOTIDES, nucleotide_as_rdmol
 
 
 # Kyte Doolittle scale
@@ -30,6 +31,17 @@ kd_scale["ARG"] = -4.5
 
 def kd_from_logp(logp, kd_min=-4.5, kd_max=4.5):
     return np.clip(-6.2786 + np.exp(0.4772 * logp + 1.8491), kd_min, kd_max)
+
+
+# for nucleic acids
+def estimate_kd_for_nucleotide(name):
+    mol = nucleotide_as_rdmol(name)
+    logp = Crippen.MolLogP(mol)
+    return kd_from_logp(logp)
+
+
+for name in NUCLEOTIDES:
+    kd_scale[name] = estimate_kd_for_nucleotide(name)
 
 
 def get_fragments(rdmol):

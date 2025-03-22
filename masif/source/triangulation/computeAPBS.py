@@ -14,7 +14,7 @@ This file is part of MaSIF.
 Released under an Apache License 2.0
 """
 
-def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None):
+def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None, ff="PARSE"):
     """
         Calls APBS, pdb2pqr, and multivalue and returns the charges per vertex
     """
@@ -24,7 +24,7 @@ def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None):
     pdbname = pdb_file.split("/")[-1]
     args = [
         pdb2pqr_bin, pdbname, filename_base,
-        "--ff=PARSE",
+        "--ff={}".format(ff),
         "--whitespace",
         "--noopt",
         "--apbs-input={}.in".format(filename_base),

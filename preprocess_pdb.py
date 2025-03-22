@@ -17,6 +17,7 @@ from masif.source.default_config.masif_opts import masif_opts
 from masif.source.triangulation.computeMSMS import computeMSMS
 from masif.source.triangulation.fixmesh import fix_mesh
 from masif.source.triangulation.ligand_utils import extract_ligand
+from masif.source.triangulation.nucleotide_utils import NUCLEOTIDES
 from masif.source.input_output.extractPDB import extractPDB
 from masif.source.input_output.save_ply import save_ply
 from masif.source.input_output.protonate import protonate
@@ -50,7 +51,7 @@ def extract_het_dict(ligand_code, in_file, out_file):
         f.write(block)
 
 
-def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None):
+def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None, keep_nucleotides=False):
     # Process inputs
     pdb_id, chain_ids1 = name_chain.split("_")
     if ligand_name_chain is None:
@@ -87,7 +88,10 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     extractPDB(pdb_filename, str(outfile_pdb), chain_ids1, ligand_tla, ligand_chain)
 
     # Compute MSMS of surface w/hydrogens,
-    vertices1, faces1, normals1, names1, areas1 = computeMSMS(outfile_pdb, protonate=True, ligand_code=ligand_tla)
+    include_hetatms = [] if ligand_tla is None else [ligand_tla]
+    if keep_nucleotides:
+        include_hetatms.extend(NUCLEOTIDES)
+    vertices1, faces1, normals1, names1, areas1 = computeMSMS(outfile_pdb, protonate=True, keep_hetatms=include_hetatms)
 
     # Get and RDKit molecule object
     mol2_file, rdmol = None, None
@@ -97,7 +101,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
 
     # Compute "charged" vertices
     if masif_opts['use_hbond']:
-        vertex_hbond = computeCharges(str(outfile_pdb.with_suffix("")), vertices1, names1, ligand_tla, rdmol)
+        vertex_hbond = computeCharges(str(outfile_pdb.with_suffix("")), vertices1, names1, ligand_tla, rdmol, keep_nucleotides=keep_nucleotides)
 
     # For each surface residue, assign the hydrophobicity of its amino acid. 
     if masif_opts['use_hphob']:
@@ -127,7 +131,10 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     if masif_opts['use_apbs']:
         print(f"Computing APBS...")
         shutil.copy(outfile_pdb, tmp_file_base.with_suffix(".pdb"))
-        vertex_charges = computeAPBS(regular_mesh.vertices, str(outfile_pdb), str(tmp_file_base), mol2_file)
+        # NOTE: the AMBER force field is required for including nucleic acids 
+        #   but it might give inconsistent results because MaSIF was trained with PARSE
+        force_field = "AMBER" if keep_nucleotides else "PARSE"
+        vertex_charges = computeAPBS(regular_mesh.vertices, str(outfile_pdb), str(tmp_file_base), mol2_file, ff=force_field)
         print(f"APBS done!")
 
     # Convert to ply and save.
@@ -398,6 +405,8 @@ if __name__ == "__main__":
                         help="Optional SDF file used to infer the ligand bond types.")
     parser.add_argument("-m", "--mol2", type=Path, default=None, 
                         help="Optional custom mol2 file. Should not be necessary in most cases.")
+    parser.add_argument("--keep_nucleotides", action="store_true", 
+                        help="Include DNA/RNA in the surface.")
     parser.add_argument("--tmp_dir", type=Path, default=None,
                         help="Directory where temporary files will be saved. Provide a path if you would like to inspect these files for debugging.")
     args = parser.parse_args()
@@ -407,7 +416,7 @@ if __name__ == "__main__":
 
     with tempfile.TemporaryDirectory() as _tmp_dir:
         tmp_dir = args.tmp_dir or _tmp_dir
-        extract_and_triangulate(args.pdbfile, args.name_chain, args.outdir, tmp_dir, ligand_name_chain=args.ligand, sdf_file=args.sdf, mol2_patch=args.mol2)
+        extract_and_triangulate(args.pdbfile, args.name_chain, args.outdir, tmp_dir, ligand_name_chain=args.ligand, sdf_file=args.sdf, mol2_patch=args.mol2, keep_nucleotides=args.keep_nucleotides)
         masif_precompute([args.name_chain], "masif_site", args.outdir)
         masif_precompute([args.name_chain], "masif_ppi_search", args.outdir)
         predict_binding_sites([args.name_chain], args.outdir)

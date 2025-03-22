@@ -26,6 +26,7 @@ from triangulation.ligand_charges import (
     prepare_rdmol,
     computeChargeHelperMol
 )
+from triangulation.nucleotide_utils import NUCLEOTIDES, biopython_to_rdkit
 
 # Compute vertex charges based on hydrogen bond potential.
 # pdb_filename: The filename of the protonated protein.
@@ -33,7 +34,7 @@ from triangulation.ligand_charges import (
 # The name of each vertex in the format, example: B_125_x_ASN_ND2_Green
 # where B is chain, 125 res id, x the insertion, ASN aatype, ND2 the name of the
 # atom, and green is not used anymore.
-def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None):
+def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None, keep_nucleotides=False):
     parser = PDBParser(QUIET=True)
     struct = parser.get_structure(pdb_filename, pdb_filename + ".pdb")
     residues = {}
@@ -48,6 +49,13 @@ def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None):
 
     if rdmol is not None:
         rdmol, name_to_idx, donorHs, acceptors = prepare_rdmol(rdmol)
+
+    if keep_nucleotides:
+        # precompute nucleotide features
+        nucleotide_feats = {
+            k: prepare_rdmol(biopython_to_rdkit(res))
+            for k, res in residues.items() if res.get_resname() in NUCLEOTIDES
+        }
 
     charge = np.array([0.0] * len(vertices))
     # Go over every vertex
@@ -70,6 +78,11 @@ def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None):
                 continue
             charge[ix] = computeChargeHelperMol(
                 rdmol, atom_idx, donorHs, acceptors, vertices[ix]
+            )
+        elif keep_nucleotides and aa in NUCLEOTIDES:
+            _rdmol, _name_to_idx, _donorHs, _acceptors = nucleotide_feats[(chain_id, res_id)]
+            charge[ix] = computeChargeHelperMol(
+                _rdmol, _name_to_idx[atom_name], _donorHs, _acceptors, vertices[ix]
             )
         else:
             # Ignore atom if it is BB and it is already satisfied.

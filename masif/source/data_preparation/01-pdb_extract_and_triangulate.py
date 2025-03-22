@@ -78,7 +78,8 @@ out_filename1 = tmp_dir+"/"+pdb_id+"_"+chain_ids1
 extractPDB(pdb_filename, out_filename1+".pdb", chain_ids1, ligand_code, ligand_chain)
 
 # Compute MSMS of surface w/hydrogens,
-vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, ligand_code=ligand_code)
+include_hetatms = [] if ligand_code is None else [ligand_code]
+vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, keep_hetatms=include_hetatms)
 
 # Get and RDKit molecule object
 if ligand_code is not None and ligand_chain is not None:
@@ -127,7 +128,7 @@ if masif_opts['use_apbs']:
 iface = np.zeros(len(regular_mesh.vertices))
 if 'compute_iface' in masif_opts and masif_opts['compute_iface']:
     # Compute the surface of the entire complex and from that compute the interface.
-    v3, f3, _, _, _ = computeMSMS(pdb_filename, protonate=True, ligand_code=ligand_code)
+    v3, f3, _, _, _ = computeMSMS(pdb_filename, protonate=True, keep_hetatms=include_hetatms)
     # Regularize the mesh
     mesh = pymesh.form_mesh(v3, f3)
     # I believe It is not necessary to regularize the full mesh. This can speed up things by a lot.
