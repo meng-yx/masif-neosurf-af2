@@ -147,10 +147,12 @@ def masif_search(params):
     target_pdb_path = os.path.join(params['target_pdb_dir'], '{}.pdb'.format(target_ppi_pair_id))
     target_struct = parser.get_structure(target_pdb_path, target_pdb_path)
     target_atom_coords = [atom.get_coord() for atom in target_struct.get_atoms() if not atom.get_name().startswith('H') ]
-    target_ca_coords = [atom.get_coord() for atom in target_struct.get_atoms() if atom.get_id() == 'CA']
     # Create kdtree search trees (for fast comparision).
-    target_ca_pcd_tree = cKDTree(np.array(target_ca_coords))
     target_pcd_tree = cKDTree(np.array(target_atom_coords))
+
+    # NOTE: target CA coords don't seem to be used
+    # target_ca_coords = [atom.get_coord() for atom in target_struct.get_atoms() if atom.get_id() == 'CA']
+    target_ca_pcd_tree = None # cKDTree(np.array(target_ca_coords))
 
     # If a specific residue is selected, then go after that residue
     if 'target_residue' in params:

@@ -631,6 +631,9 @@ def align_protein(
                 out_score = open(out_fn+'.score', 'w+')
                 out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}, match_vix: {}{}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1], source_vix[j], extra_info))
                 out_score.close()
+
+                # Output the rigid transformation
+                np.save(out_fn + '_transform.npy', res.transformation)
                 
                 print ('Surface alignment is deactivated - aligning only pdbs. ')
                 continue
