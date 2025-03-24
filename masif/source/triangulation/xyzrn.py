@@ -24,8 +24,8 @@ def output_pdb_as_xyzrn(pdbfilename, xyzrnfilename, keep_hetatms=None):
         name = atom.get_name()
         residue = atom.get_parent()
         # Ignore hetatms.
-        # if residue.get_id()[0] != " " and residue.get_id()[0][-3:] != 'RC8':
-        if residue.get_id()[0] != " " and residue.get_id()[0][-3:] not in keep_hetatms:
+        # if residue.get_id()[0] != " " and residue.get_id()[0][-3:] not in keep_hetatms:
+        if residue.get_id()[0] != " " and residue.get_resname() not in keep_hetatms:
             continue
         resname = residue.get_resname()
         reskey = residue.get_id()[1]

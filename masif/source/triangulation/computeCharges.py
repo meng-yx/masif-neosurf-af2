@@ -53,7 +53,7 @@ def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None, 
     if keep_nucleotides:
         # precompute nucleotide features
         nucleotide_feats = {
-            k: prepare_rdmol(biopython_to_rdkit(res))
+            (k[0], k[1][1]): prepare_rdmol(biopython_to_rdkit(res))
             for k, res in residues.items() if res.get_resname() in NUCLEOTIDES
         }
 
@@ -80,7 +80,7 @@ def computeCharges(pdb_filename, vertices, names, ligand_code=None, rdmol=None, 
                 rdmol, atom_idx, donorHs, acceptors, vertices[ix]
             )
         elif keep_nucleotides and aa in NUCLEOTIDES:
-            _rdmol, _name_to_idx, _donorHs, _acceptors = nucleotide_feats[(chain_id, res_id)]
+            _rdmol, _name_to_idx, _donorHs, _acceptors = nucleotide_feats[(chain_id, res_id[1])]
             charge[ix] = computeChargeHelperMol(
                 _rdmol, _name_to_idx[atom_name], _donorHs, _acceptors, vertices[ix]
             )

@@ -85,7 +85,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     pdb_filename = protonated_file
 
     # Extract chains of interest.
-    extractPDB(pdb_filename, str(outfile_pdb), chain_ids1, ligand_tla, ligand_chain)
+    extractPDB(pdb_filename, str(outfile_pdb), chain_ids1, ligand_tla, ligand_chain, keep_nucleotides=keep_nucleotides)
 
     # Compute MSMS of surface w/hydrogens,
     include_hetatms = [] if ligand_tla is None else [ligand_tla]

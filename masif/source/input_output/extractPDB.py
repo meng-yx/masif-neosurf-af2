@@ -8,6 +8,9 @@ from Bio.PDB import *
 from Bio.SeqUtils import IUPACData
 PROTEIN_LETTERS = [x.upper() for x in IUPACData.protein_letters_3to1.keys()]
 
+from triangulation.nucleotide_utils import NUCLEOTIDES
+
+
 # Exclude disordered atoms.
 class NotDisordered(Select):
     def accept_atom(self, atom):
@@ -30,7 +33,7 @@ def find_modified_amino_acids(path):
 
 
 def extractPDB(
-    infilename, outfilename, chain_ids=None, ligand_code=None, ligand_chain=None
+    infilename, outfilename, chain_ids=None, ligand_code=None, ligand_chain=None, keep_nucleotides=False,
 ):
     # extract the chain_ids from infilename and save in outfilename. 
     parser = PDBParser(QUIET=True)
@@ -62,6 +65,8 @@ def extractPDB(
                 elif het[0][-3:] in modified_amino_acids:
                     outputStruct[0][chain.get_id()].add(residue)
                 elif ligand_code is not None and het[0][-3:] == ligand_code:
+                    outputStruct[0][chain.get_id()].add(residue)
+                elif keep_nucleotides and residue.get_resname() in NUCLEOTIDES:
                     outputStruct[0][chain.get_id()].add(residue)
 
         # ligand might be in different chain

@@ -39,7 +39,6 @@ def computeMSMS(pdb_file,  protonate=True, keep_hetatms=None):
         fields = line.split()
         areas[fields[3]] = fields[1]
 
-
     # Remove temporary files. 
     os.remove(file_base+'.area')
     os.remove(file_base+'.xyzrn')
