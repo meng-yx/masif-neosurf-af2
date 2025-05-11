@@ -259,23 +259,28 @@ def masif_search(params):
         print("Second stage of MaSIF seed search: each matched descriptor is aligned and scored; this may take a while..")
         count_matched_fragments = 0
         for ix, name in enumerate(matched_dict.keys()):
-            align_protein(
-                name, \
-                target_patch, \
-                target_patch_descs, \
-                target_ckdtree, \
-                target_ca_pcd_tree, \
-                target_pcd_tree, \
-                source_paths, \
-                matched_dict,\
-                nn_score_atomic, \
-                site_outdir, \
-                params, \
-                first_stage_scores=scores_dict[name],
-            )
+            try:
+                align_protein(
+                    name, \
+                    target_patch, \
+                    target_patch_descs, \
+                    target_ckdtree, \
+                    target_ca_pcd_tree, \
+                    target_pcd_tree, \
+                    source_paths, \
+                    matched_dict,\
+                    nn_score_atomic, \
+                    site_outdir, \
+                    params, \
+                    first_stage_scores=scores_dict[name],
+                )
+            except Exception:
+                print(f"Error while trying to align {name}.")
             if (ix + 1) % 1000 == 0:
                 print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments, ix + 1))
             count_matched_fragments += len(matched_dict[name])
+    
+    print("Done!")
 
 
 if __name__ == "__main__":
@@ -299,6 +304,7 @@ if __name__ == "__main__":
     parser.add_argument("--desc_dist_score_cutoff", type=float, default=0.0, help="# Recommended values: [0.0-20.0] (higher is stricter)")
     parser.add_argument("--allowed_CA_clashes", type=int, default=0)
     parser.add_argument("--allowed_heavy_atom_clashes", type=int, default=5)
+    parser.add_argument("--ransac_iter", type=int, default=100000)  # Note: previous default was 2000
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
     parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
     parser.add_argument("--random_seed", type=int, default=None)
@@ -358,10 +364,7 @@ if __name__ == "__main__":
     args.max_npoints = 200
 
     # Ransac parameters
-    if version.parse(o3d.__version__) <= version.parse('0.11.0'):
-        args.ransac_iter = 2000
-    else:
-        args.ransac_iter = 100000
+    if version.parse(o3d.__version__) > version.parse('0.11.0'):
         args.ransac_convergence_kwargs = {'confidence': 0.999}
     # Ransac radius - should not be changed.
     args.ransac_radius = 1.5
