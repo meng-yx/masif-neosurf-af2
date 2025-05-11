@@ -131,9 +131,10 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     if masif_opts['use_apbs']:
         print(f"Computing APBS...")
         shutil.copy(outfile_pdb, tmp_file_base.with_suffix(".pdb"))
-        # NOTE: the AMBER force field is required for including nucleic acids 
+        # NOTE: AMBER or CHARMM force field is required for including nucleic acids 
         #   but it might give inconsistent results because MaSIF was trained with PARSE
-        force_field = "AMBER" if keep_nucleotides else "PARSE"
+        # force_field = "AMBER" if keep_nucleotides else "PARSE"
+        force_field = "CHARMM" if keep_nucleotides else "PARSE"
         vertex_charges = computeAPBS(regular_mesh.vertices, str(outfile_pdb), str(tmp_file_base), mol2_file, ff=force_field)
         print(f"APBS done!")
 
