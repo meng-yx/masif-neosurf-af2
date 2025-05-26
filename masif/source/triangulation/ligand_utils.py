@@ -70,7 +70,7 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
     try:
         if sdf_template is not None:
             template = Chem.SDMolSupplier(sdf_template)[0]
-            template = Chem.AddHs(template)
+            template = Chem.RemoveHs(template)
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
             print(f"[INFO] Inferred ligand connectivity from the provided SDF file")
             
@@ -78,7 +78,7 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
             print("Extracting ligand connectivity from PDB Ligand Expo")
             smiles, expo_name = ligand_expo[ligand_name]
             template = AllChem.MolFromSmiles(smiles)
-            template = Chem.AddHs(template)
+            template = Chem.RemoveHs(template)
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
             print(f"[INFO] Inferred ligand connectivity from the PDB Ligand Expo (name: {expo_name})")
 
