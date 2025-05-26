@@ -3,7 +3,7 @@ import numpy as np
 import os
 import Bio
 import shutil
-from Bio.PDB import * 
+from Bio.PDB import *
 import sys
 import importlib
 from IPython.core.debugger import set_trace
@@ -17,7 +17,7 @@ import pymesh
 from input_output.extractPDB import extractPDB
 from input_output.save_ply import save_ply
 from input_output.read_ply import read_ply
-from input_output.protonate import protonate
+from input_output.protonate import protonate, get_pdb_conect
 from triangulation.computeHydrophobicity import computeHydrophobicity
 from triangulation.computeCharges import computeCharges, assignChargesToNewMesh
 from triangulation.computeAPBS import computeAPBS
@@ -25,13 +25,13 @@ from triangulation.compute_normal import compute_normal
 from sklearn.neighbors import KDTree
 
 
-if len(sys.argv) <= 1: 
+if len(sys.argv) <= 1:
     print("Usage: {config} "+sys.argv[0]+" PDBID_A")
     print("A or AB are the chains to include in this surface.")
     sys.exit(1)
 
 
-# Save the chains as separate files. 
+# Save the chains as separate files.
 in_fields = sys.argv[1].split("_")
 pdb_id = in_fields[0]
 chain_ids1 = in_fields[1]
@@ -48,6 +48,7 @@ if len(sys.argv) >= 3:
     if len(sys.argv) >= 4:
         sdf_file = sys.argv[3]
     else:
+        print("No SDF file provided. Connectivity will be inferred from the PDB.")
         sdf_file = None
 
 # Without ligand
@@ -69,8 +70,13 @@ tmp_dir = os.environ.get('TMPDIR')
 if tmp_dir is None:
     tmp_dir= masif_opts['tmp_dir']
 
+if ligand_code is not None and ligand_code == 'UNL' and sdf_file is not None:
+    het_dict = os.path.join(tmp_dir, "{}_{}_conect.txt".format(pdb_id, ligand_code))
+    get_pdb_conect(pdb_filename, ligand_code, ligand_chain, sdf_file, save_txt=het_dict)
+else:
+    het_dict = os.environ.get('REDUCE_HET_DICT')
 protonated_file = tmp_dir+"/"+pdb_id+"_protonated.pdb"
-protonate(pdb_filename, protonated_file)
+protonate(pdb_filename, protonated_file, het_dict=het_dict)
 pdb_filename = protonated_file
 
 # Extract chains of interest.
@@ -78,8 +84,7 @@ out_filename1 = tmp_dir+"/"+pdb_id+"_"+chain_ids1
 extractPDB(pdb_filename, out_filename1+".pdb", chain_ids1, ligand_code, ligand_chain)
 
 # Compute MSMS of surface w/hydrogens,
-include_hetatms = [] if ligand_code is None else [ligand_code]
-vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, keep_hetatms=include_hetatms)
+vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, ligand_code=ligand_code)
 
 # Get and RDKit molecule object
 if ligand_code is not None and ligand_chain is not None:
@@ -93,7 +98,7 @@ else:
 if masif_opts['use_hbond']:
     vertex_hbond = computeCharges(out_filename1, vertices1, names1, ligand_code, rdmol)
 
-# For each surface residue, assign the hydrophobicity of its amino acid. 
+# For each surface residue, assign the hydrophobicity of its amino acid.
 if masif_opts['use_hphob']:
     vertex_hphobicity = computeHydrophobicity(names1, ligand_code, rdmol)
 
@@ -128,7 +133,7 @@ if masif_opts['use_apbs']:
 iface = np.zeros(len(regular_mesh.vertices))
 if 'compute_iface' in masif_opts and masif_opts['compute_iface']:
     # Compute the surface of the entire complex and from that compute the interface.
-    v3, f3, _, _, _ = computeMSMS(pdb_filename, protonate=True, keep_hetatms=include_hetatms)
+    v3, f3, _, _, _ = computeMSMS(pdb_filename, protonate=True, ligand_code=ligand_code)
     # Regularize the mesh
     mesh = pymesh.form_mesh(v3, f3)
     # I believe It is not necessary to regularize the full mesh. This can speed up things by a lot.
@@ -157,5 +162,5 @@ if not os.path.exists(masif_opts['ply_chain_dir']):
     os.makedirs(masif_opts['ply_chain_dir'])
 if not os.path.exists(masif_opts['pdb_chain_dir']):
     os.makedirs(masif_opts['pdb_chain_dir'])
-shutil.copy(out_filename1+'.ply', masif_opts['ply_chain_dir']) 
-shutil.copy(out_filename1+'.pdb', masif_opts['pdb_chain_dir']) 
+shutil.copy(out_filename1+'.ply', masif_opts['ply_chain_dir'])
+shutil.copy(out_filename1+'.pdb', masif_opts['pdb_chain_dir'])
