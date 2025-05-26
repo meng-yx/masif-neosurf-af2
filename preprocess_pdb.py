@@ -20,7 +20,7 @@ from masif.source.triangulation.ligand_utils import extract_ligand
 from masif.source.triangulation.nucleotide_utils import NUCLEOTIDES
 from masif.source.input_output.extractPDB import extractPDB
 from masif.source.input_output.save_ply import save_ply
-from masif.source.input_output.protonate import protonate
+from masif.source.input_output.protonate import protonate, get_pdb_conect
 from masif.source.triangulation.computeHydrophobicity import computeHydrophobicity
 from masif.source.triangulation.computeCharges import computeCharges, assignChargesToNewMesh
 from masif.source.triangulation.computeAPBS import computeAPBS
@@ -73,7 +73,11 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
 
     # Protonate structure.
     protonated_file = Path(tmp_dir, pdb_id + "_protonated.pdb")
-    if ligand_code is not None and len(ligand_code) > 3:
+    if ligand_code is not None and os.environ.get('REDUCE_HET_DICT') == 'INFER':
+        het_dict = Path(tmp_dir, f"{pdb_id}_{ligand_code}_conect.txt")
+        get_pdb_conect(pdb_filename, ligand_code[:3], ligand_chain, sdf_file, save_txt=het_dict)
+        protonate(pdb_filename, protonated_file, het_dict=het_dict)
+    elif ligand_code is not None and len(ligand_code) > 3:
         # if the ligand code is too long, reduce can't find the correct entry based on the abbreviated three-letter code in the pdb file
         # so we hack the hetero atom dictionary instead
         with tempfile.NamedTemporaryFile() as tmp_het_dict:

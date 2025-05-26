@@ -13,6 +13,8 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from io import StringIO
 
+from triangulation.ligand_utils import ligand_expo
+
 
 def protonate(in_pdb_file, out_pdb_file, het_dict = os.environ.get('REDUCE_HET_DICT')):
     # protonate (i.e., add hydrogens) a pdb using reduce and save to an output file.
@@ -53,7 +55,7 @@ def make_pdb3_format_atom(atomstring):
   elif l == 1: return ' '+atomstring+'  '
 
 
-def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template, save_txt):
+def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template=None, save_txt=None):
     pdb = prody.parsePDB(pdb_file)
     ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name}')
 
@@ -61,7 +63,16 @@ def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template, save_txt):
     prody.writePDBStream(out, ligand)
     rdmol = AllChem.MolFromPDBBlock(out.getvalue(), sanitize=True, removeHs=False)
 
-    template = Chem.SDMolSupplier(sdf_template)[0]
+    if sdf_template is None:
+        try:
+            # Query the ligand expo
+            smiles, expo_name = ligand_expo[ligand_name]
+        except KeyError as e:
+            print(f"[ERROR] Could not find {ligand_name} in the PDB Ligand Expo. Consider passing an SDF template instead.")
+            raise e
+        template = AllChem.MolFromSmiles(smiles)
+    else:
+        template = Chem.SDMolSupplier(sdf_template)[0]
     rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
 
     rdmol = Chem.AddHs(rdmol, addCoords=True)
@@ -96,5 +107,8 @@ def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template, save_txt):
 
     lines.append('END\n')
 
-    with open(save_txt, 'w') as f:
-        f.writelines(lines)
+    if save_txt is not None:
+        with open(save_txt, 'w') as f:
+            f.writelines(lines)
+
+    return lines
