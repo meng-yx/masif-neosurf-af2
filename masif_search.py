@@ -274,8 +274,8 @@ def masif_search(params):
                     params, \
                     first_stage_scores=scores_dict[name],
                 )
-            except Exception:
-                print(f"Error while trying to align {name}.")
+            except Exception as e:
+                print(f"Error '{e}' while trying to align {name}.")
             if (ix + 1) % 1000 == 0:
                 print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments, ix + 1))
             count_matched_fragments += len(matched_dict[name])

@@ -494,6 +494,7 @@ def compute_nn_score(target_pcd, source_pcd, corr,
     # desc dist score: sum over those within 1.5A
     neigh = np.where(d < 1.5)[0]
     desc_dist_score = np.sum(np.square(desc_dist[neigh]))
+    mean_desc_dist_score = desc_dist_score / neigh.shape[0]
 
     # feat3: normal dot product
     n1 = np.asarray(source_pcd.normals)
@@ -513,7 +514,7 @@ def compute_nn_score(target_pcd, source_pcd, corr,
                             features, 0.9 
                             )
 
-    ret = (np.array([nn_score_pred[0][0], desc_dist_score]).T, point_importance)
+    ret = (np.array([nn_score_pred[0][0], desc_dist_score, mean_desc_dist_score]).T, point_importance)
     return ret 
 
 def align_protein(
@@ -629,7 +630,7 @@ def align_protein(
                 # Output the score for convenience. 
                 extra_info = '' if first_stage_scores is None else ', desc_dist: {}, iface_score: {}'.format(first_stage_scores['desc_dist'][j], first_stage_scores['iface_score'][j])
                 out_score = open(out_fn+'.score', 'w+')
-                out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}, match_vix: {}{}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1], source_vix[j], extra_info))
+                out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}, mean_desc_dist_score: {}, match_vix: {}{}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1], scores[j][2], source_vix[j], extra_info))
                 out_score.close()
 
                 # Output the rigid transformation
