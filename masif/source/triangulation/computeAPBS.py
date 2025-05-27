@@ -34,8 +34,9 @@ def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None, ff="PARSE"):
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
     stdout, stderr = p2.communicate()
 
-    print("### PDB2PQR ###\n", stderr.decode('utf-8'))
-    # from pdb import set_trace; set_trace()
+    if p2.returncode != 0:
+        print("### PDB2PQR ###\n", stderr.decode('utf-8'))
+        raise RuntimeError("PDB2PQR exited with an error")
 
     args = [apbs_bin, filename_base + ".in"]
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
@@ -45,8 +46,9 @@ def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None, ff="PARSE"):
         vertfile.write("{},{},{}\n".format(vert[0], vert[1], vert[2]))
     vertfile.close()
 
-    print("### APBS ###\n", stderr.decode('utf-8'))
-    # from pdb import set_trace; set_trace()
+    if p2.returncode != 0:
+        print("### APBS ###\n", stderr.decode('utf-8'))
+        raise RuntimeError("APBS exited with an error")
 
     args = [
         multivalue_bin,
@@ -57,8 +59,9 @@ def computeAPBS(vertices, pdb_file, tmp_file_base, mol2_file=None, ff="PARSE"):
     p2 = Popen(args, stdout=PIPE, stderr=PIPE, cwd=directory)
     stdout, stderr = p2.communicate()
 
-    print("### MULTIVALUE ###\n", stderr.decode('utf-8'))
-    # from pdb import set_trace; set_trace()
+    if p2.returncode != 0:
+        print("### MULTIVALUE ###\n", stderr.decode('utf-8'))
+        raise RuntimeError("MULTIVALUE exited with an error")
 
     # Read the charge file
     chargefile = open(tmp_file_base + "_out.csv")

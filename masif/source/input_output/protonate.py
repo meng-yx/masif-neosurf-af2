@@ -30,13 +30,18 @@ def protonate(in_pdb_file, out_pdb_file, het_dict = os.environ.get('REDUCE_HET_D
     outfile.close()
 
     # Now add them again.
-    # args = ["reduce", "-HIS", "-DB", "/work/upcorreia/bin/reduce/reduce_wwPDB_het_dict_old.txt", out_pdb_file]
     args = ["reduce", out_pdb_file, "-HIS"]
     if het_dict is not None:
         args.extend(["-DB", het_dict])
+        args.extend([ "-NONMETALBump0.110"])  # default NONMETALBump=0.125 leads to issues for some ligands
 
     p2 = Popen(args, stdout=PIPE, stderr=PIPE)
     stdout, stderr = p2.communicate()
+
+    if p2.returncode != 0:
+        print("### REDUCE ###\n", stderr.decode('utf-8'))
+        raise RuntimeError("REDUCE exited with an error")
+
     outfile = open(out_pdb_file, "w")
     outfile.write(stdout.decode('utf-8'))
     outfile.close()
