@@ -634,7 +634,7 @@ def align_protein(
                 out_score.close()
 
                 # Output the rigid transformation
-                np.save(out_fn + '_transform.npy', res.transformation)
+                np.save(out_fn + '_transform.npy', res.transformation @ random_transformation)
                 
                 print ('Surface alignment is deactivated - aligning only pdbs. ')
                 continue
