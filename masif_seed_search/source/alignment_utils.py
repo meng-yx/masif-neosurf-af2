@@ -530,6 +530,7 @@ def align_protein(
         site_outdir, \
         params, \
         first_stage_scores = None,
+        n_retry_alignment = 1,
     ):
     ppi_pair_id = name[0]
     pid = name[1]
@@ -557,31 +558,47 @@ def align_protein(
     source_vix = matched_dict[name]
 
     source_coord =  get_patch_coords(params['seed_precomp_dir'], ppi_pair_id, pid, cv=source_vix)
+
+
+    all_results = [None] * len(source_vix)
+    all_source_patch = [None] * len(source_vix)
+    all_source_patch_desc = [None] * len(source_vix)
+    all_source_idx = [None] * len(source_vix)
+    all_source_scores = [None] * len(source_vix)
+    for _ in range(n_retry_alignment):
     
-    # Perform all alignments to target. 
-    all_results, all_source_patch, all_source_patch_desc, all_source_idx = multidock(
-            source_pcd, source_coord, source_desc,
-            source_vix, target_patch, target_patch_descs, 
-            params
-            ) 
+        # Perform all alignments to target. 
+        _all_results, _all_source_patch, _all_source_patch_desc, _all_source_idx = multidock(
+                source_pcd, source_coord, source_desc,
+                source_vix, target_patch, target_patch_descs, 
+                params
+                ) 
 
-    # Score the results using a 'lightweight' scoring function.
-    all_source_scores = [None]*len(source_vix)
-    for viii in range(len(source_vix)):
-        if len(all_results[viii].correspondence_set)/float(len(np.asarray(all_source_patch[viii].points))) < 0.3:
-            # Ignore those with poor fitness.
-            all_source_scores[viii] = ([0,0], np.zeros_like(all_source_idx[viii]))
-        else:
-            # Compute the distance between every source_surface_vertices and every target vertex.
-            d_vi_at, _= target_pcd_tree.query(np.asarray(all_source_patch[viii].points), k=1)
+        # Score the results using a 'lightweight' scoring function.
+        for viii in range(len(source_vix)):
+            if len(_all_results[viii].correspondence_set)/float(len(np.asarray(_all_source_patch[viii].points))) < 0.3:
+                # Ignore those with poor fitness.
+                _scores_viii = ([0,0,0], np.zeros_like(_all_source_idx[viii]))
+            else:
+                # Compute the distance between every source_surface_vertices and every target vertex.
+                d_vi_at, _= target_pcd_tree.query(np.asarray(_all_source_patch[viii].points), k=1)
 
-            all_source_scores[viii] = compute_nn_score(target_patch, all_source_patch[viii], np.asarray(all_results[viii].correspondence_set),
-                 target_patch_descs, all_source_patch_desc[viii], \
-                target_ckdtree, nn_score, d_vi_at, 1.0) # Ignore point importance for speed.
-            if len(np.asarray(all_results[viii].correspondence_set)) <= 2.0:
-                if all_source_scores[viii][0][0] > 0.9: 
-                    print('Error in masif_seed_search; check scoring.')
-                    return
+                _scores_viii = compute_nn_score(target_patch, _all_source_patch[viii], np.asarray(_all_results[viii].correspondence_set),
+                    target_patch_descs, _all_source_patch_desc[viii], \
+                    target_ckdtree, nn_score, d_vi_at, 1.0) # Ignore point importance for speed.
+                if len(np.asarray(_all_results[viii].correspondence_set)) <= 2.0:
+                    if _scores_viii[0][0] > 0.9: 
+                        print('Error in masif_seed_search; check scoring.')
+                        return
+            
+            # update results if alignment with better NN score was found
+            # _scores_viii: ([nn_score, desc_dist_score, mean_desc_dist_score], point_importance)
+            if (all_source_scores[viii] is None) or (_scores_viii[0][0] > all_source_scores[viii][0][0]):
+                all_results[viii] = _all_results[viii]
+                all_source_patch[viii] = _all_source_patch[viii]
+                all_source_patch_desc[viii] = _all_source_patch_desc[viii]
+                all_source_idx[viii] = _all_source_idx[viii]
+                all_source_scores[viii] = _scores_viii
 
     # All_point_importance: impact of each vertex on the score. 
     all_point_importance = [x[1] for x in all_source_scores]

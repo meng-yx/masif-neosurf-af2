@@ -273,6 +273,7 @@ def masif_search(params):
                     site_outdir, \
                     params, \
                     first_stage_scores=scores_dict[name],
+                    n_retry_alignment=params['n_retry_alignment'],
                 )
             except Exception as e:
                 print(f"Error '{e}' while trying to align {name}.")
@@ -305,6 +306,7 @@ if __name__ == "__main__":
     parser.add_argument("--allowed_CA_clashes", type=int, default=0)
     parser.add_argument("--allowed_heavy_atom_clashes", type=int, default=5)
     parser.add_argument("--ransac_iter", type=int, default=100000)  # Note: previous default was 2000
+    parser.add_argument("--n_retry_alignment", type=int, default=1)
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
     parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
     parser.add_argument("--random_seed", type=int, default=None)
