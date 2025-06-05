@@ -40,8 +40,8 @@ def score_complex(
 
         # Get the geodesic patch and descriptor patch for each target patch
         target_patch, target_patch_descs, target_patch_idx = get_patch_geo(
-            target_pcd, target_coord, target_vix, target_desc, 
-            flip_normals=flip_target_normals, 
+            target_pcd, target_coord, target_vix, target_desc,
+            flip_normals=flip_target_normals,
             outward_shift=params['surface_outward_shift']
         )
 
@@ -53,7 +53,7 @@ def score_complex(
         if pid == 'p1':
             chain = source_name.split('_')[1]
             chain_number = 1
-        else: 
+        else:
             chain = source_name.split('_')[2]
             chain_number = 2
         source_pcd, source_desc, source_iface = load_protein_pcd(source_name, chain_number, source_paths, flipped_features=False, read_mesh=False)
@@ -73,10 +73,12 @@ def score_complex(
         source_patch, source_patch_descs, source_patch_idx = get_patch_geo(source_pcd, source_coord, source_vix, source_desc, outward_shift=params['surface_outward_shift'])
         d_vi_at, _= target_pcd_tree.query(np.asarray(source_patch.points), k=1)
 
-        nn_score, desc_dist_score = compute_nn_score(
-            target_patch, source_patch, None, target_patch_descs, 
+        align_scores, _ = compute_nn_score(
+            target_patch, source_patch, None, target_patch_descs,
             source_patch_descs, target_ckdtree, nn_score, d_vi_at, 1.0
-        )[0]
+        )
+        nn_score = align_scores[0]
+        desc_dist_score = align_scores[1]
 
         results = {
             "query_name": target_name,
@@ -87,7 +89,7 @@ def score_complex(
             "distance_between_center_points": dists[source_vix],
             "query_iface_score": target_iface[target_vix],
             "binder_iface_score": source_iface[source_vix],
-            "descriptor_distance": desc_dist, 
+            "descriptor_distance": desc_dist,
             "nn_score": nn_score,
             "desc_dist_score": desc_dist_score,
         }
@@ -117,7 +119,7 @@ def masif_search(params):
 
     seed_ppi_pair_ids = params['seed_ppi_pair_ids']
 
-    # Initialize two neural networks - one that does not account for atomic clashes (initial filter) and one with clashes. 
+    # Initialize two neural networks - one that does not account for atomic clashes (initial filter) and one with clashes.
     nn_score_atomic = AlignmentEvaluationNN(params['nn_score_atomic_fn'], selected_features=[0,1,2,3], max_npoints=params['max_npoints'])
     nn_score_atomic.restore_model()
 
@@ -130,14 +132,14 @@ def masif_search(params):
 
     # Define target and source paths (for interface scores, descriptors, ply files)
     target_paths = {}
-    target_paths['surf_dir'] = params['target_surf_dir'] 
-    target_paths['iface_dir'] = params['target_iface_dir'] 
-    target_paths['desc_dir'] = params['target_desc_dir'] 
+    target_paths['surf_dir'] = params['target_surf_dir']
+    target_paths['iface_dir'] = params['target_iface_dir']
+    target_paths['desc_dir'] = params['target_desc_dir']
 
     source_paths = {}
-    source_paths['surf_dir'] = params['seed_surf_dir'] 
-    source_paths['iface_dir'] = params['seed_iface_dir'] 
-    source_paths['desc_dir'] = params['seed_desc_dir'] 
+    source_paths['surf_dir'] = params['seed_surf_dir']
+    source_paths['iface_dir'] = params['seed_iface_dir']
+    source_paths['desc_dir'] = params['seed_desc_dir']
 
     # Load the target point cloud, descriptors, interface and mesh.
     target_pcd, target_desc, target_iface, target_mesh = load_protein_pcd(target_ppi_pair_id, target_chain_ix, target_paths, flipped_features=flip_target_features, read_mesh=True)
@@ -227,8 +229,8 @@ def masif_search(params):
 
         # Get the geodesic patch and descriptor patch for each target patch
         target_patch, target_patch_descs, target_patch_idx = get_patch_geo(
-            target_pcd, target_coord, site_vix, target_desc, 
-            flip_normals=flip_target_normals, 
+            target_pcd, target_coord, site_vix, target_desc,
+            flip_normals=flip_target_normals,
             outward_shift=params['surface_outward_shift'])
 
         # Make a ckdtree with the target vertices.
@@ -280,7 +282,7 @@ def masif_search(params):
             if (ix + 1) % 1000 == 0:
                 print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments, ix + 1))
             count_matched_fragments += len(matched_dict[name])
-    
+
     print("Done!")
 
 
@@ -295,7 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--chain", dest="target_chain", type=str, default=None)
     parser.add_argument("--atom_id", dest="target_atom_id", type=str, default=None)
     parser.add_argument("--coord", dest="target_coord", type=float, nargs="+", default=None)
-    
+
     parser.add_argument("--subset", dest="database_subset", type=Path, default=None)
     parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
     parser.add_argument("--num_sites", type=int, default=1)
@@ -354,7 +356,7 @@ if __name__ == "__main__":
     args.target_pdb_dir = os.path.join(args.top_target_dir, masif_opts['pdb_chain_dir'])
     args.target_desc_dir = os.path.join(args.top_target_dir, masif_opts['ppi_search']['desc_dir'])
     args.target_desc_dir = os.path.join(args.top_target_dir, masif_opts['ppi_search']['desc_dir'])
-    
+
     # 9 A
     # args.target_precomp_dir = os.path.join(args.top_target_dir,masif_opts['site']['masif_precomputation_dir'])
     # 12 A
