@@ -1,9 +1,10 @@
 import os
 from subprocess import Popen, PIPE
+import sys
 
 from input_output.read_msms import read_msms
 from triangulation.xyzrn import output_pdb_as_xyzrn
-from default_config.global_vars import msms_bin 
+from default_config.global_vars import msms_bin
 from default_config.masif_opts import masif_opts
 import random
 
@@ -39,7 +40,7 @@ def computeMSMS(pdb_file,  protonate=True, keep_hetatms=None):
         fields = line.split()
         areas[fields[3]] = fields[1]
 
-    # Remove temporary files. 
+    # Remove temporary files.
     os.remove(file_base+'.area')
     os.remove(file_base+'.xyzrn')
     os.remove(file_base+'.vert')
