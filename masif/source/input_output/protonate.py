@@ -16,7 +16,7 @@ from io import StringIO
 from triangulation.ligand_utils import ligand_expo
 
 
-def protonate(in_pdb_file, out_pdb_file, het_dict = os.environ.get('REDUCE_HET_DICT')):
+def protonate(in_pdb_file, out_pdb_file, het_dict=os.environ.get('REDUCE_HET_DICT')):
     # protonate (i.e., add hydrogens) a pdb using reduce and save to an output file.
     # in_pdb_file: file to protonate.
     # out_pdb_file: output file where to save the protonated pdb file.

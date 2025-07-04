@@ -73,19 +73,21 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
 
     # Protonate structure.
     protonated_file = Path(tmp_dir, pdb_id + "_protonated.pdb")
-    if ligand_code is not None and os.environ.get('REDUCE_HET_DICT') == 'INFER':
+    het_dict = os.environ.get('REDUCE_HET_DICT')  # default het_dict
+    if ligand_code is not None and het_dict == 'INFER':
         het_dict = Path(tmp_dir, f"{pdb_id}_{ligand_code}_conect.txt")
-        get_pdb_conect(pdb_filename, ligand_code[:3], ligand_chain, sdf_file, save_txt=het_dict)
-        protonate(pdb_filename, protonated_file, het_dict=het_dict)
-    elif ligand_code is not None and len(ligand_code) > 3:
+        get_pdb_conect(pdb_filename, ligand_code, ligand_chain, sdf_file, save_txt=het_dict)
+    
+    if ligand_code is not None and len(ligand_code) > 3:
         # if the ligand code is too long, reduce can't find the correct entry based on the abbreviated three-letter code in the pdb file
         # so we hack the hetero atom dictionary instead
+        assert het_dict is not None
         with tempfile.NamedTemporaryFile() as tmp_het_dict:
-            default_het_dict = os.environ.get('REDUCE_HET_DICT')
-            extract_het_dict(ligand_code, default_het_dict, tmp_het_dict.name)
+            extract_het_dict(ligand_code, het_dict, tmp_het_dict.name)
             protonate(pdb_filename, protonated_file, het_dict=tmp_het_dict.name)
     else:
-        protonate(pdb_filename, protonated_file)
+        protonate(pdb_filename, protonated_file, het_dict=het_dict)
+        
     pdb_filename = protonated_file
 
     # Extract chains of interest.
