@@ -77,8 +77,6 @@ def score_complex(
             target_patch, source_patch, None, target_patch_descs,
             source_patch_descs, target_ckdtree, nn_score, d_vi_at, 1.0
         )
-        nn_score = align_scores[0]
-        desc_dist_score = align_scores[1]
 
         results = {
             "query_name": target_name,
@@ -90,8 +88,9 @@ def score_complex(
             "query_iface_score": target_iface[target_vix],
             "binder_iface_score": source_iface[source_vix],
             "descriptor_distance": desc_dist,
-            "nn_score": nn_score,
-            "desc_dist_score": desc_dist_score,
+            "nn_score": align_scores[0],
+            "desc_dist_score": align_scores[1],
+            "mean_desc_dist_score": align_scores[2],
         }
         print(', '.join(f"{k}: {v}" for k, v in results.items()))
 
