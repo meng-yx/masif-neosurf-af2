@@ -156,36 +156,49 @@ def masif_search(params):
     target_ca_pcd_tree = None # cKDTree(np.array(target_ca_coords))
 
     # If a specific residue is selected, then go after that residue
-    if 'target_residue' in params:
-        target_chain = params['target_residue']['chain']
-        target_cutoff = params['target_residue']['cutoff']
-        target_atom_id = params['target_residue']['atom_id']
-        # Use the tuple for biopython: (' ', resid, ' ')
-        target_resid = [x.id for x in target_struct[0][target_chain].get_residues() if x.id[1] == params['target_residue']['resid']]
-        assert len(target_resid) == 1, print(f"Target residue ID not unique: {target_resid}")
-        target_resid = target_resid[0]
-        print(f"Using residue: {target_resid}")
-        coord = target_struct[0][target_chain][target_resid][target_atom_id].get_coord()
-        # find atom indices close to the target.
-        dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
-        neigh_indices = np.where(dists<target_cutoff)[0]
-        # Get a target vertex for every target site.
-        target_vertices = get_target_vix(target_coord, iface,num_sites=params['num_sites'],selected_vertices=neigh_indices)
-
-    elif 'target_point' in params:
-        coord = np.array(params['target_point']['coord'])
-        target_cutoff = params['target_point']['cutoff']
-
-        # find atom indices close to the target.
-        dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
-        neigh_indices = np.where(dists < target_cutoff)[0]
-        # Get a target vertex for every target site.
-        target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices)
-
+    if 'site_vix' in params and params['site_vix'] is not None:
+        assert params['num_sites'] is None or params['num_sites'] == len(params['site_vix'])
+        target_vertices = params['site_vix']
+    
     else:
-        # Get a target vertex for every target site.
-        target_vertices = get_target_vix(target_coord, iface,num_sites=params['num_sites'])
+        assert params['num_sites'] is not None, "Please specify for how many sites the search should be performed."
 
+        if 'target_residue' in params:
+            target_chain = params['target_residue']['chain']
+            # Use the tuple for biopython: (' ', resid, ' ')
+            target_resid = [x.id for x in target_struct[0][target_chain].get_residues() if x.id[1] == params['target_residue']['resid']]
+            assert len(target_resid) == 1, print(f"Target residue ID not unique: {target_resid}")
+            target_resid = target_resid[0]
+            print(f"Using residue: {target_resid}")
+
+            target_cutoff = params['target_cutoff']
+            if 'target_atom' in params:
+                target_atom_id = params['target_atom']['atom_id']
+                coord = target_struct[0][target_chain][target_resid][target_atom_id].get_coord()
+                # find atom indices close to the target.
+                dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
+                neigh_indices = np.where(dists < target_cutoff)[0]
+            
+            else:
+                residue_coords = np.stack([a.get_coord() for a in target_struct[0][target_chain][target_resid].get_atoms() if a.element != 'H'])
+                dists = np.sqrt(np.sum(np.square(np.asarray(mymesh.vertices).reshape(-1, 1, 3) - residue_coords.reshape(1, -1, 3)), axis=-1))
+                neigh_indices = np.where(np.any(dists < target_cutoff, axis=-1))[0]
+
+            # Get a target vertex for every target site.
+            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices) 
+
+        elif 'target_point' in params:
+            coord = np.array(params['target_point']['coord'])
+            target_cutoff = params['target_cutoff']
+
+            # find atom indices close to the target.
+            dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
+            neigh_indices = np.where(dists < target_cutoff)[0]
+            # Get a target vertex for every target site.
+            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices)
+        else:
+            # Get a target vertex for every target site.
+            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'])
 
     if params.get('score_binder', None) is not None:
         score_complex(
@@ -212,16 +225,15 @@ def masif_search(params):
     shutil.copy(target_pdb_path, outdir)
     shutil.copy(target_ply_fn, outdir)
 
-    # Go through every target site in the target
-    if 'selected_site_ixs' in params:
-        site_ixs = params['selected_site_ixs']
-        site_vixs = [vix for ix, vix in enumerate(target_vertices) if ix in site_ixs]
-    else:
-        site_ixs = [ix for ix, vix in enumerate(target_vertices)]
-        site_vixs = target_vertices
+    # Write out the targeted patches
+    with open(os.path.join(outdir, 'selected_sites.vert'), 'w+') as out_patch:
+        for site_vix in target_vertices:
+            point = target_pcd.points[site_vix]
+            out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
+
 
     # Go through every selected site
-    for site_ix, site_vix in zip(site_ixs, site_vixs):
+    for site_ix, site_vix in enumerate(target_vertices):
         site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
         if not os.path.exists(site_outdir):
             os.makedirs(site_outdir, exist_ok=True)
@@ -299,7 +311,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--subset", dest="database_subset", type=Path, default=None)
     parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
-    parser.add_argument("--num_sites", type=int, default=1)
+    parser.add_argument("--num_sites", type=int, default=None)
+    parser.add_argument("--site_vix", type=int, nargs='+', default=None)
     parser.add_argument("--desc_dist_cutoff", type=float, default=2.0, help="Recommended values: [1.5-2.0] (lower is stricter)")
     parser.add_argument("--iface_cutoff", type=float, default=0.75, help="Recommended values: [0.75-0.95] range (higher is stricter)")
     parser.add_argument("--nn_score_cutoff", type=float, default=0.8, help="# Recommended values: [0.8-0.95] (higher is stricter)")
@@ -319,11 +332,12 @@ if __name__ == "__main__":
         args.maybe_seed = {"seed": args.random_seed}
 
     # Definition of the target patch
-    assert ((args.target_resid is not None) and (args.target_chain is not None) and (args.target_atom_id is not None)) ^ (args.target_coord is not None)
     if args.target_coord is not None:
-        args.target_point = {'cutoff': args.target_cutoff, 'coord': args.target_coord}
-    else:
-        args.target_residue = {'cutoff': args.target_cutoff, 'resid': args.target_resid, 'chain': args.target_chain, 'atom_id': args.target_atom_id}
+        args.target_point = {'coord': args.target_coord}
+    elif args.target_resid is not None and args.target_chain is not None:
+        args.target_residue = {'resid': args.target_resid, 'chain': args.target_chain}
+        if args.target_atom_id is not None:
+            args.target_atom = {'atom_id': args.target_atom_id}
 
 
     # Database locations
