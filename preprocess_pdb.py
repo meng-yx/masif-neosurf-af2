@@ -51,7 +51,7 @@ def extract_het_dict(ligand_code, in_file, out_file):
         f.write(block)
 
 
-def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None, keep_nucleotides=False):
+def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None, keep_nucleotides=False, infer_reduce_het_dict=False):
     # Process inputs
     pdb_id, chain_ids1 = name_chain.split("_")
     if ligand_name_chain is None:
@@ -74,7 +74,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     # Protonate structure.
     protonated_file = Path(tmp_dir, pdb_id + "_protonated.pdb")
     het_dict = os.environ.get('REDUCE_HET_DICT')  # default het_dict
-    if ligand_code is not None and het_dict == 'INFER':
+    if ligand_code is not None and (infer_reduce_het_dict or (het_dict == 'INFER')):
         het_dict = Path(tmp_dir, f"{pdb_id}_{ligand_code}_conect.txt")
         get_pdb_conect(pdb_filename, ligand_code, ligand_chain, sdf_file, save_txt=het_dict)
     
@@ -214,9 +214,9 @@ def masif_precompute(ppi_pair_list, masif_app, output_root):
 
 
 def mask_input_feat(input_feat, mask):
-        """Apply mask to input_feat"""
-        mymask = np.where(np.array(mask) == 0.0)[0]
-        return np.delete(input_feat, mymask, axis=2)
+    """Apply mask to input_feat"""
+    mymask = np.where(np.array(mask) == 0.0)[0]
+    return np.delete(input_feat, mymask, axis=2)
 
 
 def predict_binding_sites(ppi_pair_ids, output_root):
@@ -416,6 +416,8 @@ if __name__ == "__main__":
                         help="Include DNA/RNA in the surface.")
     parser.add_argument("--tmp_dir", type=Path, default=None,
                         help="Directory where temporary files will be saved. Provide a path if you would like to inspect these files for debugging.")
+    parser.add_argument("--infer_reduce_het_dict", action="store_true", 
+                        help="Automatically create het dictionary used by reduce to add hydrogens. Particularly useful in combination with --sdf for ligands that aren't in the PDB.")
     args = parser.parse_args()
 
     if args.tmp_dir is not None:
@@ -423,7 +425,17 @@ if __name__ == "__main__":
 
     with tempfile.TemporaryDirectory() as _tmp_dir:
         tmp_dir = args.tmp_dir or _tmp_dir
-        extract_and_triangulate(args.pdbfile, args.name_chain, args.outdir, tmp_dir, ligand_name_chain=args.ligand, sdf_file=args.sdf, mol2_patch=args.mol2, keep_nucleotides=args.keep_nucleotides)
+        extract_and_triangulate(
+            args.pdbfile, 
+            args.name_chain, 
+            args.outdir, 
+            tmp_dir, 
+            ligand_name_chain=args.ligand, 
+            sdf_file=args.sdf, 
+            mol2_patch=args.mol2, 
+            keep_nucleotides=args.keep_nucleotides, 
+            infer_reduce_het_dict=args.infer_reduce_het_dict,
+        )
         masif_precompute([args.name_chain], "masif_site", args.outdir)
         masif_precompute([args.name_chain], "masif_ppi_search", args.outdir)
         predict_binding_sites([args.name_chain], args.outdir)
