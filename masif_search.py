@@ -159,7 +159,7 @@ def masif_search(params):
     if 'site_vix' in params and params['site_vix'] is not None:
         assert params['num_sites'] is None or params['num_sites'] == len(params['site_vix'])
         target_vertices = params['site_vix']
-    
+
     else:
         assert params['num_sites'] is not None, "Please specify for how many sites the search should be performed."
 
@@ -178,14 +178,14 @@ def masif_search(params):
                 # find atom indices close to the target.
                 dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
                 neigh_indices = np.where(dists < target_cutoff)[0]
-            
+
             else:
                 residue_coords = np.stack([a.get_coord() for a in target_struct[0][target_chain][target_resid].get_atoms() if a.element != 'H'])
                 dists = np.sqrt(np.sum(np.square(np.asarray(mymesh.vertices).reshape(-1, 1, 3) - residue_coords.reshape(1, -1, 3)), axis=-1))
                 neigh_indices = np.where(np.any(dists < target_cutoff, axis=-1))[0]
 
             # Get a target vertex for every target site.
-            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices) 
+            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices)
 
         elif 'target_point' in params:
             coord = np.array(params['target_point']['coord'])
@@ -313,6 +313,7 @@ if __name__ == "__main__":
     parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
     parser.add_argument("--num_sites", type=int, default=None)
     parser.add_argument("--site_vix", type=int, nargs='+', default=None)
+    parser.add_argument("--site_vix_file", type=Path, default=None)
     parser.add_argument("--desc_dist_cutoff", type=float, default=2.0, help="Recommended values: [1.5-2.0] (lower is stricter)")
     parser.add_argument("--iface_cutoff", type=float, default=0.75, help="Recommended values: [0.75-0.95] range (higher is stricter)")
     parser.add_argument("--nn_score_cutoff", type=float, default=0.8, help="# Recommended values: [0.8-0.95] (higher is stricter)")
@@ -339,6 +340,9 @@ if __name__ == "__main__":
         if args.target_atom_id is not None:
             args.target_atom = {'atom_id': args.target_atom_id}
 
+    if args.site_vix_file is not None and args.site_vix is None:
+        target_vix = [int(line) for line in args.site_vix_file.read_text().strip().split('\n')]
+        args.site_vix = target_vix
 
     # Database locations
     args.seed_surf_dir = os.path.join(args.top_seed_dir, masif_opts['ply_chain_dir'])
