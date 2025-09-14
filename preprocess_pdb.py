@@ -408,7 +408,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outdir", type=Path, help="Folder in which processed files will be saved.")
     parser.add_argument("-l", "--ligand", type=str, default=None,
                         help="Three letter code and chain of a ligand, e.g. 'FKA_B'.")
-    parser.add_argument("-s", "--sdf", type=str, default=None, 
+    parser.add_argument("-s", "--sdf", type=str, nargs='?', default=None, const=None,
                         help="Optional SDF file used to infer the ligand bond types.")
     parser.add_argument("-m", "--mol2", type=Path, default=None, 
                         help="Optional custom mol2 file. Should not be necessary in most cases.")
