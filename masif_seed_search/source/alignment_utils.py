@@ -349,7 +349,7 @@ def match_descriptors(directory_list, pids, target_desc, params, return_scores=F
         matched_iface = np.concatenate(all_matched_iface, axis=0)
     except:
         print("matched no descriptors")
-        return {}
+        return ({}, {}) if return_scores else {}
     
     matched_dict = {}
     desc_dist_dict = {}
