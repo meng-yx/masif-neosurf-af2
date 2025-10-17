@@ -259,18 +259,27 @@ def get_target_vix(pc, iface, num_sites=1, selected_vertices=None):
         best_ix = -1
         best_val = float("-inf")
         best_neigh = []
-        for ii in selected_vertices:
+        best_array_idx = -1
+        for array_idx, ii in enumerate(selected_vertices):
             neigh = pc[ii]
             val = np.mean(iface[neigh])
             if val > best_val:
                 best_ix = ii
                 best_val = val
                 best_neigh = neigh
+                best_array_idx = array_idx
 
-        # Now that a site has been identified, clear the iface values so that the same site is not picked again.
-        iface[best_neigh] *= 0.5
         target_vertices.append(best_ix)
 
+        # remove identified site from candidates so that it doesn't get picked again
+        selected_vertices = np.delete(selected_vertices, best_array_idx)
+
+        # Previously, the iface values of all vertices in the patch have been multiplied by 0.5 which does not actually 
+        # guarantee that the same site isn't picked twice. However, as a side effect, it made it less likely to pick any 
+        # site near the already selected site, which potentially distributes the target sites a bit more evenly.
+        # I'm commenting this out for now, but we might want to look into this again in the future.
+        # iface[best_neigh] *= 0.5  # this was done before
+        
     return target_vertices
 
 def test_alignments(transformation, source_structure, target_pcd_tree, interface_dist=10.0):
