@@ -499,7 +499,7 @@ def compute_nn_score(target_pcd, source_pcd, corr,
     # feat1: descriptors
     desc_dist = target_desc[0].data[:,r] - source_desc[0].data[:,:]
     desc_dist = np.sqrt(np.sum(np.square(desc_dist.T), axis=1))
-    desc_dist = 1.0/desc_dist
+    desc_dist = 1.0 / np.clip(desc_dist, a_min=1e-6, a_max=None)
     # desc dist score: sum over those within 1.5A
     neigh = np.where(d < 1.5)[0]
     desc_dist_score = np.sum(np.square(desc_dist[neigh]))

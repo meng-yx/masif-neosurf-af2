@@ -102,7 +102,7 @@ def masif_search(params):
         params['surface_outward_shift'] = 0.0
         params['allowed_CA_clashes'] = float('inf')
         params['allowed_heavy_atom_clashes'] = float('inf')
-        params['nn_score_cutoff'] = 0.0  # neural network score does not work here
+        params['nn_score_cutoff'] = -1.0  # neural network score does not work here
         flip_target_features = False
         flip_target_normals = False
         print("Running surface similarity search. (experimental feature)")
