@@ -60,7 +60,7 @@ def make_pdb3_format_atom(atomstring):
   elif l == 1: return ' '+atomstring+'  '
 
 
-def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template=None, save_txt=None):
+def get_pdb_conect(pdb_file, ligand_name, ligand_chain, template_ligand=None, save_txt=None):
     pdb = prody.parsePDB(pdb_file)
     ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name}')
 
@@ -68,18 +68,16 @@ def get_pdb_conect(pdb_file, ligand_name, ligand_chain, sdf_template=None, save_
     prody.writePDBStream(out, ligand)
     rdmol = AllChem.MolFromPDBBlock(out.getvalue(), sanitize=True, removeHs=False)
 
-    if sdf_template is None:
+    if template_ligand is None:
         try:
             # Query the ligand expo
             smiles, expo_name = ligand_expo[ligand_name]
         except KeyError as e:
             print(f"[ERROR] Could not find {ligand_name} in the PDB Ligand Expo. Consider passing an SDF template instead.")
             raise e
-        template = AllChem.MolFromSmiles(smiles)
-    else:
-        template = Chem.SDMolSupplier(sdf_template)[0]
-    rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
+        template_ligand = AllChem.MolFromSmiles(smiles)
 
+    rdmol = AllChem.AssignBondOrdersFromTemplate(template_ligand, rdmol)
     rdmol = Chem.AddHs(rdmol, addCoords=True)
 
     mi  =  Chem.AtomPDBResidueInfo()

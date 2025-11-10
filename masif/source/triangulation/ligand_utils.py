@@ -58,7 +58,7 @@ def amide_to_single_bond(mol2_outfile):
         f.write("\n".join(mol2_new))
 
 
-def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_template=None, patched_mol2_file=None):
+def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, template_ligand=None, patched_mol2_file=None):
     pdb = prody.parsePDB(pdb_file)
     ligand = pdb.select(f'chain {ligand_chain} and resname {ligand_name[:3]}')
     assert ligand is not None and len(ligand) > 0, "Ligand not found"
@@ -68,11 +68,10 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
     rdmol = AllChem.MolFromPDBBlock(out.getvalue(), sanitize=True, removeHs=False)
 
     try:
-        if sdf_template is not None:
-            template = Chem.SDMolSupplier(sdf_template)[0]
-            template = Chem.RemoveHs(template)
+        if template_ligand is not None:
+            template = Chem.RemoveHs(template_ligand)
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
-            print(f"[INFO] Inferred ligand connectivity from the provided SDF file")
+            print(f"[INFO] Inferred ligand connectivity from the provided template")
             
         elif ligand_name in ligand_expo:
             print("Extracting ligand connectivity from PDB Ligand Expo")
@@ -82,8 +81,11 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, sdf_templa
             rdmol = AllChem.AssignBondOrdersFromTemplate(template, rdmol)
             print(f"[INFO] Inferred ligand connectivity from the PDB Ligand Expo (name: {expo_name})")
 
+        else:
+            raise ValueError()
+
     except ValueError:
-        print("Mismatch between PDB and template ligands. Determining bond types with OpenBabel...")
+        print("Could not infer ligand connectivity from template or ligand expo. Determining bond types with OpenBabel...")
         obConversion = openbabel.OBConversion()
         obConversion.SetInAndOutFormats("pdb", "sdf")
         obmol = openbabel.OBMol()

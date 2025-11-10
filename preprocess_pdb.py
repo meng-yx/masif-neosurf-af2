@@ -8,6 +8,7 @@ import time
 
 import numpy as np
 import pymesh
+from rdkit import Chem
 
 # import MaSIF modules
 masif_neosurf_root = Path(__file__).resolve().parent
@@ -51,7 +52,8 @@ def extract_het_dict(ligand_code, in_file, out_file):
         f.write(block)
 
 
-def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file=None, mol2_patch=None, keep_nucleotides=False, infer_reduce_het_dict=False):
+def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_name_chain=None, sdf_file_or_smiles=None, mol2_patch=None, keep_nucleotides=False, infer_reduce_het_dict=False):
+    
     # Process inputs
     pdb_id, chain_ids1 = name_chain.split("_")
     if ligand_name_chain is None:
@@ -60,6 +62,13 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     else:
         ligand_code, ligand_chain = ligand_name_chain.split('_')
         ligand_tla = ligand_code[:3]
+
+    template_ligand = None
+    if sdf_file_or_smiles is not None:
+        if sdf_file_or_smiles.endswith('.sdf'):
+            template_ligand = Chem.SDMolSupplier(sdf_file_or_smiles)[0]
+        else:
+            template_ligand = Chem.MolFromSmiles(sdf_file_or_smiles)
 
     # Output locations
     pdb_chain_dir = Path(outdir, masif_opts['pdb_chain_dir'])
@@ -76,7 +85,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     het_dict = os.environ.get('REDUCE_HET_DICT')  # default het_dict
     if ligand_code is not None and (infer_reduce_het_dict or (het_dict == 'INFER')):
         het_dict = Path(tmp_dir, f"{pdb_id}_{ligand_code}_conect.txt")
-        get_pdb_conect(pdb_filename, ligand_code, ligand_chain, sdf_file, save_txt=het_dict)
+        get_pdb_conect(pdb_filename, ligand_code, ligand_chain, template_ligand, save_txt=het_dict)
     
     if ligand_code is not None and len(ligand_code) > 3:
         # if the ligand code is too long, reduce can't find the correct entry based on the abbreviated three-letter code in the pdb file
@@ -103,7 +112,7 @@ def extract_and_triangulate(pdb_filename, name_chain, outdir, tmp_dir, ligand_na
     mol2_file, rdmol = None, None
     if ligand_code is not None and ligand_chain is not None:
         mol2_file = str(Path(tmp_dir, f"{ligand_code}_{ligand_chain}.mol2").resolve())
-        rdmol = extract_ligand(outfile_pdb, ligand_code, ligand_chain, mol2_file, sdf_template=sdf_file, patched_mol2_file=mol2_patch)
+        rdmol = extract_ligand(outfile_pdb, ligand_code, ligand_chain, mol2_file, template_ligand=template_ligand, patched_mol2_file=mol2_patch)
 
     # Compute "charged" vertices
     if masif_opts['use_hbond']:
@@ -408,7 +417,7 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--outdir", type=Path, help="Folder in which processed files will be saved.")
     parser.add_argument("-l", "--ligand", type=str, default=None,
                         help="Three letter code and chain of a ligand, e.g. 'FKA_B'.")
-    parser.add_argument("-s", "--sdf", type=str, nargs='?', default=None, const=None,
+    parser.add_argument("-s", "--sdf_or_smiles", type=str, nargs='?', default=None, const=None,
                         help="Optional SDF file used to infer the ligand bond types.")
     parser.add_argument("-m", "--mol2", type=Path, default=None, 
                         help="Optional custom mol2 file. Should not be necessary in most cases.")
@@ -431,7 +440,7 @@ if __name__ == "__main__":
             args.outdir, 
             tmp_dir, 
             ligand_name_chain=args.ligand, 
-            sdf_file=args.sdf, 
+            sdf_file_or_smiles=args.sdf_or_smiles, 
             mol2_patch=args.mol2, 
             keep_nucleotides=args.keep_nucleotides, 
             infer_reduce_het_dict=args.infer_reduce_het_dict,
