@@ -1,13 +1,13 @@
 #!/bin/bash
 #SBATCH --nodes 1
-#SBATCH --partition=serial
+#SBATCH --partition=standard
 #SBATCH --ntasks-per-node 1
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 8192
+#SBATCH --mem 7000
 #SBATCH --time 01:00:00
-#SBATCH --array=20-1000
+#SBATCH --array=1
 #SBATCH --output=exelogs/_masif_precompute.%A_%a.out
-#SBATCH --error=exelogs/_masif_precompute.%A_%a.err
+#SBATCH --error=exelogs/_masif_precompute.%A_%a.out
 
 i=1
 while read p; do
