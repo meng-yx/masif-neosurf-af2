@@ -4,6 +4,7 @@
   _Surface-based protein design for ternary complexes_
 </h1>
 
+> **Note:** This is a mirror of the public repository [https://github.com/LPDI-EPFL/masif-neosurf.git](https://github.com/LPDI-EPFL/masif-neosurf.git). This repository is used for retraining masif-neosurf's AlignmentEvaluationNN using AlphaFold2 models to improve the robustness of predictions on the AF2 database. **This repository is under active development.**
 
 Code repository for ["Targeting protein-ligand neosurfaces with a generalizable deep learning tool"](citation.bib).
 
