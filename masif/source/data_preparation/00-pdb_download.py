@@ -4,6 +4,7 @@ from Bio.PDB import *
 import sys
 import importlib
 import os
+import urllib.request
 
 from default_config.masif_opts import masif_opts
 # Local includes
@@ -23,9 +24,17 @@ if not os.path.exists(masif_opts['tmp_dir']):
 in_fields = sys.argv[1].split('_')
 pdb_id = in_fields[0]
 
-# Download pdb 
-pdbl = PDBList(server='http://ftp.wwpdb.org')
-pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=masif_opts['tmp_dir'],file_format='pdb')
+# Download pdb - use direct HTTPS download instead of BioPython PDBList
+# which has issues with the FTP server
+pdb_filename = os.path.join(masif_opts['tmp_dir'], 'pdb{}.ent'.format(pdb_id.lower()))
+pdb_url = 'https://files.rcsb.org/download/{}.pdb'.format(pdb_id.upper())
+print('Downloading PDB structure from {}...'.format(pdb_url))
+try:
+    urllib.request.urlretrieve(pdb_url, pdb_filename)
+    print('PDB file downloaded successfully')
+except Exception as e:
+    print('Error downloading PDB file: {}'.format(e))
+    sys.exit(1)
 
 ##### Protonate with reduce, if hydrogens included.
 # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
