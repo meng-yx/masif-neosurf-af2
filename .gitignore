@@ -1,3 +1,6 @@
 # examples
 example/output/*
 masif-neosurf_v0.1.sif
+exelogs/
+data
+notebooks/*.ent
