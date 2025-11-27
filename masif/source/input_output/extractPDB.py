@@ -38,7 +38,10 @@ def extractPDB(
     # extract the chain_ids from infilename and save in outfilename. 
     parser = PDBParser(QUIET=True)
     struct = parser.get_structure(infilename, infilename)
-    model = Selection.unfold_entities(struct, "M")[0]
+    models = Selection.unfold_entities(struct, "M")
+    if not models:
+        raise ValueError(f"No models found in PDB file '{infilename}'. The file may be empty or malformed.")
+    model = models[0]
     chains = Selection.unfold_entities(struct, "C")
     # Select residues to extract and build new structure
     structBuild = StructureBuilder.StructureBuilder()

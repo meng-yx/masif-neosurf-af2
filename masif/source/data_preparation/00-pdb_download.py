@@ -26,15 +26,24 @@ pdb_id = in_fields[0]
 
 # Download pdb - use direct HTTPS download instead of BioPython PDBList
 # which has issues with the FTP server
+import ssl
+
 pdb_filename = os.path.join(masif_opts['tmp_dir'], 'pdb{}.ent'.format(pdb_id.lower()))
-pdb_url = 'https://files.rcsb.org/download/{}.pdb'.format(pdb_id.upper())
+pdb_url = 'http://files.rcsb.org/download/{}.pdb'.format(pdb_id.upper())
 print('Downloading PDB structure from {}...'.format(pdb_url))
+
+# Create SSL context
+ctx = ssl.create_default_context()
+
 try:
-    urllib.request.urlretrieve(pdb_url, pdb_filename)
+    with urllib.request.urlopen(pdb_url, context=ctx) as response:
+        with open(pdb_filename, "wb") as f:
+            f.write(response.read())
     print('PDB file downloaded successfully')
 except Exception as e:
     print('Error downloading PDB file: {}'.format(e))
     sys.exit(1)
+
 
 ##### Protonate with reduce, if hydrogens included.
 # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.

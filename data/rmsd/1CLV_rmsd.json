@@ -1,0 +1,15 @@
+{
+  "pdb_id": "1CLV",
+  "interactor_1": {
+    "A": {
+      "rmsd": 0.44069861725293275,
+      "af2_pdb_url": "https://alphafold.ebi.ac.uk/files/AF-P56634-F1-model_v6.pdb"
+    }
+  },
+  "interactor_2": {
+    "I": {
+      "rmsd": 0.5485337017324724,
+      "af2_pdb_url": "https://alphafold.ebi.ac.uk/files/AF-P80403-F1-model_v6.pdb"
+    }
+  }
+}
