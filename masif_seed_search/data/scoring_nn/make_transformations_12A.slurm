@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 6G
 #SBATCH --time 1:00:00
-#SBATCH --array=1
+#SBATCH --array=0
 #SBATCH --output=exelogs/make_transformations_12A.%A_%a.out
 #SBATCH --error=exelogs/make_transformations_12A.%A_%a.out
 

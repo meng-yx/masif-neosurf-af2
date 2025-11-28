@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 import sys
+import argparse
 from geometry.open3d_import import *
 #import ipdb
 import numpy as np
@@ -10,29 +11,52 @@ from Bio.PDB import *
 import copy
 import scipy.sparse as spio
 from default_config.masif_opts import masif_opts
-import sys
 from IPython.core.debugger import set_trace
 from scipy.spatial import cKDTree
 import time
 import scipy.spatial 
 from alignment_utils import * 
 
-print(sys.argv)
-if len(sys.argv) != 7:
-    print('Usage: {} data_dir K ransac_iter patch_radius output_dir pdb_list_index'.format(sys.argv[0]))
-    print('data_dir: Location of data directory.')
-    print('K: Number of descriptors to run')
+# Parse command line arguments
+parser = argparse.ArgumentParser(
+    description='Generate training data for seed search alignment evaluation neural network',
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
+parser.add_argument('--data-dir', type=str, required=True,
+                    help='Location of data directory')
+parser.add_argument('--K', '--num-descriptors', dest='K', type=int, required=True,
+                    help='Number of descriptors to run')
+parser.add_argument('--ransac-iter', type=int, required=True,
+                    help='Number of RANSAC iterations')
+parser.add_argument('--patch-radius', type=float, required=True,
+                    help='Patch radius (9 or 12)')
+parser.add_argument('--output-dir', type=str, required=True,
+                    help='Output directory path')
+parser.add_argument('--pdb-list-index', type=int, required=True,
+                    help='Index for modulo filtering (from SLURM_ARRAY_TASK_ID)')
+parser.add_argument('--pdb-list', type=str, required=True,
+                    help='Absolute path to PDB list file')
+
+args = parser.parse_args()
+
+# Validate and assign arguments
+data_dir = args.data_dir
+K = args.K
+ransac_iter = args.ransac_iter
+PATCH_RADIUS = args.patch_radius
+out_base = args.output_dir
+pdb_list_index = args.pdb_list_index
+pdb_list_file = args.pdb_list
+
+# Validate patch radius
+if PATCH_RADIUS != 12 and PATCH_RADIUS != 9:
+    print("Currently only supporting patches of radius ~9 (about 100 points) and radius 12 (about 200 points)")
     sys.exit(1)
 
-data_dir = sys.argv[1]
-K=int(sys.argv[2])
-ransac_iter = int(sys.argv[3])
-# set patch radius fixed at 9A
-PATCH_RADIUS = float(sys.argv[4])
-if PATCH_RADIUS != 12 or PATCH_RADIUS != 9: 
-    print("Currently only supporting patches of radius ~9 (about 100 points) and radius 12 (about 200 points)")
-out_base = sys.argv[5]
-pdb_list_index = int(sys.argv[6])
+# Validate that PDB list file exists
+if not os.path.isfile(pdb_list_file):
+    print("Error: PDB list file does not exist: {}".format(pdb_list_file))
+    sys.exit(1)
 
 surf_dir = os.path.join(data_dir,masif_opts['ply_chain_dir'])
   
@@ -51,8 +75,8 @@ else:
 
 # In[3]:
 
-benchmark_list = 'lists/testing_seed_benchmark.txt'
-pdb_list = open(benchmark_list).readlines()
+# Load PDB list from file
+pdb_list = open(pdb_list_file).readlines()
 pdb_list = [x.rstrip() for ix, x in enumerate(pdb_list) if ix % 1000 == pdb_list_index ]
 
 # Read all surfaces. 
@@ -242,10 +266,12 @@ for target_ix,target_pdb in enumerate(rand_list):
                     print('Low fitness') 
                     continue
                 rmsd = test_alignments(res.transformation, gt_source_struct, target_atom_pcd_tree)
-                clashing_ca,clashing, vertex_to_atom_distance =  count_clashes(res.transformation, \
+                clashing_ca, clashing = count_clashes(res.transformation, \
                         np.asarray(all_source_patch[j].points), gt_source_struct, \
                         target_ca_pcd_tree, target_atom_pcd_tree)
-                aligned_source_patches_dists_to_target_atoms.append(vertex_to_atom_distance)
+                # Compute vertex-to-atom distances: patch points are already transformed by multidock
+                vertex_to_atom_distances, _ = target_atom_pcd_tree.query(np.asarray(all_source_patch[j].points), k=1)
+                aligned_source_patches_dists_to_target_atoms.append(vertex_to_atom_distances)
                 if rmsd < 2.0:
                     rank_val = np.where(chosen_top == viii[j])[0][0]
                     pos_rmsd.append(rmsd)
@@ -262,8 +288,10 @@ for target_ix,target_pdb in enumerate(rand_list):
             source_struct = parser.get_structure('{}_{}'.format(pdb_id,chain), os.path.join(pdb_dir,'{}_{}.pdb'.format(pdb_id,chain)))
             for j,res in enumerate(all_results):
                 if res.fitness > 0:
-                    clashing_ca,clashing, vertex_to_atom_distance =  count_clashes(res.transformation, np.asarray(all_source_patch[j].points), source_struct, target_ca_pcd_tree, target_atom_pcd_tree)
-                    aligned_source_patches_dists_to_target_atoms.append(vertex_to_atom_distance)
+                    clashing_ca, clashing = count_clashes(res.transformation, np.asarray(all_source_patch[j].points), source_struct, target_ca_pcd_tree, target_atom_pcd_tree)
+                    # Compute vertex-to-atom distances: patch points are already transformed by multidock
+                    vertex_to_atom_distances, _ = target_atom_pcd_tree.query(np.asarray(all_source_patch[j].points), k=1)
+                    aligned_source_patches_dists_to_target_atoms.append(vertex_to_atom_distances)
                     source_patch_rmsds.append(float('inf'))
             toc_cc = time.time()
     if found: 
