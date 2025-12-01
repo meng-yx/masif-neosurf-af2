@@ -1,0 +1,15 @@
+{
+  "pdb_id": "1F3T",
+  "interactor_1": {
+    "A": {
+      "rmsd": 1.4642868536842584,
+      "af2_pdb_url": "https://alphafold.ebi.ac.uk/files/AF-P07805-F1-model_v6.pdb"
+    }
+  },
+  "interactor_2": {
+    "B": {
+      "rmsd": 1.430051458757809,
+      "af2_pdb_url": "https://alphafold.ebi.ac.uk/files/AF-P07805-F1-model_v6.pdb"
+    }
+  }
+}

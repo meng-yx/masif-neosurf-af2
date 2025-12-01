@@ -8,4 +8,10 @@ masif_root=$(git rev-parse --show-toplevel)
 masif_source=$masif_root/masif/source/
 masif_data=$masif_root/masif/data/
 export PYTHONPATH=$PYTHONPATH:$masif_source:$masif_data/masif_ppi_search/
-python $masif_source/masif_ppi_search/masif_ppi_search_comp_desc.py nn_models.sc05_seed_benchmark.all_feat.custom_params $1 $2
+
+# Run inside singularity container
+docker_image=$masif_root/masif-neosurf_v0.1.sif
+SINGULARITY_BIND="$masif_root:$masif_root"
+singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/masif_ppi_search/masif_ppi_search_comp_desc.py nn_models.sc05.all_feat.custom_params $1 $2
+#python $masif_source/masif_ppi_search/masif_ppi_search_comp_desc.py nn_models.sc05.all_feat.custom_params $1 $2
+

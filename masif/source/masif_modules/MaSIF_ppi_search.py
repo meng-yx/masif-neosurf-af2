@@ -293,11 +293,9 @@ class MaSIF_ppi_search:
 
                 # Refine global_desc with a FC layer.
                 self.global_desc = tf.contrib.layers.fully_connected(
-                    self.global_desc,
-                    self.n_thetas * self.n_rhos,
-                    activation_fn=tf.identity,
-                )  # batch_size, n_thetas
-
+                    self.global_desc, self.n_thetas * self.n_rhos, 
+                    activation_fn=tf.identity, ) # batch_size, n_thetas
+                
                 # compute data loss
                 self.n_patches = tf.shape(self.global_desc)[0] // 4
                 self.data_loss = self.compute_data_loss()
