@@ -2,9 +2,12 @@
 #SBATCH --nodes 1
 #SBATCH --ntasks 1
 #SBATCH --cpus-per-task 1
-#SBATCH --mem 8192
-#SBATCH --time 1:0:00
-#SBATCH --array=1-1000
+#SBATCH --mem 6G
+#SBATCH --time 1:00:00
+#SBATCH --array=1
+#SBATCH --output=exelogs/prepare_features_12A.%A_%a.out
+#SBATCH --error=exelogs/prepare_features_12A.%A_%a.out
+
 echo STARTING AT `date`
 echo ${SLURM_ARRAY_TASK_ID}
 echo FINISHED at `date`
