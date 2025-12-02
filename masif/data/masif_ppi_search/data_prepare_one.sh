@@ -22,5 +22,5 @@ python $masif_source/data_preparation/00a-PDB_to_AF2.py $1 \
 # This ensures relative paths in masif_opts resolve correctly
 singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN1
 singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN2
-# singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_site $1
-# singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_ppi_search $1
+singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_site $1
+singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_ppi_search $1
