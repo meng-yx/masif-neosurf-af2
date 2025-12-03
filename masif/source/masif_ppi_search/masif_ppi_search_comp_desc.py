@@ -111,7 +111,7 @@ for count, ppi_pair_id in enumerate(ppi_list):
             mylabels = labels[0]
             labels = np.median(mylabels, axis=1)
         except:# Exception, e:
-            print('Could not open '+in_dir+'p1'+'_sc_labels.npy: '+str(e))
+            print('Could not open '+in_dir+'p1'+'_sc_labels.npy: '+str(chain2))
             continue
         print("Number of vertices: {}".format(len(labels)))
 
