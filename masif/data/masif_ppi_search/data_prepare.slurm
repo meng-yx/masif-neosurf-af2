@@ -12,7 +12,7 @@
 
 i=1
 while read p; do
-    if [ $(( i % 1001 )) == ${SLURM_ARRAY_TASK_ID} ]; then
+    if [ $(( i % 300 )) == ${SLURM_ARRAY_TASK_ID} ]; then
     FIELD1=$(echo $p| cut -d" " -f1)
     PDBID=$(echo $FIELD1| cut -d"_" -f1)
     CHAIN1=$(echo $FIELD1| cut -d"_" -f2)
