@@ -218,6 +218,7 @@ old_idx_to_new_idx = -1 * np.ones(num_patches_old)
 old_idx_to_new_idx[new_idx_to_old_idx] = np.arange(len(new_idx_to_old_idx))
 print("Num. -1 in old_idx_to_new_idx:", (old_idx_to_new_idx == -1).sum())
 val_idx = np.array(val_idx)
+test_idx = np.array(test_idx)
 training_idx = old_idx_to_new_idx[training_idx[not_nan[training_idx.astype(int)]].astype(int)]
 val_idx = old_idx_to_new_idx[val_idx[not_nan[val_idx.astype(int)]].astype(int)]
 test_idx = old_idx_to_new_idx[test_idx[not_nan[test_idx.astype(int)]].astype(int)]

@@ -12,3 +12,17 @@ Mean training positive score: 0.20952390181700842
 Mean training negative score: 0.144840605326103 
 Training ROC AUC: 0.703125
  Training 32000 entries took 0.90s 
+Number of training positive shapes: 159
+Number of validation positive shapes: 0
+Number of testing positive shapes: 0
+Number of training negative shapes: 159
+Number of validation negative shapes: 0
+Number of testing negative shapes: 0
+Number of iterations: 1000000
+0 training iterations finished after 1.36 seconds.
+Validating and testing.
+ training_loss: 0.0
+Mean training positive score: 0.19204636377995388 
+Mean training negative score: 0.16370079331874393 
+Training ROC AUC: 0.53125
+ Training 32000 entries took 1.36s 
