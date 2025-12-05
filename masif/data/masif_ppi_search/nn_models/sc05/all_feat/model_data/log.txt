@@ -43,3 +43,17 @@ Training ROC AUC: 0.859375
 Iteration 0 validation roc auc: 0.9221367134449977
 Mean validation positive score: 2.214428424835205 
 Mean validation negative score: 3.284134864807129 
+Number of training positive shapes: 109
+Number of validation positive shapes: 0
+Number of testing positive shapes: 0
+Number of training negative shapes: 109
+Number of validation negative shapes: 0
+Number of testing negative shapes: 0
+Number of iterations: 1000000
+0 training iterations finished after 0.93 seconds.
+Validating and testing.
+ training_loss: 0.0
+Mean training positive score: 0.12253270885861009 
+Mean training negative score: 0.13350328774440862 
+Training ROC AUC: 0.328125
+ Training 32000 entries took 0.93s 
