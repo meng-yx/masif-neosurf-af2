@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 7000
 #SBATCH --time 01:00:00
-#SBATCH --array=1
+#SBATCH --array=0-1000
 #SBATCH --output=exelogs/compute_descriptors.%A_%a.out
 #SBATCH --error=exelogs/compute_descriptors.%A_%a.err
 
@@ -14,7 +14,7 @@
 
 i=1
 while read p; do
-    if [ $(( i % 300 )) == ${SLURM_ARRAY_TASK_ID} ]; then
+    if [ $(( i % 1001 )) == ${SLURM_ARRAY_TASK_ID} ]; then
         FIELD1=$(echo $p| cut -d" " -f1)
         PDBID=$(echo $FIELD1| cut -d"_" -f1)
         CHAIN1=$(echo $FIELD1| cut -d"_" -f2)
