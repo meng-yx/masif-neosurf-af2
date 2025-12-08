@@ -14,6 +14,9 @@
 masif_neosurf_root=$(git rev-parse --show-toplevel)
 SH_SCRIPT="$masif_neosurf_root/masif/data/masif_ppi_search/data_prepare_one_pdb.sh"
 
+# Path to the input list (also portable)
+LIST_FILE="$masif_neosurf_root/masif/data/masif_ppi_search/lists/full_list.txt"
+
 
 i=1
 while read p; do
@@ -24,4 +27,4 @@ while read p; do
 
     # Run the .sh script with absolute path
     $SH_SCRIPT $PDBID\_$CHAIN1\_$CHAIN2
-done < /home/ramanoel/masif-neosurf-af2/masif/data/masif_ppi_search/lists/small_list.txt
+done < "$LIST_FILE"
