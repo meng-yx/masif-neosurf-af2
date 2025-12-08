@@ -155,9 +155,18 @@ def masif_search(params):
     # target_ca_coords = [atom.get_coord() for atom in target_struct.get_atoms() if atom.get_id() == 'CA']
     target_ca_pcd_tree = None # cKDTree(np.array(target_ca_coords))
 
-    # If a specific residue is selected, then go after that residue
+    # If a specific set of vertices is provided (via --site_vix or --site_vix_file),
+    # then use that explicit list of sites. Prefer the explicit list over num_sites.
     if 'site_vix' in params and params['site_vix'] is not None:
-        assert params['num_sites'] is None or params['num_sites'] == len(params['site_vix'])
+        if params.get('num_sites') is not None and params['num_sites'] != len(params['site_vix']):
+            print(
+                "[MaSIF-search] Warning: num_sites (%d) does not match number of "
+                "entries in site_vix (%d); using the explicit site_vix list."
+                % (params['num_sites'], len(params['site_vix']))
+            )
+            # Trust the explicit site list and update num_sites accordingly so that
+            # any downstream logic relying on num_sites remains consistent.
+            params['num_sites'] = len(params['site_vix'])
         target_vertices = params['site_vix']
 
     else:
@@ -231,10 +240,55 @@ def masif_search(params):
             point = target_pcd.points[site_vix]
             out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
 
+    # ----------------------------------------------------------------------
+    # NEW: determine from which site index to resume for this subset
+    # ----------------------------------------------------------------------
+    resume_from = 0
+
+    # Only try to infer progress if we are using a subset file
+    subset_file = params.get('database_subset', None)
+    if subset_file is not None:
+        try:
+            with open(subset_file, "r") as f:
+                subset_ids = {line.strip() for line in f if line.strip()}
+        except Exception as e:
+            print(f"[MaSIF-search] Warning: could not read subset file {subset_file}: {e}")
+            subset_ids = set()
+
+        last_site_with_match = None
+        n_sites = len(target_vertices)
+
+        for site_ix in range(n_sites):
+            site_outdir = os.path.join(outdir, f"site_{site_ix}")
+            if not os.path.isdir(site_outdir):
+                continue
+
+            try:
+                entries = os.listdir(site_outdir)
+            except FileNotFoundError:
+                continue
+
+            # We only care about subdirectories that correspond to matched_protein_id
+            subdirs = [
+                d for d in entries
+                if os.path.isdir(os.path.join(site_outdir, d))
+            ]
+
+            # If any subdir name matches an ID in the subset file, assume this site
+            # was processed (at least partially) in a previous run of this subset.
+            if any(d in subset_ids for d in subdirs):
+                last_site_with_match = site_ix
+
+        if last_site_with_match is not None:
+            resume_from = last_site_with_match
+            print(f"[MaSIF-search] Resuming subset {subset_file} from site index {resume_from}.")
+        else:
+            print(f"[MaSIF-search] No prior outputs found for subset {subset_file}; starting from site 0.")
 
     # Go through every selected site
-    for site_ix, site_vix in enumerate(target_vertices):
-        site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
+    for site_ix in range(resume_from, len(target_vertices)):
+        site_vix = target_vertices[site_ix]
+        site_outdir = os.path.join(outdir, f'site_{site_ix}')
         if not os.path.exists(site_outdir):
             os.makedirs(site_outdir, exist_ok=True)
 
