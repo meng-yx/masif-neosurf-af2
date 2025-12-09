@@ -1,4 +1,4 @@
-source /work/upcorreia/bin/load_masif_environment_gpu.sh
+source /work/upcorreia/bin/load_masif_environment_jed2.sh
 masif_root=../../../
 masif_seed_root=../../
 masif_source=$masif_root/masif/source/
