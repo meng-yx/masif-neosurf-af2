@@ -8,7 +8,7 @@ from packaging import version
 import pymesh
 from scipy.spatial import cKDTree
 import numpy as np
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, PDBIO
 import open3d as o3d
 
 # import MaSIF modules
@@ -27,7 +27,7 @@ def parse_transform_arg(raw_transform):
     - comma-separated 16-value string in row-major order
     """
     path_candidate = Path(raw_transform)
-    if path_candidate.exists() or str(path_candidate).endswith(".npy"):
+    if str(path_candidate).endswith(".npy"):
         if not path_candidate.exists():
             raise ValueError(f"Transform file does not exist: {path_candidate}")
         transform = np.load(path_candidate)
@@ -75,6 +75,27 @@ def apply_transform_to_point_cloud(pcd, transform):
     pcd.points = o3d.utility.Vector3dVector(transformed_points)
     pcd.normals = o3d.utility.Vector3dVector(transformed_normals)
 
+# Helper function for writing debug PDB files to visualize the patches used for scoring
+def _write_debug_transformed_binder_pdb(source_name, source_paths, debug_dir, transform=None):
+    """Write binder PDB with optional rigid transform applied."""
+    pdb_parser = PDBParser(QUIET=True)
+    binder_pdb_path = Path(source_paths["pdb_dir"]) / f"{source_name}.pdb"
+    if not binder_pdb_path.exists():
+        print(f"Warning: binder PDB not found for debug export: {binder_pdb_path}")
+        return
+
+    binder_struct = pdb_parser.get_structure(str(binder_pdb_path), str(binder_pdb_path))
+    if transform is not None:
+        rotation = transform[:3, :3]
+        translation = transform[:3, 3]
+        for atom in binder_struct.get_atoms():
+            atom.set_coord(atom.get_coord() @ rotation.T + translation)
+
+    out_pdb = Path(debug_dir) / "binder_transformed.pdb"
+    pdb_writer = PDBIO()
+    pdb_writer.set_structure(binder_struct)
+    pdb_writer.save(str(out_pdb))
+
 
 def score_complex(
     target_name,
@@ -90,6 +111,15 @@ def score_complex(
     nn_score,
     flip_target_normals=True,
 ):
+    if params.get("site_debug", None) is not None:
+        site_debug_dir = Path(params["site_debug"])
+        site_debug_dir.mkdir(parents=True, exist_ok=True)
+        _write_debug_transformed_binder_pdb(
+            source_name=source_name,
+            source_paths=source_paths,
+            debug_dir=site_debug_dir,
+            transform=params.get("score_binder_transform", None),
+        )
 
     # Go through every selected site
     for site_ix, target_vix in enumerate(target_vertices):
@@ -100,6 +130,13 @@ def score_complex(
             flip_normals=flip_target_normals,
             outward_shift=params['surface_outward_shift']
         )
+        if params.get("site_debug", None) is not None:
+            site_debug_dir = Path(params["site_debug"])
+            site_debug_dir.mkdir(parents=True, exist_ok=True)
+            out_query_patch = site_debug_dir / f"site_vix_{target_vix}.vert"
+            with out_query_patch.open("w+") as out_patch:
+                for point in target_patch.points:
+                    out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
 
         # Make a ckdtree with the target vertices.
         target_ckdtree = cKDTree(target_patch.points)
@@ -129,6 +166,13 @@ def score_complex(
         # Compute NN and descriptor distance scores
         source_coord = get_patch_coords(params['seed_precomp_dir'], source_name, pid, cv=[source_vix])
         source_patch, source_patch_descs, source_patch_idx = get_patch_geo(source_pcd, source_coord, source_vix, source_desc, outward_shift=params['surface_outward_shift'])
+        if params.get("site_debug", None) is not None:
+            site_debug_dir = Path(params["site_debug"])
+            site_debug_dir.mkdir(parents=True, exist_ok=True)
+            out_binder_patch = site_debug_dir / f"binder_vix_{source_vix}.vert"
+            with out_binder_patch.open("w+") as out_patch:
+                for point in source_patch.points:
+                    out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
         d_vi_at, _= target_pcd_tree.query(np.asarray(source_patch.points), k=1)
 
         align_scores, _ = compute_nn_score(
@@ -197,6 +241,7 @@ def masif_search(params):
     source_paths['surf_dir'] = params['seed_surf_dir']
     source_paths['iface_dir'] = params['seed_iface_dir']
     source_paths['desc_dir'] = params['seed_desc_dir']
+    source_paths['pdb_dir'] = params['seed_pdb_dir']
 
     # Load the target point cloud, descriptors, interface and mesh.
     target_pcd, target_desc, target_iface, target_mesh = load_protein_pcd(target_ppi_pair_id, target_chain_ix, target_paths, flipped_features=flip_target_features, read_mesh=True)
@@ -394,6 +439,12 @@ if __name__ == "__main__":
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
     parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
     parser.add_argument(
+        "--site_debug",
+        type=Path,
+        default=None,
+        help="Write score-only query/binder patch .vert files into this directory.",
+    )
+    parser.add_argument(
         "--transform",
         type=str,
         default=None,
@@ -405,6 +456,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--random_seed", type=int, default=None)
     args = parser.parse_args()
+    if args.site_debug is not None and args.score_binder is None:
+        parser.error("--site_debug is only supported together with --score_binder.")
     if args.transform is not None and args.score_binder is None:
         parser.error("--transform is only supported together with --score_binder.")
     if args.transform is not None:

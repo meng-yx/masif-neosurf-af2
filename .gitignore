@@ -6,3 +6,7 @@ exelogs/
 notebooks/*.ent
 *.ent
 data_preparation/
+logs/
+archive/
+__pycache__/
+.cursor/
