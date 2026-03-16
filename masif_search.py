@@ -20,6 +20,62 @@ from masif_seed_search.source.alignment_evaluation_nn import AlignmentEvaluation
 from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, get_target_vix, match_descriptors, align_protein, compute_nn_score
 
 
+def parse_transform_arg(raw_transform):
+    """
+    Parse a rigid transform from either:
+    - path to .npy file containing a (4, 4) matrix (or flat 16-vector)
+    - comma-separated 16-value string in row-major order
+    """
+    path_candidate = Path(raw_transform)
+    if path_candidate.exists() or str(path_candidate).endswith(".npy"):
+        if not path_candidate.exists():
+            raise ValueError(f"Transform file does not exist: {path_candidate}")
+        transform = np.load(path_candidate)
+        transform_source = f"file:{path_candidate}"
+    else:
+        parts = [x.strip() for x in raw_transform.split(",") if x.strip()]
+        if len(parts) != 16:
+            raise ValueError(
+                "Inline transform must contain exactly 16 comma-separated numeric values."
+            )
+        try:
+            transform = np.asarray([float(x) for x in parts], dtype=float)
+        except ValueError as exc:
+            raise ValueError(
+                "Inline transform contains non-numeric values."
+            ) from exc
+        transform_source = "inline"
+
+    transform = np.asarray(transform, dtype=float)
+    if transform.shape == (16,):
+        transform = transform.reshape(4, 4)
+    elif transform.shape != (4, 4):
+        raise ValueError(
+            f"Transform must have shape (4, 4) or flat 16 values, got {transform.shape}."
+        )
+    if not np.all(np.isfinite(transform)):
+        raise ValueError("Transform contains non-finite values.")
+    return transform, transform_source
+
+
+def apply_transform_to_point_cloud(pcd, transform):
+    """Apply a rigid transform to point-cloud points and normals."""
+    rotation = transform[:3, :3]
+    translation = transform[:3, 3]
+
+    points = np.asarray(pcd.points)
+    normals = np.asarray(pcd.normals)
+
+    transformed_points = points @ rotation.T + translation
+    transformed_normals = normals @ rotation.T
+    normal_norm = np.linalg.norm(transformed_normals, axis=1, keepdims=True)
+    normal_norm[normal_norm < 1e-12] = 1.0
+    transformed_normals = transformed_normals / normal_norm
+
+    pcd.points = o3d.utility.Vector3dVector(transformed_points)
+    pcd.normals = o3d.utility.Vector3dVector(transformed_normals)
+
+
 def score_complex(
     target_name,
     target_vertices,
@@ -57,6 +113,8 @@ def score_complex(
             chain = source_name.split('_')[2]
             chain_number = 2
         source_pcd, source_desc, source_iface = load_protein_pcd(source_name, chain_number, source_paths, flipped_features=False, read_mesh=False)
+        if params.get("score_binder_transform", None) is not None:
+            apply_transform_to_point_cloud(source_pcd, params["score_binder_transform"])
 
 
         # Find closest point on binder
@@ -200,6 +258,17 @@ def masif_search(params):
             # Get a target vertex for every target site.
             target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'])
 
+    if params.get("score_binder_transform", None) is not None:
+        det_rotation = np.linalg.det(params["score_binder_transform"][:3, :3])
+        tnorm = np.linalg.norm(params["score_binder_transform"][:3, 3])
+        print(
+            "Using --transform from {} (det(R)={:.6f}, |t|={:.3f})".format(
+                params.get("score_binder_transform_source", "unknown"),
+                det_rotation,
+                tnorm,
+            )
+        )
+
     if params.get('score_binder', None) is not None:
         score_complex(
             target_name=target_ppi_pair_id,
@@ -324,8 +393,30 @@ if __name__ == "__main__":
     parser.add_argument("--n_retry_alignment", type=int, default=1)
     parser.add_argument("--sim", dest="similarity_mode", action="store_true")
     parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
+    parser.add_argument(
+        "--transform",
+        type=str,
+        default=None,
+        help=(
+            "Rigid transform for --score_binder. "
+            "Accepted formats: path to .npy file (4x4 or 16 values) "
+            "or inline comma-separated 16-value row-major string."
+        ),
+    )
     parser.add_argument("--random_seed", type=int, default=None)
     args = parser.parse_args()
+    if args.transform is not None and args.score_binder is None:
+        parser.error("--transform is only supported together with --score_binder.")
+    if args.transform is not None:
+        try:
+            transform, transform_source = parse_transform_arg(args.transform)
+        except ValueError as exc:
+            parser.error(str(exc))
+        args.score_binder_transform = transform
+        args.score_binder_transform_source = transform_source
+    else:
+        args.score_binder_transform = None
+        args.score_binder_transform_source = None
 
     if args.random_seed is not None:
         assert version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'), "Random seed not supported by all Open3D versions"
