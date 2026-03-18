@@ -2,6 +2,7 @@ masif_neosurf_root=$(git rev-parse --show-toplevel)
 masif_root=$masif_neosurf_root/masif
 masif_source=$masif_root/source/
 docker_image=$masif_neosurf_root/masif-neosurf_v0.1.sif
+echo "docker image: $docker_image"
 export PYTHONPATH=$PYTHONPATH:$masif_source
 PDB_ID=$(echo $1| cut -d"_" -f1)
 CHAIN1=$(echo $1| cut -d"_" -f2)
