@@ -93,6 +93,7 @@ learning_obj = MaSIF_ppi_search(
     n_rotations=16,
     idx_gpu="/gpu:0",
     feat_mask=params["feat_mask"],
+    neg_loss_weight=params.get("neg_loss_weight", 1.0),
 )
 
 # Compute the list of binders.

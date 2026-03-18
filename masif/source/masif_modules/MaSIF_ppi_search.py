@@ -167,7 +167,7 @@ class MaSIF_ppi_search:
 
         pos_mean, pos_std = tf.nn.moments(pos_distances, [0])
         neg_mean, neg_std = tf.nn.moments(neg_distances, [0])
-        data_loss = pos_std + neg_std + pos_mean + neg_mean
+        data_loss = pos_std + pos_mean + self.neg_loss_weight * (neg_std + neg_mean)
 
         return data_loss
 
@@ -181,6 +181,7 @@ class MaSIF_ppi_search:
         n_rotations=16,
         idx_gpu="/device:GPU:0",
         feat_mask=[1.0, 1.0, 1.0, 1.0, 1.0],
+        neg_loss_weight=1.0,
     ):
 
         # order of the spectral filters
@@ -194,6 +195,7 @@ class MaSIF_ppi_search:
         self.sigma_theta_init = 1.0  # 0.25
         self.n_rotations = n_rotations
         self.n_feat = int(sum(feat_mask))
+        self.neg_loss_weight = float(neg_loss_weight)
 
         with tf.Graph().as_default() as g:
             self.graph = g

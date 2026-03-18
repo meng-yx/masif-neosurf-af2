@@ -44,6 +44,14 @@ masif_opts["ppi_search"]["gif_descriptors_out"] = "gif_descriptors/"
 masif_opts["ppi_search"]["sc_radius"] = 12.0
 masif_opts["ppi_search"]["sc_interaction_cutoff"] = 1.5
 masif_opts["ppi_search"]["sc_w"] = 0.25
+# Negative sampling configuration for MaSIF-ppi-search cache/training.
+masif_opts["ppi_search"]["neg_ratio"] = 1
+masif_opts["ppi_search"]["neg_mix_cross_complex"] = 0.0
+masif_opts["ppi_search"]["neg_mix_within_complex"] = 1.0
+masif_opts["ppi_search"]["neg_mix_hard"] = 0.0
+masif_opts["ppi_search"]["enforce_diff_pdb_for_cross"] = True
+masif_opts["ppi_search"]["hard_negative_topk"] = 200
+masif_opts["ppi_search"]["neg_loss_weight"] = 1.0
 
 # Neural network patch application specific parameters.
 masif_opts["site"] = {}

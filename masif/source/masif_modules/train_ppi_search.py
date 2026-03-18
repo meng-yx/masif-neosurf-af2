@@ -23,8 +23,21 @@ def construct_batch(
     neg_theta_wrt_center,
     neg_input_feat,
     neg_mask,
+    neg_ratio=1,
     c_neg_training_idx_2=None,
 ):
+    neg_ratio = max(1, int(neg_ratio))
+    c_pos_training_idx = np.asarray(c_pos_training_idx, dtype=int)
+    c_neg_training_idx = np.asarray(c_neg_training_idx, dtype=int)
+    # Keep the 4 equal-sized chunks required by the loss.
+    # Repeat positive/binder anchors to match the number of negatives.
+    if len(c_neg_training_idx) == 0:
+        raise ValueError("c_neg_training_idx is empty.")
+    if len(c_pos_training_idx) == 0:
+        raise ValueError("c_pos_training_idx is empty.")
+    if len(c_neg_training_idx) != len(c_pos_training_idx):
+        rep = int(np.ceil(float(len(c_neg_training_idx)) / float(len(c_pos_training_idx))))
+        c_pos_training_idx = np.repeat(c_pos_training_idx, rep)[: len(c_neg_training_idx)]
 
     batch_rho_coords_binder = np.expand_dims(
         binder_rho_wrt_center[c_pos_training_idx], 2
@@ -168,6 +181,18 @@ def compute_roc_auc(pos, neg):
     return metrics.roc_auc_score(labels, dist_pairs)
 
 
+def sample_equal_length(descs1, descs2):
+    """Return two descriptor arrays with identical length via random subsampling."""
+    n1 = len(descs1)
+    n2 = len(descs2)
+    if n1 == 0 or n2 == 0:
+        return descs1[:0], descs2[:0]
+    n = min(n1, n2)
+    idx1 = np.random.choice(n1, size=n, replace=False)
+    idx2 = np.random.choice(n2, size=n, replace=False)
+    return descs1[idx1], descs2[idx2]
+
+
 class Logger:
     def __init__(self, logfile):
         self.logfile = logfile
@@ -208,6 +233,8 @@ def train_ppi_search(
 
     out_dir = params["model_dir"]
     logfile = Logger(out_dir + "log.txt")
+    neg_ratio = max(1, int(params.get("neg_ratio", 1)))
+    logfile.write("Configured neg_ratio: {}\n".format(neg_ratio))
     logfile.write(
         "Number of training positive shapes: {}\n".format(len(pos_training_idx))
     )
@@ -262,8 +289,15 @@ def train_ppi_search(
         np.random.shuffle(pos_training_idx_copy)
         np.random.shuffle(neg_training_idx_copy)
 
-        c_pos_training_idx = pos_training_idx_copy[: batch_size // 4]
-        c_neg_training_idx = neg_training_idx_copy[: batch_size // 4]
+        # Keep the effective feed size close to batch_size while allowing neg_ratio > 1.
+        n_anchor = max(1, batch_size // (4 * neg_ratio))
+        n_pairs = max(1, n_anchor * neg_ratio)
+        c_pos_training_idx = pos_training_idx_copy[:n_anchor]
+        c_neg_training_idx = neg_training_idx_copy[:n_pairs]
+        if len(c_pos_training_idx) == 0:
+            c_pos_training_idx = np.random.choice(pos_training_idx_copy, size=1, replace=True)
+        if len(c_neg_training_idx) == 0:
+            c_neg_training_idx = np.random.choice(neg_training_idx_copy, size=1, replace=True)
 
         c_neg_training_idx_2 = None
 
@@ -283,13 +317,9 @@ def train_ppi_search(
             neg_theta_wrt_center,
             neg_input_feat,
             neg_mask,
-            c_neg_training_idx_2,
+            neg_ratio=neg_ratio,
+            c_neg_training_idx_2=c_neg_training_idx_2,
         )
-
-        assert len(batch_rho_coords) == batch_size
-        assert len(batch_theta_coords) == batch_size
-        assert len(batch_input_feat) == batch_size
-        assert len(batch_mask) == batch_size
 
         feed_dict = {
             learning_obj.rho_coords: batch_rho_coords,
@@ -352,7 +382,9 @@ def train_ppi_search(
 
             training_time_entry = time.time() - tic
             logfile.write(
-                "Training {} entries took {:.2f}s \n".format(batch_size * num_iter_test, training_time_entry)
+                "Training {} entries took {:.2f}s \n".format(
+                    len(batch_mask) * num_iter_test, training_time_entry
+                )
             )
 
             tic = time.time()
@@ -389,8 +421,7 @@ def train_ppi_search(
             )
 
             neg_desc_2 = binder_desc.copy()
-            # Simply shuffle negative descriptors.
-            np.random.shuffle(neg_desc)
+            neg_desc, neg_desc_2 = sample_equal_length(neg_desc, neg_desc_2)
 
             # Compute val ROC AUC.
             pos_dists = compute_dists(pos_desc, binder_desc)
@@ -450,7 +481,7 @@ def train_ppi_search(
 
             # Compute test ROC AUC.
             pos_dists = compute_dists(pos_desc, binder_desc)
-            np.random.shuffle(neg_desc)
+            neg_desc, neg_desc_2 = sample_equal_length(neg_desc, neg_desc_2)
             neg_dists = compute_dists(neg_desc, neg_desc_2)
             test_auc = 1 - compute_roc_auc(pos_dists, neg_dists)
 
