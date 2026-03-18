@@ -4,6 +4,7 @@ import os
 import Bio
 import shutil
 from Bio.PDB import *
+from Bio.PDB.Polypeptide import is_aa
 import sys
 import importlib
 from IPython.core.debugger import set_trace
@@ -23,6 +24,83 @@ from triangulation.computeCharges import computeCharges, assignChargesToNewMesh
 from triangulation.computeAPBS import computeAPBS
 from triangulation.compute_normal import compute_normal
 from sklearn.neighbors import KDTree
+
+
+def _residue_key(chain_id, residue):
+    return (chain_id, residue.get_id())
+
+
+class _ResidueRejectSelect(Select):
+    def __init__(self, reject_keys):
+        self.reject_keys = reject_keys
+
+    def accept_residue(self, residue):
+        parent_chain = residue.get_parent()
+        key = _residue_key(parent_chain.get_id(), residue)
+        return 0 if key in self.reject_keys else 1
+
+
+def filter_incomplete_backbone_residues(
+    pdb_path,
+    required_backbone_atoms=("N", "CA", "C", "O"),
+    fail_if_filtered_fraction_exceeds=None,
+):
+    """
+    Remove standard amino-acid residues missing required backbone heavy atoms.
+    Keeps non-protein residues unchanged.
+    """
+    parser = PDBParser(QUIET=True)
+    struct = parser.get_structure("filter_backbone", pdb_path)
+    model = Selection.unfold_entities(struct, "M")[0]
+
+    reject_keys = set()
+    removed_residues = []
+    total_protein_residues = 0
+
+    for chain in model:
+        for residue in chain:
+            hetflag = residue.get_id()[0]
+            # Only filter standard polymer amino acids.
+            if hetflag != " " or not is_aa(residue, standard=True):
+                continue
+            total_protein_residues += 1
+            atom_names = set(atom.get_name() for atom in residue.get_atoms())
+            missing = [atm for atm in required_backbone_atoms if atm not in atom_names]
+            if len(missing) > 0:
+                key = _residue_key(chain.get_id(), residue)
+                reject_keys.add(key)
+                removed_residues.append(
+                    {
+                        "resname": residue.get_resname(),
+                        "chain": chain.get_id(),
+                        "resseq": residue.get_id()[1],
+                        "icode": residue.get_id()[2].strip(),
+                        "missing": missing,
+                    }
+                )
+
+    removed_count = len(removed_residues)
+    kept_count = total_protein_residues - removed_count
+    filtered_fraction = (
+        float(removed_count) / float(total_protein_residues)
+        if total_protein_residues > 0
+        else 0.0
+    )
+
+    # Rewrite the pdb in-place only if anything is removed.
+    if removed_count > 0:
+        io = PDBIO()
+        io.set_structure(struct)
+        io.save(pdb_path, select=_ResidueRejectSelect(reject_keys))
+
+    return {
+        "total_protein_residues": total_protein_residues,
+        "removed_count": removed_count,
+        "kept_count": kept_count,
+        "filtered_fraction": filtered_fraction,
+        "removed_residues": removed_residues,
+        "required_backbone_atoms": list(required_backbone_atoms),
+    }
 
 
 if len(sys.argv) <= 1:
@@ -82,6 +160,55 @@ pdb_filename = protonated_file
 # Extract chains of interest.
 out_filename1 = tmp_dir+"/"+pdb_id+"_"+chain_ids1
 extractPDB(pdb_filename, out_filename1+".pdb", chain_ids1, ligand_code, ligand_chain)
+
+if masif_opts.get("filter_incomplete_backbone_residues", True):
+    required_backbone_atoms = masif_opts.get(
+        "min_backbone_atoms_required", ["N", "CA", "C", "O"]
+    )
+    fail_if_filtered_fraction_exceeds = masif_opts.get(
+        "fail_if_filtered_fraction_exceeds", None
+    )
+    filter_info = filter_incomplete_backbone_residues(
+        out_filename1 + ".pdb",
+        required_backbone_atoms=tuple(required_backbone_atoms),
+        fail_if_filtered_fraction_exceeds=fail_if_filtered_fraction_exceeds,
+    )
+    if filter_info["removed_count"] > 0:
+        print(
+            "Removed {} residues with incomplete backbone (required atoms: {}).".format(
+                filter_info["removed_count"], ",".join(filter_info["required_backbone_atoms"])
+            )
+        )
+        for rr in filter_info["removed_residues"]:
+            icode = rr["icode"] if rr["icode"] != "" else "-"
+            print(
+                "  - {} {} {} {} missing [{}]".format(
+                    rr["resname"],
+                    rr["chain"],
+                    rr["resseq"],
+                    icode,
+                    ",".join(rr["missing"]),
+                )
+            )
+    else:
+        print("Backbone filter removed 0 residues.")
+    if filter_info["kept_count"] <= 0:
+        raise RuntimeError(
+            "Backbone filter removed all protein residues for {}. Aborting chain processing.".format(
+                out_filename1 + ".pdb"
+            )
+        )
+    if (
+        fail_if_filtered_fraction_exceeds is not None
+        and filter_info["filtered_fraction"] > float(fail_if_filtered_fraction_exceeds)
+    ):
+        raise RuntimeError(
+            "Backbone filter removed {:.1f}% residues in {} (threshold {:.1f}%).".format(
+                100.0 * filter_info["filtered_fraction"],
+                out_filename1 + ".pdb",
+                100.0 * float(fail_if_filtered_fraction_exceeds),
+            )
+        )
 
 # Compute MSMS of surface w/hydrogens,
 vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb", protonate=True, keep_hetatms=[ligand_code])

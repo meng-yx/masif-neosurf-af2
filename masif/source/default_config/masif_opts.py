@@ -16,6 +16,10 @@ masif_opts["compute_iface"] = True
 # Mesh resolution. Everything gets very slow if it is lower than 1.0
 masif_opts["mesh_res"] = 1.0
 masif_opts["feature_interpolation"] = True
+# Pre-APBS residue filtering: drop residues with incomplete backbone atoms.
+masif_opts["filter_incomplete_backbone_residues"] = True
+masif_opts["min_backbone_atoms_required"] = ["N", "CA", "C", "O"]
+masif_opts["fail_if_filtered_fraction_exceeds"] = None
 
 
 # Coords params
