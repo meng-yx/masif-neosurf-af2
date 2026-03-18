@@ -8,4 +8,4 @@ export PYTHONPATH=$PYTHONPATH:$masif_source
 SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root"
 
 singularity exec --bind $SINGULARITY_BIND $docker_image python3 $masif_source/masif_ppi_search/masif_ppi_search_cache_training_data.py \
-    nn_models.sc05.all_feat.custom_params_mixed_5to1
+    nn_models.sc05.all_feat.custom_params
