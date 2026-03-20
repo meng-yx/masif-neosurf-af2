@@ -1,0 +1,23 @@
+{
+  "available_ppi_ids": 120,
+  "splits": {
+    "test": {
+      "num_negative": 60,
+      "num_positive": 20,
+      "num_ppi_ids": 20,
+      "num_rows": 80
+    },
+    "train": {
+      "num_negative": 60,
+      "num_positive": 20,
+      "num_ppi_ids": 20,
+      "num_rows": 80
+    },
+    "val": {
+      "num_negative": 30,
+      "num_positive": 10,
+      "num_ppi_ids": 10,
+      "num_rows": 40
+    }
+  }
+}

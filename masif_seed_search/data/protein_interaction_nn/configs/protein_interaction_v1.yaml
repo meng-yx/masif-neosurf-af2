@@ -1,0 +1,56 @@
+seed: 42
+
+data:
+  # Relative to repository root.
+  descriptors_dir: "masif/data/masif_ppi_search/descriptors/sc05/all_feat"
+  surfaces_dir: "masif/data_preparation/01-benchmark_surfaces"
+  iface_dir: "masif/data/masif_site/pred_data"
+
+  # Existing benchmark splits.
+  train_list: "masif_seed_search/data/scoring_nn/lists/training_seed_benchmark.txt"
+  test_list: "masif_seed_search/data/scoring_nn/lists/testing_seed_benchmark.txt"
+  val_fraction_from_train: 0.1
+
+  # Descriptor files inside each pair directory.
+  query_desc_file: "p1_desc_flipped.npy"
+  matched_desc_file: "p2_desc_straight.npy"
+
+  # Query uses chain-1 surface; matched uses chain-2 surface.
+  query_chain_index: 1
+  matched_chain_index: 2
+
+  # Interface-guided query subsampling.
+  use_query_interface_subset: true
+  iface_cutoff: 0.7
+  query_iface_fallback_topk: 256
+
+  # Point caps for mini-batches.
+  max_query_points: 256
+  max_matched_points: 1024
+
+  # Build-pairs options.
+  pairs_out_dir: "masif_seed_search/data/protein_interaction_nn/splits"
+  negatives_per_positive: 3
+  tiny_subset:
+    enabled: false
+    max_pos_per_split: 20
+
+model:
+  descriptor_dim: 80
+  encoder_hidden_dim: 128
+  attention_hidden_dim: 128
+  classifier_hidden_dim: 128
+  dropout: 0.2
+
+train:
+  batch_size: 8
+  epochs: 25
+  learning_rate: 0.0003
+  weight_decay: 0.0
+  early_stop_patience: 6
+  checkpoint_dir: "masif_seed_search/data/protein_interaction_nn/checkpoints/v1"
+  log_dir: "masif_seed_search/data/protein_interaction_nn/analysis/v1"
+
+eval:
+  checkpoint_path: ""
+  output_dir: "masif_seed_search/data/protein_interaction_nn/analysis/v1_eval"

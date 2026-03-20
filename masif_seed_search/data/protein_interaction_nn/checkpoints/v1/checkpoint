@@ -1,0 +1,2 @@
+model_checkpoint_path: "/scratch/ymeng/masif-neosurf-af2/masif_seed_search/data/protein_interaction_nn/checkpoints/v1/best"
+all_model_checkpoint_paths: "/scratch/ymeng/masif-neosurf-af2/masif_seed_search/data/protein_interaction_nn/checkpoints/v1/best"

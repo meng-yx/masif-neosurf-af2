@@ -1,0 +1,21 @@
+{
+  "config_path": "/tmp/tmpto2lm_0t.yaml",
+  "best_val_roc_auc": 0.6799999999999999,
+  "best_checkpoint": "/scratch/ymeng/masif-neosurf-af2/masif_seed_search/data/protein_interaction_nn/checkpoints/v1/best",
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.6776476413011551,
+      "val_loss": 0.6861672818660736,
+      "val_roc_auc": 0.5633333333333334,
+      "val_pr_auc": 0.3215546218487395
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.6834714472293854,
+      "val_loss": 0.6856456875801087,
+      "val_roc_auc": 0.6799999999999999,
+      "val_pr_auc": 0.4452729296846944
+    }
+  ]
+}
