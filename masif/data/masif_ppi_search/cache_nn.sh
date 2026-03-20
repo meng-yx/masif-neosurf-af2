@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# --- legacy monolithic cache generation ---
+# Very slow and prone to OOM kill
+
 masif_neosurf_root=$(git rev-parse --show-toplevel)
 masif_root=$masif_neosurf_root/masif
 masif_source=$masif_root/source/
