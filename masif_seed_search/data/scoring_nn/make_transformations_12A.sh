@@ -19,6 +19,7 @@ export SINGULARITYENV_LD_LIBRARY_PATH=/usr/local/lib/python3.6/site-packages/pym
 # Construct absolute path to PDB list file
 # Note: Change to testing_seed_benchmark.txt if generating testing data instead of training data
 LIST_FILE="${masif_seed_root}/data/scoring_nn/lists/full_list.txt"
+OUTPUT_DIR="${SCORING_OUTPUT_DIR:-training_data_12A_seed_benchmark/}"
 
 # Use --cleanenv to prevent host environment from interfering with container libraries
 singularity exec --cleanenv --bind $SINGULARITY_BIND $docker_image python -W ignore -u $masif_seed_source/seed_search_generate_training_data.py \
@@ -26,6 +27,6 @@ singularity exec --cleanenv --bind $SINGULARITY_BIND $docker_image python -W ign
   --K 1000 \
   --ransac-iter 2000 \
   --patch-radius 12 \
-  --output-dir testing_data_12A_seed_benchmark/ \
+  --output-dir "$OUTPUT_DIR" \
   --pdb-list-index $1 \
   --pdb-list "$LIST_FILE"

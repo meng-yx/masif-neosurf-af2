@@ -1,9 +1,24 @@
-source /work/upcorreia/bin/load_masif_environment_gpu.sh
-masif_root=../../../
-masif_seed_root=../../
-masif_source=$masif_root/masif/source/
-masif_seed_source=$masif_seed_root/source/
-masif_data=$masif_root/masif/data/
-export PYTHONPATH=$PYTHONPATH:$masif_source:$masif_seed_source
-python3 $masif_seed_source/train_alignment_evaluation_nn.py 12A 0_1_2_3
-#python3 $masif_seed_source/train_alignment_evaluation_nn.py 12A $1
+#!/bin/bash
+masif_neosurf_root=$(git rev-parse --show-toplevel)
+masif_root=$masif_neosurf_root/masif
+masif_seed_root=$masif_neosurf_root/masif_seed_search
+masif_source=$masif_root/source/
+masif_seed_source=$masif_seed_root/source
+
+# Run inside singularity container
+docker_image=$masif_neosurf_root/masif-neosurf_v0.1.sif
+SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root"
+
+# Set PYTHONPATH inside container (SINGULARITYENV_ prefix passes env vars into container)
+export SINGULARITYENV_PYTHONPATH=$masif_source:$masif_seed_source
+# Set LD_LIBRARY_PATH to prioritize pymesh's bundled libstdc++ which has GLIBCXX_3.4.26
+# The system libstdc++ only has up to GLIBCXX_3.4.25, causing the mismatch error
+# Prepend pymesh lib directory so its libstdc++.so.6 is found first
+export SINGULARITYENV_LD_LIBRARY_PATH=/usr/local/lib/python3.6/site-packages/pymesh/lib:/usr/lib/x86_64-linux-gnu:/lib/x86_64-linux-gnu
+
+PATCH_SIZE="${1:-12A}"
+SELECTED_FEATURES="${2:-0_1_2_3}"
+
+# Use --cleanenv to prevent host environment from interfering with container libraries
+singularity exec --cleanenv --bind $SINGULARITY_BIND $docker_image python3 -W ignore -u \
+  $masif_seed_source/train_alignment_evaluation_nn.py "$PATCH_SIZE" "$SELECTED_FEATURES"

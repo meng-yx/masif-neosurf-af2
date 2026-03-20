@@ -4,13 +4,12 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 6G
 #SBATCH --time 1:00:00
-#SBATCH --array=1
-#SBATCH --output=exelogs/prepare_features_12A.%A_%a.out
-#SBATCH --error=exelogs/prepare_features_12A.%A_%a.out
+#SBATCH --array=1-120
+#SBATCH --output=exelogs/prepare_features_12A-%A/slurm-%A_%a.out
+#SBATCH --error=exelogs/prepare_features_12A-%A/slurm-%A_%a.out
 
 echo STARTING AT `date`
 echo ${SLURM_ARRAY_TASK_ID}
-echo FINISHED at `date`
 
 i=1
 while read p; do
@@ -25,4 +24,4 @@ while read p; do
     i=$((i+1))
 done < lists/full_list.txt
 
-
+echo FINISHED at `date`
