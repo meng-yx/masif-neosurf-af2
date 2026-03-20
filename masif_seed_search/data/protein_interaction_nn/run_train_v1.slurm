@@ -8,10 +8,12 @@
 #SBATCH --output=exelogs/train_v1-%A.out
 #SBATCH --error=exelogs/train_v1-%A.out
 
-echo "STARTING V1 TRAINING AT $(date)"
+set -euo pipefail
 
-CONFIG_PATH="${CONFIG_PATH:-configs/protein_interaction_v1.yaml}"
-./run_train_v1.sh "$CONFIG_PATH"
+submit_dir="${SLURM_SUBMIT_DIR:-$(pwd)}"
+
+echo "STARTING V1 TRAINING AT $(date)"
+bash "$submit_dir/run_train_v1.sh" "$@"
 
 echo "FINISHED V1 TRAINING AT $(date)"
 

@@ -8,12 +8,12 @@
 #SBATCH --output=exelogs/eval_v1-%A.out
 #SBATCH --error=exelogs/eval_v1-%A.out
 
-echo "STARTING V1 EVALUATION AT $(date)"
+set -euo pipefail
 
-CONFIG_PATH="${CONFIG_PATH:-configs/protein_interaction_v1.yaml}"
-SPLIT="${SPLIT:-test}"
-CHECKPOINT="${CHECKPOINT:-}"
-./run_eval_v1.sh "$CONFIG_PATH" "$SPLIT" "$CHECKPOINT"
+submit_dir="${SLURM_SUBMIT_DIR:-$(pwd)}"
+
+echo "STARTING V1 EVALUATION AT $(date)"
+bash "$submit_dir/run_eval_v1.sh" "$@"
 
 echo "FINISHED V1 EVALUATION AT $(date)"
 
