@@ -1,513 +1,527 @@
-# Header variables and parameters.
-import importlib
+import argparse
 import os
-import sys
+from collections import OrderedDict
 
 import numpy as np
-import pymesh
-from scipy.spatial import cKDTree
 
-from default_config.masif_opts import masif_opts
-
-"""
-masif_ppi_search_cache_training_data.py: Function to cache all the training data for MaSIF-search. 
-                This function extract all the positive pairs and a random number of negative surfaces.
-                In the future, the number of negative surfaces should be increased.
-Pablo Gainza - LPDI STI EPFL 2019
-Released under an Apache License 2.0
-
-Modification: Yanxiang Meng - 18.3.2026
-Support configurable negative sampling with mixed sources:
-within-complex, cross-complex, and hard negatives (near-interface).
-"""
-def normalize_mix(w_cross, w_within, w_hard):
-    mix = np.asarray([w_cross, w_within, w_hard], dtype=float)
-    mix = np.maximum(mix, 0.0)
-    if mix.sum() <= 0.0:
-        # Backward-compatible default: all negatives from within-complex.
-        mix = np.asarray([0.0, 1.0, 0.0], dtype=float)
-    mix /= mix.sum()
-    return mix
-
-
-def split_counts(total, mix):
-    raw = total * mix
-    counts = np.floor(raw).astype(int)
-    remainder = int(total - counts.sum())
-    if remainder > 0:
-        order = np.argsort(-(raw - counts))
-        counts[order[:remainder]] += 1
-    return counts
-
-
-def sample_indices(pool_size, n_samples):
-    if n_samples <= 0 or pool_size <= 0:
-        return np.asarray([], dtype=int)
-    replace = pool_size < n_samples
-    return np.random.choice(pool_size, size=n_samples, replace=replace)
-
-
-def sample_from_index_array(index_array, n_samples):
-    if n_samples <= 0 or len(index_array) == 0:
-        return np.asarray([], dtype=int)
-    replace = len(index_array) < n_samples
-    return np.random.choice(index_array, size=n_samples, replace=replace)
-
-
-def concat_or_empty(chunks, ndim):
-    if len(chunks) == 0:
-        if ndim == 2:
-            return np.empty((0, 0))
-        if ndim == 3:
-            return np.empty((0, 0, 0))
-        return np.empty((0,))
-    return np.concatenate(chunks, axis=0)
-
-
-def remap_indices(indices, keep_mask):
-    indices = np.asarray(indices, dtype=int)
-    if len(indices) == 0:
-        return indices
-    old_to_new = -1 * np.ones(len(keep_mask), dtype=int)
-    old_to_new[np.where(keep_mask)[0]] = np.arange(np.sum(keep_mask))
-    valid_old = keep_mask[indices]
-    remapped = old_to_new[indices[valid_old]]
-    assert not (remapped == -1).any()
-    return remapped
-
-
-params = masif_opts["ppi_search"]
-if len(sys.argv) > 1:
-    custom_params_file = sys.argv[1]
-    custom_params = importlib.import_module(custom_params_file, package=None)
-    custom_params = custom_params.custom_params
-    for key in custom_params:
-        print("Setting {} to {} ".format(key, custom_params[key]))
-        params[key] = custom_params[key]
-
-if "pids" not in params:
-    params["pids"] = ["p1", "p2"]
-
-neg_ratio = int(params.get("neg_ratio", 1))
-neg_ratio = max(1, neg_ratio)
-mix = normalize_mix(
-    params.get("neg_mix_cross_complex", 0.0),
-    params.get("neg_mix_within_complex", 1.0),
-    params.get("neg_mix_hard", 0.0),
+from cache_shard_common import (
+    FINAL_CACHE_FILES,
+    concat_or_empty,
+    ensure_dir,
+    load_params,
+    normalize_mix,
+    read_json,
+    remap_indices,
+    sample_from_index_array,
+    save_json,
+    split_counts,
+    write_success_marker,
 )
-enforce_diff_pdb_for_cross = bool(params.get("enforce_diff_pdb_for_cross", True))
-hard_negative_topk = int(params.get("hard_negative_topk", 200))
-
-parent_in_dir = params["masif_precomputation_dir"]
-training_list = set(x.rstrip() for x in open(params["training_list"]).readlines())
-testing_list = set(x.rstrip() for x in open(params["testing_list"]).readlines())
-all_pairs = sorted(os.listdir(parent_in_dir))
-
-print("Negative sampling config:")
-print(f"  neg_ratio={neg_ratio}")
-print(
-    "  mix(cross,within,hard)=({:.3f}, {:.3f}, {:.3f})".format(
-        mix[0], mix[1], mix[2]
-    )
-)
-print(f"  enforce_diff_pdb_for_cross={enforce_diff_pdb_for_cross}")
-print(f"  hard_negative_topk={hard_negative_topk}")
-
-# Phase A: collect positives and per-pair negative candidates.
-records = []
-for count, ppi_pair_id in enumerate(all_pairs):
-    print(f"{count} / {len(all_pairs)}")
-    if ppi_pair_id not in training_list and ppi_pair_id not in testing_list:
-        continue
-
-    in_dir = os.path.join(parent_in_dir, ppi_pair_id) + "/"
-    fields = ppi_pair_id.split("_")
-    if len(fields) < 3:
-        continue
-    pdb_id = fields[0]
-    split = "test"
-    if ppi_pair_id in training_list:
-        split = "train" if np.random.random() <= params["range_val_samples"] else "val"
-
-    try:
-        labels = np.load(in_dir + "p1_sc_labels.npy")
-        labels = np.median(labels[0], axis=1)
-    except Exception as e:
-        print("Could not open {}p1_sc_labels.npy: {}".format(in_dir, e))
-        continue
-
-    ply_fn1 = masif_opts["ply_file_template"].format(fields[0], fields[1])
-    ply_fn2 = masif_opts["ply_file_template"].format(fields[0], fields[2])
-
-    pos_labels = np.where(
-        (labels < params["max_sc_filt"]) & (labels > params["min_sc_filt"])
-    )[0]
-    k_accept = int(params["pos_surf_accept_probability"] * len(pos_labels))
-    if k_accept < 1:
-        continue
-    chosen = np.arange(len(pos_labels))
-    np.random.shuffle(chosen)
-    chosen = pos_labels[chosen[:k_accept]]
-
-    v1 = pymesh.load_mesh(ply_fn1).vertices[chosen]
-    v2 = pymesh.load_mesh(ply_fn2).vertices
-
-    kdt = cKDTree(v2)
-    d, r = kdt.query(v1)
-    contact_points = np.where(d < params["pos_interface_cutoff"])[0]
-    if len(contact_points) == 0:
-        continue
-    k1 = chosen[contact_points]
-    k2 = r[contact_points]
-    assert len(k1) == len(k2)
-
-    kdt = cKDTree(v1)
-    dneg, _ = kdt.query(v2)
-    k_neg2 = np.where(dneg > params["pos_interface_cutoff"])[0]
-    if len(k_neg2) == 0:
-        print(f"No non-interface negatives for {ppi_pair_id}, skipping.")
-        continue
-
-    p1_rho = np.load(in_dir + "p1_rho_wrt_center.npy")
-    p1_theta = np.load(in_dir + "p1_theta_wrt_center.npy")
-    p1_input = np.load(in_dir + "p1_input_feat.npy")
-    p1_mask = np.load(in_dir + "p1_mask.npy")
-
-    p2_rho = np.load(in_dir + "p2_rho_wrt_center.npy")
-    p2_theta = np.load(in_dir + "p2_theta_wrt_center.npy")
-    p2_input = np.load(in_dir + "p2_input_feat.npy")
-    p2_mask = np.load(in_dir + "p2_mask.npy")
-
-    record = {
-        "ppi_pair_id": ppi_pair_id,
-        "pdb_id": pdb_id,
-        "split": split,
-        "binder_rho": p1_rho[k1],
-        "binder_theta": p1_theta[k1],
-        "binder_input": p1_input[k1],
-        "binder_mask": p1_mask[k1],
-        "pos_rho": p2_rho[k2],
-        "pos_theta": p2_theta[k2],
-        "pos_input": p2_input[k2],
-        "pos_mask": p2_mask[k2],
-        "pos_names": [f"{ppi_pair_id}_p1_{ii}" for ii in k1],
-        "within_rho": p2_rho[k_neg2],
-        "within_theta": p2_theta[k_neg2],
-        "within_input": p2_input[k_neg2],
-        "within_mask": p2_mask[k_neg2],
-        "within_names": [f"{ppi_pair_id}_p2_{ii}" for ii in k_neg2],
-        "within_dneg": dneg[k_neg2],
-    }
-    records.append(record)
-
-if len(records) == 0:
-    raise RuntimeError("No valid records found to build cache.")
-
-def build_pool(source_records, split_group):
-    pool_rho = []
-    pool_theta = []
-    pool_input = []
-    pool_mask = []
-    pool_names = []
-    pool_ppi = []
-    pool_pdb = []
-    for rec in source_records:
-        if split_group == "trainval" and rec["split"] == "test":
-            continue
-        if split_group == "test" and rec["split"] != "test":
-            continue
-        n = len(rec["within_rho"])
-        if n == 0:
-            continue
-        pool_rho.append(rec["within_rho"])
-        pool_theta.append(rec["within_theta"])
-        pool_input.append(rec["within_input"])
-        pool_mask.append(rec["within_mask"])
-        pool_names.extend(rec["within_names"])
-        pool_ppi.extend([rec["ppi_pair_id"]] * n)
-        pool_pdb.extend([rec["pdb_id"]] * n)
-    return {
-        "rho": concat_or_empty(pool_rho, 2),
-        "theta": concat_or_empty(pool_theta, 2),
-        "input": concat_or_empty(pool_input, 3),
-        "mask": concat_or_empty(pool_mask, 2),
-        "names": np.asarray(pool_names),
-        "ppi": np.asarray(pool_ppi),
-        "pdb": np.asarray(pool_pdb),
-    }
 
 
-pools = {
-    "trainval": build_pool(records, "trainval"),
-    "test": build_pool(records, "test"),
+FEATURE_TENSOR_FILES = {
+    'p1_rho': 'p1_rho_wrt_center.npy',
+    'p1_theta': 'p1_theta_wrt_center.npy',
+    'p1_input': 'p1_input_feat.npy',
+    'p1_mask': 'p1_mask.npy',
+    'p2_rho': 'p2_rho_wrt_center.npy',
+    'p2_theta': 'p2_theta_wrt_center.npy',
+    'p2_input': 'p2_input_feat.npy',
+    'p2_mask': 'p2_mask.npy',
 }
 
-# Precompute cross-valid candidate indices per record.
-for rec in records:
-    pool_key = "test" if rec["split"] == "test" else "trainval"
-    pool = pools[pool_key]
-    cross_all = np.arange(len(pool["rho"]))
-    if len(cross_all) == 0:
-        rec["cross_valid_idx"] = np.asarray([], dtype=int)
-    else:
-        mask = pool["ppi"] != rec["ppi_pair_id"]
-        if enforce_diff_pdb_for_cross:
-            mask = mask & (pool["pdb"] != rec["pdb_id"])
-        rec["cross_valid_idx"] = cross_all[mask]
-    rec["cross_pool_key"] = pool_key
-    rec["within_all_idx"] = np.arange(len(rec["within_rho"]))
-    order = np.argsort(rec["within_dneg"])
-    rec["hard_idx"] = order[: min(hard_negative_topk, len(order))]
+
+class PairArrayCache:
+    def __init__(self, max_records=16, mmap_mode='r'):
+        self.max_records = max(1, int(max_records))
+        self.mmap_mode = mmap_mode
+        self._store = OrderedDict()
+
+    def get(self, record):
+        rec_key = record['ppi_pair_id']
+        if rec_key in self._store:
+            self._store.move_to_end(rec_key)
+            return self._store[rec_key]
+
+        in_dir = record['in_dir']
+        arrays = {
+            name: np.load(os.path.join(in_dir, filename), mmap_mode=self.mmap_mode)
+            for name, filename in FEATURE_TENSOR_FILES.items()
+        }
+        self._store[rec_key] = arrays
+        self._store.move_to_end(rec_key)
+        while len(self._store) > self.max_records:
+            self._store.popitem(last=False)
+        return arrays
 
 
-# Phase B: mixed negative sampling and cache assembly.
-binder_rho_wrt_center = []
-binder_theta_wrt_center = []
-binder_input_feat = []
-binder_mask = []
-pos_rho_wrt_center = []
-pos_theta_wrt_center = []
-pos_input_feat = []
-pos_mask = []
-neg_rho_wrt_center = []
-neg_theta_wrt_center = []
-neg_input_feat = []
-neg_mask = []
-pos_names = []
-neg_names = []
+class SubsetPartWriter:
+    def __init__(self, subset_dir, flush_every_pos):
+        self.subset_dir = subset_dir
+        self.parts_dir = os.path.join(subset_dir, 'parts')
+        ensure_dir(self.parts_dir)
+        self.flush_every_pos = max(1, int(flush_every_pos))
 
-pos_training_idx = []
-pos_val_idx = []
-pos_test_idx = []
-neg_training_idx = []
-neg_val_idx = []
-neg_test_idx = []
+        self.part_idx = 0
+        self.global_pos_count = 0
+        self.global_neg_count = 0
+        self.total_mix_counts = {'cross': 0, 'within': 0, 'hard': 0, 'fallback': 0}
+        self.parts = []
+        self._reset_buffer()
 
-mix_counts = {"cross": 0, "within": 0, "hard": 0, "fallback": 0}
-pos_idx_count = 0
-neg_idx_count = 0
+    def _reset_buffer(self):
+        self.binder_rho_wrt_center = []
+        self.binder_theta_wrt_center = []
+        self.binder_input_feat = []
+        self.binder_mask = []
+        self.pos_rho_wrt_center = []
+        self.pos_theta_wrt_center = []
+        self.pos_input_feat = []
+        self.pos_mask = []
+        self.neg_rho_wrt_center = []
+        self.neg_theta_wrt_center = []
+        self.neg_input_feat = []
+        self.neg_mask = []
+        self.pos_names = []
+        self.neg_names = []
 
-for rec in records:
-    n_pos = len(rec["pos_rho"])
-    if n_pos == 0:
-        continue
+        self.pos_training_idx = []
+        self.pos_val_idx = []
+        self.pos_test_idx = []
+        self.neg_training_idx = []
+        self.neg_val_idx = []
+        self.neg_test_idx = []
 
-    # Positives (1 per binder-contact pair).
-    binder_rho_wrt_center.append(rec["binder_rho"])
-    binder_theta_wrt_center.append(rec["binder_theta"])
-    binder_input_feat.append(rec["binder_input"])
-    binder_mask.append(rec["binder_mask"])
-    pos_rho_wrt_center.append(rec["pos_rho"])
-    pos_theta_wrt_center.append(rec["pos_theta"])
-    pos_input_feat.append(rec["pos_input"])
-    pos_mask.append(rec["pos_mask"])
-    pos_names.extend(rec["pos_names"])
+        self.local_pos_count = 0
+        self.local_neg_count = 0
 
-    pos_indices = np.arange(pos_idx_count, pos_idx_count + n_pos)
-    if rec["split"] == "train":
-        pos_training_idx.extend(pos_indices.tolist())
-    elif rec["split"] == "val":
-        pos_val_idx.extend(pos_indices.tolist())
-    else:
-        pos_test_idx.extend(pos_indices.tolist())
-    pos_idx_count += n_pos
+    def add_pos_block(self, split, binder_rows, pos_rows, pos_names):
+        n_pos = len(pos_names)
+        self.binder_rho_wrt_center.append(binder_rows[0])
+        self.binder_theta_wrt_center.append(binder_rows[1])
+        self.binder_input_feat.append(binder_rows[2])
+        self.binder_mask.append(binder_rows[3])
+        self.pos_rho_wrt_center.append(pos_rows[0])
+        self.pos_theta_wrt_center.append(pos_rows[1])
+        self.pos_input_feat.append(pos_rows[2])
+        self.pos_mask.append(pos_rows[3])
+        self.pos_names.extend(pos_names)
 
-    pool = pools[rec["cross_pool_key"]]
-    cross_valid_idx = rec["cross_valid_idx"]
-    cross_all_idx = np.arange(len(pool["rho"]))
-    within_all_idx = rec["within_all_idx"]
-    hard_idx = rec["hard_idx"]
-
-    for _ in range(n_pos):
-        bucket_counts = split_counts(neg_ratio, mix)
-        sampled_neg_rows = []
-        sampled_neg_names = []
-
-        # Cross-complex bucket.
-        n_cross = bucket_counts[0]
-        cross_pick = sample_from_index_array(cross_valid_idx, n_cross)
-        if len(cross_pick) > 0:
-            sampled_neg_rows.append(
-                (
-                    pool["rho"][cross_pick],
-                    pool["theta"][cross_pick],
-                    pool["input"][cross_pick],
-                    pool["mask"][cross_pick],
-                )
-            )
-            sampled_neg_names.extend(pool["names"][cross_pick].tolist())
-            mix_counts["cross"] += len(cross_pick)
-
-        # Within-complex random bucket.
-        n_within = bucket_counts[1]
-        within_pick = sample_from_index_array(within_all_idx, n_within)
-        if len(within_pick) > 0:
-            sampled_neg_rows.append(
-                (
-                    rec["within_rho"][within_pick],
-                    rec["within_theta"][within_pick],
-                    rec["within_input"][within_pick],
-                    rec["within_mask"][within_pick],
-                )
-            )
-            sampled_neg_names.extend(np.asarray(rec["within_names"])[within_pick].tolist())
-            mix_counts["within"] += len(within_pick)
-
-        # Hard negatives (near-interface within-complex).
-        n_hard = bucket_counts[2]
-        hard_pick = sample_from_index_array(hard_idx, n_hard)
-        if len(hard_pick) > 0:
-            sampled_neg_rows.append(
-                (
-                    rec["within_rho"][hard_pick],
-                    rec["within_theta"][hard_pick],
-                    rec["within_input"][hard_pick],
-                    rec["within_mask"][hard_pick],
-                )
-            )
-            sampled_neg_names.extend(np.asarray(rec["within_names"])[hard_pick].tolist())
-            mix_counts["hard"] += len(hard_pick)
-
-        n_selected = len(sampled_neg_names)
-        if n_selected < neg_ratio:
-            n_missing = neg_ratio - n_selected
-            fallback_source = "cross_valid"
-            fallback_pick = sample_from_index_array(cross_valid_idx, n_missing)
-            if len(fallback_pick) == 0:
-                fallback_source = "within"
-                fallback_pick = sample_from_index_array(within_all_idx, n_missing)
-            if len(fallback_pick) == 0:
-                fallback_source = "cross_all"
-                fallback_pick = sample_from_index_array(cross_all_idx, n_missing)
-            if len(fallback_pick) == 0:
-                raise RuntimeError(
-                    f"Could not sample fallback negatives for {rec['ppi_pair_id']}"
-                )
-            if fallback_source in ["cross_valid", "cross_all"]:
-                sampled_neg_rows.append(
-                    (
-                        pool["rho"][fallback_pick],
-                        pool["theta"][fallback_pick],
-                        pool["input"][fallback_pick],
-                        pool["mask"][fallback_pick],
-                    )
-                )
-                sampled_neg_names.extend(pool["names"][fallback_pick].tolist())
-            else:
-                sampled_neg_rows.append(
-                    (
-                        rec["within_rho"][fallback_pick],
-                        rec["within_theta"][fallback_pick],
-                        rec["within_input"][fallback_pick],
-                        rec["within_mask"][fallback_pick],
-                    )
-                )
-                sampled_neg_names.extend(
-                    np.asarray(rec["within_names"])[fallback_pick].tolist()
-                )
-            mix_counts["fallback"] += len(fallback_pick)
-
-        # Materialize sampled negatives.
-        for rho_chunk, theta_chunk, input_chunk, mask_chunk in sampled_neg_rows:
-            neg_rho_wrt_center.append(rho_chunk)
-            neg_theta_wrt_center.append(theta_chunk)
-            neg_input_feat.append(input_chunk)
-            neg_mask.append(mask_chunk)
-        neg_names.extend(sampled_neg_names)
-
-        n_new_neg = len(sampled_neg_names)
-        neg_indices = np.arange(neg_idx_count, neg_idx_count + n_new_neg)
-        if rec["split"] == "train":
-            neg_training_idx.extend(neg_indices.tolist())
-        elif rec["split"] == "val":
-            neg_val_idx.extend(neg_indices.tolist())
+        pos_indices = np.arange(self.local_pos_count, self.local_pos_count + n_pos)
+        if split == 'train':
+            self.pos_training_idx.extend(pos_indices.tolist())
+        elif split == 'val':
+            self.pos_val_idx.extend(pos_indices.tolist())
         else:
-            neg_test_idx.extend(neg_indices.tolist())
-        neg_idx_count += n_new_neg
+            self.pos_test_idx.extend(pos_indices.tolist())
+        self.local_pos_count += n_pos
 
-if not os.path.exists(params["cache_dir"]):
-    os.makedirs(params["cache_dir"])
+    def add_neg_block(self, split, neg_rows, neg_names):
+        n_neg = len(neg_names)
+        if n_neg == 0:
+            return
+        self.neg_rho_wrt_center.append(neg_rows[0])
+        self.neg_theta_wrt_center.append(neg_rows[1])
+        self.neg_input_feat.append(neg_rows[2])
+        self.neg_mask.append(neg_rows[3])
+        self.neg_names.extend(neg_names)
 
-binder_rho_wrt_center = concat_or_empty(binder_rho_wrt_center, 2)
-binder_theta_wrt_center = concat_or_empty(binder_theta_wrt_center, 2)
-binder_input_feat = concat_or_empty(binder_input_feat, 3)
-binder_mask = concat_or_empty(binder_mask, 2)
-pos_rho_wrt_center = concat_or_empty(pos_rho_wrt_center, 2)
-pos_theta_wrt_center = concat_or_empty(pos_theta_wrt_center, 2)
-pos_input_feat = concat_or_empty(pos_input_feat, 3)
-pos_mask = concat_or_empty(pos_mask, 2)
-neg_rho_wrt_center = concat_or_empty(neg_rho_wrt_center, 2)
-neg_theta_wrt_center = concat_or_empty(neg_theta_wrt_center, 2)
-neg_input_feat = concat_or_empty(neg_input_feat, 3)
-neg_mask = concat_or_empty(neg_mask, 2)
+        neg_indices = np.arange(self.local_neg_count, self.local_neg_count + n_neg)
+        if split == 'train':
+            self.neg_training_idx.extend(neg_indices.tolist())
+        elif split == 'val':
+            self.neg_val_idx.extend(neg_indices.tolist())
+        else:
+            self.neg_test_idx.extend(neg_indices.tolist())
+        self.local_neg_count += n_neg
 
-print(f"Positives before NaN filtering: {len(binder_input_feat)}")
-print(f"Negatives before NaN filtering: {len(neg_input_feat)}")
+    def accumulate_mix_counts(self, mix_counts):
+        for key in self.total_mix_counts:
+            self.total_mix_counts[key] += int(mix_counts.get(key, 0))
 
-pos_not_nan = ~np.isnan(binder_input_feat).any(axis=(1, 2))
-pos_not_nan = pos_not_nan & (~np.isnan(pos_input_feat).any(axis=(1, 2)))
-neg_not_nan = ~np.isnan(neg_input_feat).any(axis=(1, 2))
+    def should_flush(self):
+        return self.local_pos_count >= self.flush_every_pos
 
-pos_names = [x for i, x in enumerate(pos_names) if pos_not_nan[i]]
-neg_names = [x for i, x in enumerate(neg_names) if neg_not_nan[i]]
-binder_rho_wrt_center = binder_rho_wrt_center[pos_not_nan, :]
-binder_theta_wrt_center = binder_theta_wrt_center[pos_not_nan, :]
-binder_input_feat = binder_input_feat[pos_not_nan, ...]
-binder_mask = binder_mask[pos_not_nan, :]
-pos_rho_wrt_center = pos_rho_wrt_center[pos_not_nan, :]
-pos_theta_wrt_center = pos_theta_wrt_center[pos_not_nan, :]
-pos_input_feat = pos_input_feat[pos_not_nan, ...]
-pos_mask = pos_mask[pos_not_nan, :]
-neg_rho_wrt_center = neg_rho_wrt_center[neg_not_nan, :]
-neg_theta_wrt_center = neg_theta_wrt_center[neg_not_nan, :]
-neg_input_feat = neg_input_feat[neg_not_nan, ...]
-neg_mask = neg_mask[neg_not_nan, :]
+    def _save_part_array(self, part_prefix, filename, array):
+        np.save(os.path.join(self.parts_dir, '{}_{}'.format(part_prefix, filename)), array)
 
-pos_training_idx = remap_indices(pos_training_idx, pos_not_nan)
-pos_val_idx = remap_indices(pos_val_idx, pos_not_nan)
-pos_test_idx = remap_indices(pos_test_idx, pos_not_nan)
-neg_training_idx = remap_indices(neg_training_idx, neg_not_nan)
-neg_val_idx = remap_indices(neg_val_idx, neg_not_nan)
-neg_test_idx = remap_indices(neg_test_idx, neg_not_nan)
+    def flush(self):
+        if self.local_pos_count == 0 and self.local_neg_count == 0:
+            return
 
-assert len(set(pos_training_idx) & set(pos_val_idx)) == 0
-assert len(set(pos_training_idx) & set(pos_test_idx)) == 0
-assert len(set(pos_val_idx) & set(pos_test_idx)) == 0
-assert len(set(neg_training_idx) & set(neg_val_idx)) == 0
-assert len(set(neg_training_idx) & set(neg_test_idx)) == 0
-assert len(set(neg_val_idx) & set(neg_test_idx)) == 0
+        binder_rho_wrt_center = concat_or_empty(self.binder_rho_wrt_center, 2)
+        binder_theta_wrt_center = concat_or_empty(self.binder_theta_wrt_center, 2)
+        binder_input_feat = concat_or_empty(self.binder_input_feat, 3)
+        binder_mask = concat_or_empty(self.binder_mask, 2)
+        pos_rho_wrt_center = concat_or_empty(self.pos_rho_wrt_center, 2)
+        pos_theta_wrt_center = concat_or_empty(self.pos_theta_wrt_center, 2)
+        pos_input_feat = concat_or_empty(self.pos_input_feat, 3)
+        pos_mask = concat_or_empty(self.pos_mask, 2)
+        neg_rho_wrt_center = concat_or_empty(self.neg_rho_wrt_center, 2)
+        neg_theta_wrt_center = concat_or_empty(self.neg_theta_wrt_center, 2)
+        neg_input_feat = concat_or_empty(self.neg_input_feat, 3)
+        neg_mask = concat_or_empty(self.neg_mask, 2)
 
-if len(pos_training_idx) == 0 or len(neg_training_idx) == 0:
-    raise RuntimeError("Insufficient train samples after filtering.")
+        pos_not_nan = ~np.isnan(binder_input_feat).any(axis=(1, 2))
+        pos_not_nan = pos_not_nan & (~np.isnan(pos_input_feat).any(axis=(1, 2)))
+        neg_not_nan = ~np.isnan(neg_input_feat).any(axis=(1, 2))
 
-print(f"Positives after NaN filtering: {len(binder_input_feat)}")
-print(f"Negatives after NaN filtering: {len(neg_input_feat)}")
-print(
-    "Sampled negatives by bucket: cross={}, within={}, hard={}, fallback={}".format(
-        mix_counts["cross"],
-        mix_counts["within"],
-        mix_counts["hard"],
-        mix_counts["fallback"],
+        pos_names = np.asarray([x for i, x in enumerate(self.pos_names) if pos_not_nan[i]], dtype=object)
+        neg_names = np.asarray([x for i, x in enumerate(self.neg_names) if neg_not_nan[i]], dtype=object)
+
+        binder_rho_wrt_center = binder_rho_wrt_center[pos_not_nan, :]
+        binder_theta_wrt_center = binder_theta_wrt_center[pos_not_nan, :]
+        binder_input_feat = binder_input_feat[pos_not_nan, ...]
+        binder_mask = binder_mask[pos_not_nan, :]
+        pos_rho_wrt_center = pos_rho_wrt_center[pos_not_nan, :]
+        pos_theta_wrt_center = pos_theta_wrt_center[pos_not_nan, :]
+        pos_input_feat = pos_input_feat[pos_not_nan, ...]
+        pos_mask = pos_mask[pos_not_nan, :]
+        neg_rho_wrt_center = neg_rho_wrt_center[neg_not_nan, :]
+        neg_theta_wrt_center = neg_theta_wrt_center[neg_not_nan, :]
+        neg_input_feat = neg_input_feat[neg_not_nan, ...]
+        neg_mask = neg_mask[neg_not_nan, :]
+
+        pos_training_idx = remap_indices(self.pos_training_idx, pos_not_nan)
+        pos_val_idx = remap_indices(self.pos_val_idx, pos_not_nan)
+        pos_test_idx = remap_indices(self.pos_test_idx, pos_not_nan)
+        neg_training_idx = remap_indices(self.neg_training_idx, neg_not_nan)
+        neg_val_idx = remap_indices(self.neg_val_idx, neg_not_nan)
+        neg_test_idx = remap_indices(self.neg_test_idx, neg_not_nan)
+
+        assert len(set(pos_training_idx) & set(pos_val_idx)) == 0
+        assert len(set(pos_training_idx) & set(pos_test_idx)) == 0
+        assert len(set(pos_val_idx) & set(pos_test_idx)) == 0
+        assert len(set(neg_training_idx) & set(neg_val_idx)) == 0
+        assert len(set(neg_training_idx) & set(neg_test_idx)) == 0
+        assert len(set(neg_val_idx) & set(neg_test_idx)) == 0
+
+        pos_base = self.global_pos_count
+        neg_base = self.global_neg_count
+
+        pos_training_idx = np.asarray(pos_training_idx, dtype=int) + pos_base
+        pos_val_idx = np.asarray(pos_val_idx, dtype=int) + pos_base
+        pos_test_idx = np.asarray(pos_test_idx, dtype=int) + pos_base
+        neg_training_idx = np.asarray(neg_training_idx, dtype=int) + neg_base
+        neg_val_idx = np.asarray(neg_val_idx, dtype=int) + neg_base
+        neg_test_idx = np.asarray(neg_test_idx, dtype=int) + neg_base
+
+        part_prefix = 'part_{:05d}'.format(self.part_idx)
+        payload = {
+            'pos_names.npy': pos_names,
+            'neg_names.npy': neg_names,
+            'binder_rho_wrt_center.npy': binder_rho_wrt_center,
+            'binder_theta_wrt_center.npy': binder_theta_wrt_center,
+            'binder_input_feat.npy': binder_input_feat,
+            'binder_mask.npy': binder_mask,
+            'pos_training_idx.npy': pos_training_idx,
+            'pos_val_idx.npy': pos_val_idx,
+            'pos_test_idx.npy': pos_test_idx,
+            'pos_rho_wrt_center.npy': pos_rho_wrt_center,
+            'pos_theta_wrt_center.npy': pos_theta_wrt_center,
+            'pos_input_feat.npy': pos_input_feat,
+            'pos_mask.npy': pos_mask,
+            'neg_training_idx.npy': neg_training_idx,
+            'neg_val_idx.npy': neg_val_idx,
+            'neg_test_idx.npy': neg_test_idx,
+            'neg_rho_wrt_center.npy': neg_rho_wrt_center,
+            'neg_theta_wrt_center.npy': neg_theta_wrt_center,
+            'neg_input_feat.npy': neg_input_feat,
+            'neg_mask.npy': neg_mask,
+        }
+        for filename in FINAL_CACHE_FILES:
+            self._save_part_array(part_prefix, filename, payload[filename])
+
+        new_pos = int(len(pos_names))
+        new_neg = int(len(neg_names))
+        self.global_pos_count += new_pos
+        self.global_neg_count += new_neg
+        self.parts.append(
+            {
+                'part_idx': self.part_idx,
+                'part_prefix': part_prefix,
+                'pos_count': new_pos,
+                'neg_count': new_neg,
+                'pos_base': int(pos_base),
+                'neg_base': int(neg_base),
+            }
+        )
+        self.part_idx += 1
+        self._reset_buffer()
+
+    def finalize(self, subset_manifest):
+        self.flush()
+        manifest = dict(subset_manifest)
+        manifest.update(
+            {
+                'format_version': 2,
+                'parts_dir': 'parts',
+                'parts_count': len(self.parts),
+                'parts': self.parts,
+                'pos_count': int(self.global_pos_count),
+                'neg_count': int(self.global_neg_count),
+                'mix_counts': self.total_mix_counts,
+            }
+        )
+        save_json(os.path.join(self.subset_dir, 'manifest.json'), manifest)
+        write_success_marker(self.subset_dir)
+        return manifest
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description='Generate one cache subset from a global catalog.')
+    parser.add_argument('custom_params_module', nargs='?', default=None)
+    parser.add_argument('--catalog-dir', default=None)
+    parser.add_argument('--subset-root', default=None)
+    parser.add_argument('--subset-id', type=int, required=True)
+    parser.add_argument('--num-subsets', type=int, required=True)
+    parser.add_argument('--progress-every-records', type=int, default=1)
+    parser.add_argument('--pair-cache-max-records', type=int, default=16)
+    parser.add_argument('--flush-every-pos', type=int, default=256)
+    return parser.parse_args()
+
+
+def load_catalog(catalog_dir):
+    success = os.path.join(catalog_dir, '_SUCCESS')
+    if not os.path.exists(success):
+        raise RuntimeError('Catalog not ready: missing {}'.format(success))
+
+    manifest = read_json(os.path.join(catalog_dir, 'manifest.json'))
+    records = np.load(os.path.join(catalog_dir, 'records.npy'), allow_pickle=True)
+
+    pools = {}
+    for key in ['trainval', 'test']:
+        pools[key] = {
+            'source_record_idx': np.load(
+                os.path.join(catalog_dir, '{}_source_record_idx.npy'.format(key)),
+                mmap_mode='r',
+            ),
+            'local_within_idx': np.load(
+                os.path.join(catalog_dir, '{}_local_within_idx.npy'.format(key)),
+                mmap_mode='r',
+            ),
+        }
+    return manifest, records, pools
+
+
+def records_to_lookup_arrays(records):
+    ppi = []
+    pdb = []
+    for rec in records:
+        item = rec.item() if hasattr(rec, 'item') else rec
+        ppi.append(item['ppi_pair_id'])
+        pdb.append(item['pdb_id'])
+    return np.asarray(ppi, dtype=object), np.asarray(pdb, dtype=object)
+
+
+def get_record(records, idx):
+    rec = records[idx]
+    return rec.item() if hasattr(rec, 'item') else rec
+
+
+def get_cross_rows_and_names(pool, picks, records, pair_cache):
+    rho_chunks = []
+    theta_chunks = []
+    input_chunks = []
+    mask_chunks = []
+    names = []
+
+    for pick in picks:
+        src_rec_idx = int(pool['source_record_idx'][pick])
+        local_within_idx = int(pool['local_within_idx'][pick])
+        src_rec = get_record(records, src_rec_idx)
+        src_arrays = pair_cache.get(src_rec)
+        src_k_neg2 = np.asarray(src_rec['k_neg2'], dtype=int)
+        absolute_idx = int(src_k_neg2[local_within_idx])
+
+        rho_chunks.append(src_arrays['p2_rho'][absolute_idx : absolute_idx + 1])
+        theta_chunks.append(src_arrays['p2_theta'][absolute_idx : absolute_idx + 1])
+        input_chunks.append(src_arrays['p2_input'][absolute_idx : absolute_idx + 1])
+        mask_chunks.append(src_arrays['p2_mask'][absolute_idx : absolute_idx + 1])
+        names.append('{}_p2_{}'.format(src_rec['ppi_pair_id'], absolute_idx))
+
+    return rho_chunks, theta_chunks, input_chunks, mask_chunks, names
+
+
+def main():
+    args = parse_args()
+    if args.subset_id < 0 or args.subset_id >= args.num_subsets:
+        raise ValueError('--subset-id must be in [0, num_subsets).')
+
+    params = load_params(args.custom_params_module)
+    catalog_dir = args.catalog_dir or os.path.join(params['cache_dir'], 'catalog')
+    subset_root = args.subset_root or os.path.join(params['cache_dir'], 'subsets')
+    subset_dir = os.path.join(subset_root, 'subset_{}'.format(args.subset_id))
+    ensure_dir(subset_dir)
+
+    catalog_manifest, records, pools = load_catalog(catalog_dir)
+    record_ppi, record_pdb = records_to_lookup_arrays(records)
+    assigned_record_indices = [i for i in range(len(records)) if i % args.num_subsets == args.subset_id]
+
+    neg_ratio = max(1, int(params.get('neg_ratio', 1)))
+    mix = normalize_mix(
+        params.get('neg_mix_cross_complex', 0.0),
+        params.get('neg_mix_within_complex', 1.0),
+        params.get('neg_mix_hard', 0.0),
     )
-)
+    enforce_diff_pdb_for_cross = bool(params.get('enforce_diff_pdb_for_cross', True))
+    hard_negative_topk = int(params.get('hard_negative_topk', 200))
 
-np.save(params["cache_dir"] + "/pos_names.npy", pos_names)
-np.save(params["cache_dir"] + "/neg_names.npy", neg_names)
-np.save(params["cache_dir"] + "/binder_rho_wrt_center.npy", binder_rho_wrt_center)
-np.save(params["cache_dir"] + "/binder_theta_wrt_center.npy", binder_theta_wrt_center)
-np.save(params["cache_dir"] + "/binder_input_feat.npy", binder_input_feat)
-np.save(params["cache_dir"] + "/binder_mask.npy", binder_mask)
-np.save(params["cache_dir"] + "/pos_training_idx.npy", np.asarray(pos_training_idx, dtype=int))
-np.save(params["cache_dir"] + "/pos_val_idx.npy", np.asarray(pos_val_idx, dtype=int))
-np.save(params["cache_dir"] + "/pos_test_idx.npy", np.asarray(pos_test_idx, dtype=int))
-np.save(params["cache_dir"] + "/pos_rho_wrt_center.npy", pos_rho_wrt_center)
-np.save(params["cache_dir"] + "/pos_theta_wrt_center.npy", pos_theta_wrt_center)
-np.save(params["cache_dir"] + "/pos_input_feat.npy", pos_input_feat)
-np.save(params["cache_dir"] + "/pos_mask.npy", pos_mask)
-np.save(params["cache_dir"] + "/neg_training_idx.npy", np.asarray(neg_training_idx, dtype=int))
-np.save(params["cache_dir"] + "/neg_val_idx.npy", np.asarray(neg_val_idx, dtype=int))
-np.save(params["cache_dir"] + "/neg_test_idx.npy", np.asarray(neg_test_idx, dtype=int))
-np.save(params["cache_dir"] + "/neg_rho_wrt_center.npy", neg_rho_wrt_center)
-np.save(params["cache_dir"] + "/neg_theta_wrt_center.npy", neg_theta_wrt_center)
-np.save(params["cache_dir"] + "/neg_input_feat.npy", neg_input_feat)
-np.save(params["cache_dir"] + "/neg_mask.npy", neg_mask)
+    print('Subset job config: subset_id={} num_subsets={}'.format(args.subset_id, args.num_subsets))
+    print('Assigned records: {}'.format(len(assigned_record_indices)))
+    print('pair_cache_max_records={}'.format(args.pair_cache_max_records))
+    print('flush_every_pos={}'.format(args.flush_every_pos))
+
+    pair_cache = PairArrayCache(max_records=args.pair_cache_max_records, mmap_mode='r')
+    writer = SubsetPartWriter(subset_dir=subset_dir, flush_every_pos=args.flush_every_pos)
+
+    for local_count, rec_idx in enumerate(assigned_record_indices):
+        if local_count % max(1, args.progress_every_records) == 0:
+            print('Record {}/{} (global idx {})'.format(local_count, len(assigned_record_indices), rec_idx))
+
+        rec = get_record(records, rec_idx)
+        rec_arrays = pair_cache.get(rec)
+
+        k1 = np.asarray(rec['k1'], dtype=int)
+        k2 = np.asarray(rec['k2'], dtype=int)
+        k_neg2 = np.asarray(rec['k_neg2'], dtype=int)
+        within_dneg = np.asarray(rec['within_dneg'], dtype=float)
+
+        n_pos = len(k1)
+        if n_pos == 0:
+            continue
+
+        writer.add_pos_block(
+            split=rec['split'],
+            binder_rows=(
+                rec_arrays['p1_rho'][k1],
+                rec_arrays['p1_theta'][k1],
+                rec_arrays['p1_input'][k1],
+                rec_arrays['p1_mask'][k1],
+            ),
+            pos_rows=(
+                rec_arrays['p2_rho'][k2],
+                rec_arrays['p2_theta'][k2],
+                rec_arrays['p2_input'][k2],
+                rec_arrays['p2_mask'][k2],
+            ),
+            pos_names=['{}_p1_{}'.format(rec['ppi_pair_id'], int(ii)) for ii in k1],
+        )
+
+        pool_key = 'test' if rec['split'] == 'test' else 'trainval'
+        pool = pools[pool_key]
+        cross_all_idx = np.arange(len(pool['source_record_idx']))
+
+        if len(cross_all_idx) == 0:
+            cross_valid_idx = np.asarray([], dtype=int)
+        else:
+            pool_src = np.asarray(pool['source_record_idx'])
+            mask = record_ppi[pool_src] != rec['ppi_pair_id']
+            if enforce_diff_pdb_for_cross:
+                mask = mask & (record_pdb[pool_src] != rec['pdb_id'])
+            cross_valid_idx = cross_all_idx[mask]
+
+        within_all_idx = np.arange(len(k_neg2))
+        hard_order = np.argsort(within_dneg)
+        hard_idx = hard_order[: min(hard_negative_topk, len(hard_order))]
+
+        rec_mix_counts = {'cross': 0, 'within': 0, 'hard': 0, 'fallback': 0}
+
+        for _ in range(n_pos):
+            bucket_counts = split_counts(neg_ratio, mix)
+            neg_rho_chunks = []
+            neg_theta_chunks = []
+            neg_input_chunks = []
+            neg_mask_chunks = []
+            neg_names = []
+
+            n_cross = bucket_counts[0]
+            cross_pick = sample_from_index_array(cross_valid_idx, n_cross)
+            if len(cross_pick) > 0:
+                rows = get_cross_rows_and_names(pool, cross_pick, records, pair_cache)
+                neg_rho_chunks.extend(rows[0])
+                neg_theta_chunks.extend(rows[1])
+                neg_input_chunks.extend(rows[2])
+                neg_mask_chunks.extend(rows[3])
+                neg_names.extend(rows[4])
+                rec_mix_counts['cross'] += len(cross_pick)
+
+            n_within = bucket_counts[1]
+            within_pick = sample_from_index_array(within_all_idx, n_within)
+            if len(within_pick) > 0:
+                abs_idx = k_neg2[within_pick]
+                neg_rho_chunks.append(rec_arrays['p2_rho'][abs_idx])
+                neg_theta_chunks.append(rec_arrays['p2_theta'][abs_idx])
+                neg_input_chunks.append(rec_arrays['p2_input'][abs_idx])
+                neg_mask_chunks.append(rec_arrays['p2_mask'][abs_idx])
+                neg_names.extend(['{}_p2_{}'.format(rec['ppi_pair_id'], int(ii)) for ii in abs_idx])
+                rec_mix_counts['within'] += len(within_pick)
+
+            n_hard = bucket_counts[2]
+            hard_pick = sample_from_index_array(hard_idx, n_hard)
+            if len(hard_pick) > 0:
+                abs_idx = k_neg2[hard_pick]
+                neg_rho_chunks.append(rec_arrays['p2_rho'][abs_idx])
+                neg_theta_chunks.append(rec_arrays['p2_theta'][abs_idx])
+                neg_input_chunks.append(rec_arrays['p2_input'][abs_idx])
+                neg_mask_chunks.append(rec_arrays['p2_mask'][abs_idx])
+                neg_names.extend(['{}_p2_{}'.format(rec['ppi_pair_id'], int(ii)) for ii in abs_idx])
+                rec_mix_counts['hard'] += len(hard_pick)
+
+            if len(neg_names) < neg_ratio:
+                n_missing = neg_ratio - len(neg_names)
+                fallback_source = 'cross_valid'
+                fallback_pick = sample_from_index_array(cross_valid_idx, n_missing)
+                if len(fallback_pick) == 0:
+                    fallback_source = 'within'
+                    fallback_pick = sample_from_index_array(within_all_idx, n_missing)
+                if len(fallback_pick) == 0:
+                    fallback_source = 'cross_all'
+                    fallback_pick = sample_from_index_array(cross_all_idx, n_missing)
+                if len(fallback_pick) == 0:
+                    raise RuntimeError('Could not sample fallback negatives for {}'.format(rec['ppi_pair_id']))
+
+                if fallback_source in ['cross_valid', 'cross_all']:
+                    rows = get_cross_rows_and_names(pool, fallback_pick, records, pair_cache)
+                    neg_rho_chunks.extend(rows[0])
+                    neg_theta_chunks.extend(rows[1])
+                    neg_input_chunks.extend(rows[2])
+                    neg_mask_chunks.extend(rows[3])
+                    neg_names.extend(rows[4])
+                else:
+                    abs_idx = k_neg2[fallback_pick]
+                    neg_rho_chunks.append(rec_arrays['p2_rho'][abs_idx])
+                    neg_theta_chunks.append(rec_arrays['p2_theta'][abs_idx])
+                    neg_input_chunks.append(rec_arrays['p2_input'][abs_idx])
+                    neg_mask_chunks.append(rec_arrays['p2_mask'][abs_idx])
+                    neg_names.extend(['{}_p2_{}'.format(rec['ppi_pair_id'], int(ii)) for ii in abs_idx])
+                rec_mix_counts['fallback'] += len(fallback_pick)
+
+            writer.add_neg_block(
+                split=rec['split'],
+                neg_rows=(
+                    concat_or_empty(neg_rho_chunks, 2),
+                    concat_or_empty(neg_theta_chunks, 2),
+                    concat_or_empty(neg_input_chunks, 3),
+                    concat_or_empty(neg_mask_chunks, 2),
+                ),
+                neg_names=neg_names,
+            )
+
+        writer.accumulate_mix_counts(rec_mix_counts)
+        if writer.should_flush():
+            writer.flush()
+
+    subset_manifest = writer.finalize(
+        {
+            'subset_id': args.subset_id,
+            'num_subsets': args.num_subsets,
+            'catalog_fingerprint': catalog_manifest.get('fingerprint'),
+            'assigned_records': len(assigned_record_indices),
+        }
+    )
+    print('Subset complete: pos={} neg={} parts={}'.format(subset_manifest['pos_count'], subset_manifest['neg_count'], subset_manifest['parts_count']))
+
+
+if __name__ == '__main__':
+    main()
