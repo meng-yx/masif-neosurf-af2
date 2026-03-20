@@ -10,3 +10,4 @@ logs/
 archive/
 __pycache__/
 .cursor/
+archive/
