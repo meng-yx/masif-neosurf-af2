@@ -11,6 +11,7 @@ CHAIN2=$(echo $1| cut -d"_" -f3)
 # Singularity bind paths - bind the entire repo root to make all paths accessible
 SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root"
 
+echo "Running pdb_download.py"
 # Run Python scripts inside Singularity container
 singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/00-pdb_download.py $1 
 singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN1 

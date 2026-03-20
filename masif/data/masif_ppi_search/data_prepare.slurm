@@ -5,10 +5,11 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 7000
 #SBATCH --time 01:00:00
-#SBATCH --array=101-120
+#SBATCH --array=1-1000
 #SBATCH --output=exelogs/masif_precompute_%A/_masif_precompute.%A_%a.out
 #SBATCH --error=exelogs/masif_precompute_%A/_masif_precompute.%A_%a.out
 
+echo "Starting at $(date)"
 i=1
 while read p; do
     if [ $(( i % 1001 )) == ${SLURM_ARRAY_TASK_ID} ]; then
@@ -20,3 +21,4 @@ while read p; do
     fi
     i=$((i+1))
 done < lists/full_list.txt
+echo "Finished at $(date)"
