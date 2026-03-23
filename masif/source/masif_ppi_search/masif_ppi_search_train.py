@@ -65,7 +65,7 @@ pos_theta_wrt_center = np.load(params["cache_dir"] + "/pos_theta_wrt_center.npy"
 pos_input_feat = np.load(params["cache_dir"] + "/pos_input_feat.npy")
 pos_mask = np.load(params["cache_dir"] + "/pos_mask.npy")
 pos_input_feat = mask_input_feat(pos_input_feat, params["feat_mask"])
-pos_names = np.load(params["cache_dir"] + "/pos_names.npy")
+pos_names = np.load(params["cache_dir"] + "/pos_names.npy", allow_pickle=True)
 
 neg_training_idx = (np.load(params["cache_dir"] + "/neg_training_idx.npy")).astype(int)
 neg_val_idx = (np.load(params["cache_dir"] + "/neg_val_idx.npy")).astype(int)
