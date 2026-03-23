@@ -8,5 +8,5 @@
 #SBATCH --output=exelogs/merge_cache_shards-%A.out
 #SBATCH --error=exelogs/merge_cache_shards-%A.out
 
-export NUM_SUBSETS=${NUM_SUBSETS:-100}
+export NUM_SUBSETS=${NUM_SUBSETS:-1000}
 ./merge_cache_shards.sh
