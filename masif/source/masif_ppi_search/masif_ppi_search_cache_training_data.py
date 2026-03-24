@@ -12,7 +12,6 @@ from cache_shard_common import (
     normalize_mix,
     read_json,
     remap_indices,
-    sample_from_index_array,
     save_json,
     split_counts,
     write_success_marker,
@@ -343,6 +342,35 @@ def get_cross_rows_and_names(pool, picks, records, pair_cache):
     return rho_chunks, theta_chunks, input_chunks, mask_chunks, names
 
 
+def draw_without_replacement_cycle(state, n_samples):
+    if n_samples <= 0:
+        return np.asarray([], dtype=int)
+
+    base_idx = state['base_idx']
+    if len(base_idx) == 0:
+        return np.asarray([], dtype=int)
+
+    picks = []
+    while len(picks) < n_samples:
+        perm = state['perm']
+        cursor = state['cursor']
+        remaining = len(perm) - cursor
+        if remaining <= 0:
+            state['perm'] = np.random.permutation(base_idx)
+            state['cursor'] = 0
+            continue
+
+        take = min(n_samples - len(picks), remaining)
+        picked = perm[cursor : cursor + take]
+        if take == 1:
+            picks.append(int(picked[0]))
+        else:
+            picks.extend(picked.astype(int).tolist())
+        state['cursor'] += take
+
+    return np.asarray(picks, dtype=int)
+
+
 def main():
     args = parse_args()
     if args.subset_id < 0 or args.subset_id >= args.num_subsets:
@@ -424,6 +452,26 @@ def main():
         within_all_idx = np.arange(len(k_neg2))
         hard_order = np.argsort(within_dneg)
         hard_idx = hard_order[: min(hard_negative_topk, len(hard_order))]
+        cross_valid_state = {
+            'base_idx': cross_valid_idx,
+            'perm': np.random.permutation(cross_valid_idx),
+            'cursor': 0,
+        }
+        cross_all_state = {
+            'base_idx': cross_all_idx,
+            'perm': np.random.permutation(cross_all_idx),
+            'cursor': 0,
+        }
+        within_state = {
+            'base_idx': within_all_idx,
+            'perm': np.random.permutation(within_all_idx),
+            'cursor': 0,
+        }
+        hard_state = {
+            'base_idx': hard_idx,
+            'perm': np.random.permutation(hard_idx),
+            'cursor': 0,
+        }
 
         rec_mix_counts = {'cross': 0, 'within': 0, 'hard': 0, 'fallback': 0}
 
@@ -436,7 +484,7 @@ def main():
             neg_names = []
 
             n_cross = bucket_counts[0]
-            cross_pick = sample_from_index_array(cross_valid_idx, n_cross)
+            cross_pick = draw_without_replacement_cycle(cross_valid_state, n_cross)
             if len(cross_pick) > 0:
                 rows = get_cross_rows_and_names(pool, cross_pick, records, pair_cache)
                 neg_rho_chunks.extend(rows[0])
@@ -447,7 +495,7 @@ def main():
                 rec_mix_counts['cross'] += len(cross_pick)
 
             n_within = bucket_counts[1]
-            within_pick = sample_from_index_array(within_all_idx, n_within)
+            within_pick = draw_without_replacement_cycle(within_state, n_within)
             if len(within_pick) > 0:
                 abs_idx = k_neg2[within_pick]
                 neg_rho_chunks.append(rec_arrays['p2_rho'][abs_idx])
@@ -458,7 +506,7 @@ def main():
                 rec_mix_counts['within'] += len(within_pick)
 
             n_hard = bucket_counts[2]
-            hard_pick = sample_from_index_array(hard_idx, n_hard)
+            hard_pick = draw_without_replacement_cycle(hard_state, n_hard)
             if len(hard_pick) > 0:
                 abs_idx = k_neg2[hard_pick]
                 neg_rho_chunks.append(rec_arrays['p2_rho'][abs_idx])
@@ -471,13 +519,13 @@ def main():
             if len(neg_names) < neg_ratio:
                 n_missing = neg_ratio - len(neg_names)
                 fallback_source = 'cross_valid'
-                fallback_pick = sample_from_index_array(cross_valid_idx, n_missing)
+                fallback_pick = draw_without_replacement_cycle(cross_valid_state, n_missing)
                 if len(fallback_pick) == 0:
                     fallback_source = 'within'
-                    fallback_pick = sample_from_index_array(within_all_idx, n_missing)
+                    fallback_pick = draw_without_replacement_cycle(within_state, n_missing)
                 if len(fallback_pick) == 0:
                     fallback_source = 'cross_all'
-                    fallback_pick = sample_from_index_array(cross_all_idx, n_missing)
+                    fallback_pick = draw_without_replacement_cycle(cross_all_state, n_missing)
                 if len(fallback_pick) == 0:
                     raise RuntimeError('Could not sample fallback negatives for {}'.format(rec['ppi_pair_id']))
 
