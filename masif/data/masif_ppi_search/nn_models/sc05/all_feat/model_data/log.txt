@@ -1,15 +1,3750 @@
-Number of training positive shapes: 112598
-Number of validation positive shapes: 12988
-Number of testing positive shapes: 17562
-Number of training negative shapes: 112598
-Number of validation negative shapes: 12988
-Number of testing negative shapes: 17562
+Configured neg_ratio: 5
+Number of training positive shapes: 114044
+Number of validation positive shapes: 13010
+Number of testing positive shapes: 17951
+Number of training negative shapes: 570270
+Number of validation negative shapes: 65050
+Number of testing negative shapes: 89748
 Number of iterations: 1000000
+0 training iterations finished after 0.44 seconds.
 Validating and testing.
  training_loss: 0.0
-Training ROC AUC: 0.8125
- Training 1000 entry took 2.25s 
-Iteration 0 validation roc auc: 0.8153009644827203
-Mean validation positive score: 2.2734246253967285 Mean validation negative score: 3.159008502960205 Iteration 0 test roc auc: 0.7896156822427776
-Iteration time: nan validation time: 8.370824098587036 test time: 9.954982280731201
+Mean training positive score: 0.29092620193614904 
+Mean training negative score: 0.1364977476579018 
+Training ROC AUC: 1.0
+ Training 20000 entries took 0.44s 
+Iteration 0 validation roc auc: 0.8309320448233222
+Mean validation positive score: 2.2339301109313965 
+Mean validation negative score: 3.155123233795166 
+Iteration 0 test roc auc: 0.7748367333786516
+Iteration time: nan validation time: 61.42040538787842 test time: 84.02804589271545
+Mean test positive score: 2.3515126705169678 
+Mean test negative score: 3.099749803543091 
 >>> Saving model.
+1000 training iterations finished after 272.52 seconds.
+Validating and testing.
+ training_loss: 2.5136852264404297
+Mean training positive score: 2.3364309621254753 
+Mean training negative score: 1.003070955973898 
+Training ROC AUC: 0.8007136
+ Training 20000 entries took 0.14s 
+Iteration 1000 validation roc auc: 0.934083484530613
+Mean validation positive score: 0.5090688467025757 
+Mean validation negative score: 0.9117539525032043 
+Iteration 1000 test roc auc: 0.9189492921422484
+Iteration time: nan validation time: 60.968851804733276 test time: 84.12940311431885
+Mean test positive score: 0.527825117111206 
+Mean test negative score: 0.9202612042427063 
+>>> Saving model.
+2000 training iterations finished after 531.47 seconds.
+Validating and testing.
+ training_loss: 2.0770156383514404
+Mean training positive score: 7.706524521821918 
+Mean training negative score: 2.3828041646734777 
+Training ROC AUC: 0.9061734
+ Training 20000 entries took 0.11s 
+Iteration 2000 validation roc auc: 0.9442681943352272
+Mean validation positive score: 0.3130894601345062 
+Mean validation negative score: 0.6864832043647766 
+Iteration 2000 test roc auc: 0.9282252070882142
+Iteration time: nan validation time: 60.587449073791504 test time: 83.56990766525269
+Mean test positive score: 0.32897835969924927 
+Mean test negative score: 0.6930831670761108 
+>>> Saving model.
+3000 training iterations finished after 789.71 seconds.
+Validating and testing.
+ training_loss: 2.006089925765991
+Mean training positive score: 16.99302275874397 
+Mean training negative score: 3.84835623406667 
+Training ROC AUC: 0.9219012
+ Training 20000 entries took 0.12s 
+Iteration 3000 validation roc auc: 0.9260994144514862
+Mean validation positive score: 0.2617066204547882 
+Mean validation negative score: 0.6883491277694702 
+Iteration 3000 test roc auc: 0.9097245892800964
+Iteration time: nan validation time: 60.524593353271484 test time: 83.7028374671936
+Mean test positive score: 0.282854288816452 
+Mean test negative score: 0.6996665000915527 
+4000 training iterations finished after 1054.81 seconds.
+Validating and testing.
+ training_loss: 1.9913088083267212
+Mean training positive score: 31.95999049369041 
+Mean training negative score: 5.793278009708114 
+Training ROC AUC: 0.9163828
+ Training 20000 entries took 0.13s 
+Iteration 4000 validation roc auc: 0.9274243575420315
+Mean validation positive score: 0.19831693172454834 
+Mean validation negative score: 0.5933470726013184 
+Iteration 4000 test roc auc: 0.9160407080098439
+Iteration time: nan validation time: 60.63648462295532 test time: 83.44321537017822
+Mean test positive score: 0.21204079687595367 
+Mean test negative score: 0.605246365070343 
+5000 training iterations finished after 1312.63 seconds.
+Validating and testing.
+ training_loss: 1.9818278551101685
+Mean training positive score: 46.47445323181077 
+Mean training negative score: 6.707410616216352 
+Training ROC AUC: 0.9121378
+ Training 20000 entries took 0.12s 
+Iteration 5000 validation roc auc: 0.9231527985626855
+Mean validation positive score: 0.18883530795574188 
+Mean validation negative score: 0.6208852529525757 
+Iteration 5000 test roc auc: 0.9146881674726285
+Iteration time: nan validation time: 60.6178982257843 test time: 83.70436453819275
+Mean test positive score: 0.1964564174413681 
+Mean test negative score: 0.6305443048477173 
+6000 training iterations finished after 1574.62 seconds.
+Validating and testing.
+ training_loss: 1.9758399724960327
+Mean training positive score: 60.629797564831 
+Mean training negative score: 7.734654394978763 
+Training ROC AUC: 0.914714
+ Training 20000 entries took 0.14s 
+Iteration 6000 validation roc auc: 0.9217420821563972
+Mean validation positive score: 0.19418370723724365 
+Mean validation negative score: 0.6350960731506348 
+Iteration 6000 test roc auc: 0.9120063362653044
+Iteration time: nan validation time: 60.72571611404419 test time: 83.64439415931702
+Mean test positive score: 0.20406071841716766 
+Mean test negative score: 0.6478235125541687 
+7000 training iterations finished after 1834.25 seconds.
+Validating and testing.
+ training_loss: 1.9777357578277588
+Mean training positive score: 66.62795700267472 
+Mean training negative score: 8.724481124270705 
+Training ROC AUC: 0.9127381999999999
+ Training 20000 entries took 0.12s 
+Iteration 7000 validation roc auc: 0.9143990314315069
+Mean validation positive score: 0.19098663330078125 
+Mean validation negative score: 0.6404012441635132 
+Iteration 7000 test roc auc: 0.9175147564116668
+Iteration time: nan validation time: 60.853034257888794 test time: 83.34501385688782
+Mean test positive score: 0.1903477907180786 
+Mean test negative score: 0.6549390554428101 
+8000 training iterations finished after 2089.93 seconds.
+Validating and testing.
+ training_loss: 1.9799604415893555
+Mean training positive score: 51.55255437029673 
+Mean training negative score: 7.053312139090252 
+Training ROC AUC: 0.915025
+ Training 20000 entries took 0.11s 
+Iteration 8000 validation roc auc: 0.9136004025756809
+Mean validation positive score: 0.20652197301387787 
+Mean validation negative score: 0.67219477891922 
+Iteration 8000 test roc auc: 0.9089734978544658
+Iteration time: nan validation time: 60.438963890075684 test time: 83.40342307090759
+Mean test positive score: 0.2158869206905365 
+Mean test negative score: 0.696765661239624 
+9000 training iterations finished after 2346.39 seconds.
+Validating and testing.
+ training_loss: 1.981477975845337
+Mean training positive score: 60.10590531226057 
+Mean training negative score: 8.239493516548217 
+Training ROC AUC: 0.9092868000000001
+ Training 20000 entries took 0.12s 
+Iteration 9000 validation roc auc: 0.9127429825457979
+Mean validation positive score: 0.2096421867609024 
+Mean validation negative score: 0.65983647108078 
+Iteration 9000 test roc auc: 0.9065784869010692
+Iteration time: nan validation time: 60.84245228767395 test time: 83.88241910934448
+Mean test positive score: 0.21490441262722015 
+Mean test negative score: 0.6608803272247314 
+10000 training iterations finished after 2606.36 seconds.
+Validating and testing.
+ training_loss: 1.9708119630813599
+Mean training positive score: 58.23963917245995 
+Mean training negative score: 6.823646245762572 
+Training ROC AUC: 0.9178402
+ Training 20000 entries took 0.13s 
+Iteration 10000 validation roc auc: 0.9160296195027653
+Mean validation positive score: 0.22427406907081604 
+Mean validation negative score: 0.7080307602882385 
+Iteration 10000 test roc auc: 0.9131503914085025
+Iteration time: nan validation time: 60.33612108230591 test time: 83.83376693725586
+Mean test positive score: 0.23215492069721222 
+Mean test negative score: 0.7284160852432251 
+11000 training iterations finished after 2865.59 seconds.
+Validating and testing.
+ training_loss: 1.9727410078048706
+Mean training positive score: 66.2814823920863 
+Mean training negative score: 7.606362513083697 
+Training ROC AUC: 0.9164526
+ Training 20000 entries took 0.12s 
+Iteration 11000 validation roc auc: 0.9276945452590422
+Mean validation positive score: 0.23678234219551086 
+Mean validation negative score: 0.7815388441085815 
+Iteration 11000 test roc auc: 0.919616762249264
+Iteration time: nan validation time: 60.439757347106934 test time: 83.53841996192932
+Mean test positive score: 0.2517150938510895 
+Mean test negative score: 0.7911926507949829 
+12000 training iterations finished after 3123.68 seconds.
+Validating and testing.
+ training_loss: 1.9690438508987427
+Mean training positive score: 55.78630859066787 
+Mean training negative score: 6.550124108492599 
+Training ROC AUC: 0.918712
+ Training 20000 entries took 0.12s 
+Iteration 12000 validation roc auc: 0.9001436605555592
+Mean validation positive score: 0.2602796256542206 
+Mean validation negative score: 0.8088671565055847 
+Iteration 12000 test roc auc: 0.8961055358513897
+Iteration time: nan validation time: 60.490397453308105 test time: 83.71793460845947
+Mean test positive score: 0.2641347348690033 
+Mean test negative score: 0.8138988018035889 
+13000 training iterations finished after 3380.41 seconds.
+Validating and testing.
+ training_loss: 1.9751896858215332
+Mean training positive score: 57.951414634914755 
+Mean training negative score: 6.049647288238728 
+Training ROC AUC: 0.9219784
+ Training 20000 entries took 0.12s 
+Iteration 13000 validation roc auc: 0.9309666808657209
+Mean validation positive score: 0.23321551084518433 
+Mean validation negative score: 0.7720065116882324 
+Iteration 13000 test roc auc: 0.9254406056961535
+Iteration time: nan validation time: 60.64345073699951 test time: 83.60849404335022
+Mean test positive score: 0.2386568933725357 
+Mean test negative score: 0.7736210227012634 
+14000 training iterations finished after 3636.61 seconds.
+Validating and testing.
+ training_loss: 1.9694744348526
+Mean training positive score: 66.29672400968307 
+Mean training negative score: 6.088553597015536 
+Training ROC AUC: 0.9305566000000001
+ Training 20000 entries took 0.11s 
+Iteration 14000 validation roc auc: 0.9259911048144247
+Mean validation positive score: 0.21820296347141266 
+Mean validation negative score: 0.726047694683075 
+Iteration 14000 test roc auc: 0.9149243761298331
+Iteration time: nan validation time: 60.54294681549072 test time: 83.51810884475708
+Mean test positive score: 0.22765110433101654 
+Mean test negative score: 0.7339820861816406 
+15000 training iterations finished after 3890.58 seconds.
+Validating and testing.
+ training_loss: 1.9723094701766968
+Mean training positive score: 61.65880526119932 
+Mean training negative score: 7.53899393346782 
+Training ROC AUC: 0.9132508
+ Training 20000 entries took 0.11s 
+Iteration 15000 validation roc auc: 0.9280952628528519
+Mean validation positive score: 0.20074963569641113 
+Mean validation negative score: 0.6912967562675476 
+Iteration 15000 test roc auc: 0.9231065558198323
+Iteration time: nan validation time: 60.61847424507141 test time: 83.51759600639343
+Mean test positive score: 0.21019740402698517 
+Mean test negative score: 0.7216546535491943 
+16000 training iterations finished after 4148.04 seconds.
+Validating and testing.
+ training_loss: 1.9698947668075562
+Mean training positive score: 69.39331988299973 
+Mean training negative score: 8.361668610359033 
+Training ROC AUC: 0.9184984
+ Training 20000 entries took 0.12s 
+Iteration 16000 validation roc auc: 0.9248462543741851
+Mean validation positive score: 0.22106312215328217 
+Mean validation negative score: 0.7257674336433411 
+Iteration 16000 test roc auc: 0.9181891530674521
+Iteration time: nan validation time: 60.51631164550781 test time: 83.67825317382812
+Mean test positive score: 0.23370389640331268 
+Mean test negative score: 0.7518233060836792 
+17000 training iterations finished after 4405.45 seconds.
+Validating and testing.
+ training_loss: 1.9744889736175537
+Mean training positive score: 78.74237613701746 
+Mean training negative score: 8.200302566617264 
+Training ROC AUC: 0.9127352
+ Training 20000 entries took 0.13s 
+Iteration 17000 validation roc auc: 0.9267775571443004
+Mean validation positive score: 0.19447943568229675 
+Mean validation negative score: 0.6773483753204346 
+Iteration 17000 test roc auc: 0.9243600609847862
+Iteration time: nan validation time: 60.28967571258545 test time: 83.41498947143555
+Mean test positive score: 0.20069947838783264 
+Mean test negative score: 0.6914693713188171 
+18000 training iterations finished after 4664.21 seconds.
+Validating and testing.
+ training_loss: 1.9713044166564941
+Mean training positive score: 72.1295200228956 
+Mean training negative score: 7.263772813767 
+Training ROC AUC: 0.9215864
+ Training 20000 entries took 0.12s 
+Iteration 18000 validation roc auc: 0.9257536625583939
+Mean validation positive score: 0.23872801661491394 
+Mean validation negative score: 0.7884049415588379 
+Iteration 18000 test roc auc: 0.9227133857333161
+Iteration time: nan validation time: 60.53693652153015 test time: 83.6182689666748
+Mean test positive score: 0.24506577849388123 
+Mean test negative score: 0.7834274768829346 
+19000 training iterations finished after 4924.88 seconds.
+Validating and testing.
+ training_loss: 1.9724668264389038
+Mean training positive score: 66.9951575083978 
+Mean training negative score: 7.593462529313815 
+Training ROC AUC: 0.9188082
+ Training 20000 entries took 0.11s 
+Iteration 19000 validation roc auc: 0.9245504729112177
+Mean validation positive score: 0.2214362919330597 
+Mean validation negative score: 0.7773674726486206 
+Iteration 19000 test roc auc: 0.9224418491947519
+Iteration time: nan validation time: 60.45892381668091 test time: 83.56173133850098
+Mean test positive score: 0.22916235029697418 
+Mean test negative score: 0.7980854511260986 
+20000 training iterations finished after 5184.56 seconds.
+Validating and testing.
+ training_loss: 1.9660561084747314
+Mean training positive score: 68.3455114937634 
+Mean training negative score: 6.964878663602188 
+Training ROC AUC: 0.9235374000000001
+ Training 20000 entries took 0.12s 
+Iteration 20000 validation roc auc: 0.9171525303364467
+Mean validation positive score: 0.20529653131961823 
+Mean validation negative score: 0.7371913194656372 
+Iteration 20000 test roc auc: 0.9167701074211823
+Iteration time: nan validation time: 60.43797707557678 test time: 83.22659826278687
+Mean test positive score: 0.20918084681034088 
+Mean test negative score: 0.7466801404953003 
+21000 training iterations finished after 5442.09 seconds.
+Validating and testing.
+ training_loss: 1.9697846174240112
+Mean training positive score: 72.05445190639924 
+Mean training negative score: 6.922783764906872 
+Training ROC AUC: 0.921787
+ Training 20000 entries took 0.11s 
+Iteration 21000 validation roc auc: 0.9293855669469651
+Mean validation positive score: 0.21448612213134766 
+Mean validation negative score: 0.7318505048751831 
+Iteration 21000 test roc auc: 0.9249412735262424
+Iteration time: nan validation time: 60.51895022392273 test time: 83.35416436195374
+Mean test positive score: 0.22495318949222565 
+Mean test negative score: 0.7392139434814453 
+22000 training iterations finished after 5697.75 seconds.
+Validating and testing.
+ training_loss: 1.965421438217163
+Mean training positive score: 65.63337016583377 
+Mean training negative score: 6.7844657045831775 
+Training ROC AUC: 0.928924
+ Training 20000 entries took 0.11s 
+Iteration 22000 validation roc auc: 0.9331456675258966
+Mean validation positive score: 0.2591620087623596 
+Mean validation negative score: 0.8829655051231384 
+Iteration 22000 test roc auc: 0.9227679136851228
+Iteration time: nan validation time: 60.47870111465454 test time: 83.81028890609741
+Mean test positive score: 0.275225430727005 
+Mean test negative score: 0.8857399821281433 
+23000 training iterations finished after 5955.07 seconds.
+Validating and testing.
+ training_loss: 1.965012788772583
+Mean training positive score: 61.140665348399125 
+Mean training negative score: 7.939030550112052 
+Training ROC AUC: 0.915082
+ Training 20000 entries took 0.12s 
+Iteration 23000 validation roc auc: 0.9245286307877639
+Mean validation positive score: 0.2243088185787201 
+Mean validation negative score: 0.7678948640823364 
+Iteration 23000 test roc auc: 0.9206379611472811
+Iteration time: nan validation time: 60.63394856452942 test time: 83.50301218032837
+Mean test positive score: 0.23528051376342773 
+Mean test negative score: 0.7806263566017151 
+24000 training iterations finished after 6212.91 seconds.
+Validating and testing.
+ training_loss: 1.9643863439559937
+Mean training positive score: 65.05541902139319 
+Mean training negative score: 6.3598097670205656 
+Training ROC AUC: 0.9246989999999999
+ Training 20000 entries took 0.12s 
+Iteration 24000 validation roc auc: 0.9288235975283011
+Mean validation positive score: 0.1962527632713318 
+Mean validation negative score: 0.6730970144271851 
+Iteration 24000 test roc auc: 0.92577294814717
+Iteration time: nan validation time: 60.36770272254944 test time: 83.38874244689941
+Mean test positive score: 0.20589540898799896 
+Mean test negative score: 0.6864897608757019 
+25000 training iterations finished after 6471.65 seconds.
+Validating and testing.
+ training_loss: 1.9669427871704102
+Mean training positive score: 74.07198311040851 
+Mean training negative score: 6.513405058053246 
+Training ROC AUC: 0.9248484
+ Training 20000 entries took 0.12s 
+Iteration 25000 validation roc auc: 0.920053804765565
+Mean validation positive score: 0.19144710898399353 
+Mean validation negative score: 0.7009124755859375 
+Iteration 25000 test roc auc: 0.9186851523012616
+Iteration time: nan validation time: 60.47585892677307 test time: 83.3874921798706
+Mean test positive score: 0.19073887169361115 
+Mean test negative score: 0.7060489058494568 
+26000 training iterations finished after 6726.20 seconds.
+Validating and testing.
+ training_loss: 1.9659132957458496
+Mean training positive score: 61.34915842931714 
+Mean training negative score: 6.785308948408662 
+Training ROC AUC: 0.9230368
+ Training 20000 entries took 0.12s 
+Iteration 26000 validation roc auc: 0.9338486270538656
+Mean validation positive score: 0.21540585160255432 
+Mean validation negative score: 0.7498517036437988 
+Iteration 26000 test roc auc: 0.9295383699474105
+Iteration time: nan validation time: 60.35018181800842 test time: 83.3367350101471
+Mean test positive score: 0.2200707346200943 
+Mean test negative score: 0.7576915621757507 
+27000 training iterations finished after 6985.45 seconds.
+Validating and testing.
+ training_loss: 1.9645425081253052
+Mean training positive score: 66.99741370852404 
+Mean training negative score: 6.200225028415883 
+Training ROC AUC: 0.9313106
+ Training 20000 entries took 0.12s 
+Iteration 27000 validation roc auc: 0.9268471334945447
+Mean validation positive score: 0.2128608375787735 
+Mean validation negative score: 0.7496854662895203 
+Iteration 27000 test roc auc: 0.9280233549818291
+Iteration time: nan validation time: 60.47117757797241 test time: 83.35815191268921
+Mean test positive score: 0.21961680054664612 
+Mean test negative score: 0.7713154554367065 
+28000 training iterations finished after 7240.94 seconds.
+Validating and testing.
+ training_loss: 1.963021993637085
+Mean training positive score: 70.48295008658299 
+Mean training negative score: 6.36172068397654 
+Training ROC AUC: 0.9320672
+ Training 20000 entries took 0.12s 
+Iteration 28000 validation roc auc: 0.9363512517126009
+Mean validation positive score: 0.2417307198047638 
+Mean validation negative score: 0.8281664848327637 
+Iteration 28000 test roc auc: 0.931882112957729
+Iteration time: nan validation time: 60.443464040756226 test time: 83.31265878677368
+Mean test positive score: 0.25193530321121216 
+Mean test negative score: 0.8373949527740479 
+29000 training iterations finished after 7497.65 seconds.
+Validating and testing.
+ training_loss: 1.959344744682312
+Mean training positive score: 57.19875772390376 
+Mean training negative score: 4.791857504552571 
+Training ROC AUC: 0.9384934
+ Training 20000 entries took 0.12s 
+Iteration 29000 validation roc auc: 0.9353162676850598
+Mean validation positive score: 0.22417479753494263 
+Mean validation negative score: 0.7750117182731628 
+Iteration 29000 test roc auc: 0.9312811324433056
+Iteration time: nan validation time: 60.165754318237305 test time: 83.37839651107788
+Mean test positive score: 0.23431292176246643 
+Mean test negative score: 0.7956177592277527 
+30000 training iterations finished after 7754.19 seconds.
+Validating and testing.
+ training_loss: 1.9683308601379395
+Mean training positive score: 66.83295756909088 
+Mean training negative score: 6.207289523024487 
+Training ROC AUC: 0.928172
+ Training 20000 entries took 0.11s 
+Iteration 30000 validation roc auc: 0.9325384039120856
+Mean validation positive score: 0.21136239171028137 
+Mean validation negative score: 0.7413464784622192 
+Iteration 30000 test roc auc: 0.9322407480541092
+Iteration time: nan validation time: 60.34559416770935 test time: 83.18412947654724
+Mean test positive score: 0.21905283629894257 
+Mean test negative score: 0.7596211433410645 
+31000 training iterations finished after 8015.35 seconds.
+Validating and testing.
+ training_loss: 1.9690539836883545
+Mean training positive score: 63.151851444412834 
+Mean training negative score: 5.862797810017008 
+Training ROC AUC: 0.925161
+ Training 20000 entries took 0.11s 
+Iteration 31000 validation roc auc: 0.924474244077606
+Mean validation positive score: 0.19434134662151337 
+Mean validation negative score: 0.660413384437561 
+Iteration 31000 test roc auc: 0.9200404097710254
+Iteration time: nan validation time: 60.56484293937683 test time: 83.38883376121521
+Mean test positive score: 0.20783226191997528 
+Mean test negative score: 0.6775841116905212 
+32000 training iterations finished after 8275.57 seconds.
+Validating and testing.
+ training_loss: 1.9626150131225586
+Mean training positive score: 73.76855090412087 
+Mean training negative score: 7.453865106303553 
+Training ROC AUC: 0.9257822
+ Training 20000 entries took 0.12s 
+Iteration 32000 validation roc auc: 0.9337379985005326
+Mean validation positive score: 0.22500193119049072 
+Mean validation negative score: 0.7694880366325378 
+Iteration 32000 test roc auc: 0.9292881794060293
+Iteration time: nan validation time: 60.52743458747864 test time: 83.46110224723816
+Mean test positive score: 0.23558464646339417 
+Mean test negative score: 0.7857995629310608 
+33000 training iterations finished after 8534.02 seconds.
+Validating and testing.
+ training_loss: 1.9636108875274658
+Mean training positive score: 58.397031058336395 
+Mean training negative score: 6.252245578965174 
+Training ROC AUC: 0.9268225999999999
+ Training 20000 entries took 0.12s 
+Iteration 33000 validation roc auc: 0.9343447215262191
+Mean validation positive score: 0.23015464842319489 
+Mean validation negative score: 0.7909959554672241 
+Iteration 33000 test roc auc: 0.9297080300494664
+Iteration time: nan validation time: 60.41133713722229 test time: 83.11809158325195
+Mean test positive score: 0.24409781396389008 
+Mean test negative score: 0.812484860420227 
+34000 training iterations finished after 8787.93 seconds.
+Validating and testing.
+ training_loss: 1.9615092277526855
+Mean training positive score: 66.70374616777042 
+Mean training negative score: 5.12416980254272 
+Training ROC AUC: 0.9372214
+ Training 20000 entries took 0.11s 
+Iteration 34000 validation roc auc: 0.9401884998295522
+Mean validation positive score: 0.22229987382888794 
+Mean validation negative score: 0.7603430151939392 
+Iteration 34000 test roc auc: 0.9350825695041852
+Iteration time: nan validation time: 60.50629115104675 test time: 83.18998980522156
+Mean test positive score: 0.23568172752857208 
+Mean test negative score: 0.7720324993133545 
+35000 training iterations finished after 9043.32 seconds.
+Validating and testing.
+ training_loss: 1.9639999866485596
+Mean training positive score: 56.56645302318782 
+Mean training negative score: 5.449691378268574 
+Training ROC AUC: 0.932124
+ Training 20000 entries took 0.12s 
+Iteration 35000 validation roc auc: 0.9336011026816124
+Mean validation positive score: 0.21063826978206635 
+Mean validation negative score: 0.7318960428237915 
+Iteration 35000 test roc auc: 0.9315948396231025
+Iteration time: nan validation time: 60.34549069404602 test time: 83.34288954734802
+Mean test positive score: 0.21560867130756378 
+Mean test negative score: 0.7472513318061829 
+36000 training iterations finished after 9300.44 seconds.
+Validating and testing.
+ training_loss: 1.9673417806625366
+Mean training positive score: 64.2739061856057 
+Mean training negative score: 6.50590227167592 
+Training ROC AUC: 0.9306894
+ Training 20000 entries took 0.12s 
+Iteration 36000 validation roc auc: 0.9359013140131667
+Mean validation positive score: 0.21723178029060364 
+Mean validation negative score: 0.768459677696228 
+Iteration 36000 test roc auc: 0.931110786513616
+Iteration time: nan validation time: 60.428810119628906 test time: 83.26838755607605
+Mean test positive score: 0.2303687036037445 
+Mean test negative score: 0.7844039797782898 
+37000 training iterations finished after 9557.34 seconds.
+Validating and testing.
+ training_loss: 1.9586073160171509
+Mean training positive score: 59.06066251567771 
+Mean training negative score: 5.613301327120316 
+Training ROC AUC: 0.9358594
+ Training 20000 entries took 0.12s 
+Iteration 37000 validation roc auc: 0.9268722516411133
+Mean validation positive score: 0.24064023792743683 
+Mean validation negative score: 0.8296181559562683 
+Iteration 37000 test roc auc: 0.9201344100512714
+Iteration time: nan validation time: 60.23121356964111 test time: 83.508061170578
+Mean test positive score: 0.25596827268600464 
+Mean test negative score: 0.8484966158866882 
+38000 training iterations finished after 9814.40 seconds.
+Validating and testing.
+ training_loss: 1.9589550495147705
+Mean training positive score: 71.9630856611422 
+Mean training negative score: 6.486431449502719 
+Training ROC AUC: 0.9250288
+ Training 20000 entries took 0.13s 
+Iteration 38000 validation roc auc: 0.9232196926505419
+Mean validation positive score: 0.21055753529071808 
+Mean validation negative score: 0.7343466281890869 
+Iteration 38000 test roc auc: 0.9263724871822462
+Iteration time: nan validation time: 60.31683373451233 test time: 83.34367871284485
+Mean test positive score: 0.21573859453201294 
+Mean test negative score: 0.7522542476654053 
+39000 training iterations finished after 10076.83 seconds.
+Validating and testing.
+ training_loss: 1.966385006904602
+Mean training positive score: 73.62719673133711 
+Mean training negative score: 7.122186662475503 
+Training ROC AUC: 0.9243062
+ Training 20000 entries took 0.12s 
+Iteration 39000 validation roc auc: 0.9319320767268836
+Mean validation positive score: 0.2364969253540039 
+Mean validation negative score: 0.8198841214179993 
+Iteration 39000 test roc auc: 0.926643744424489
+Iteration time: nan validation time: 60.467273473739624 test time: 83.53042602539062
+Mean test positive score: 0.24649611115455627 
+Mean test negative score: 0.818591296672821 
+40000 training iterations finished after 10335.45 seconds.
+Validating and testing.
+ training_loss: 1.9623602628707886
+Mean training positive score: 76.56217053187454 
+Mean training negative score: 7.776895154916649 
+Training ROC AUC: 0.9232104
+ Training 20000 entries took 0.12s 
+Iteration 40000 validation roc auc: 0.9316721867705384
+Mean validation positive score: 0.1947162002325058 
+Mean validation negative score: 0.6901304721832275 
+Iteration 40000 test roc auc: 0.9285623611941892
+Iteration time: nan validation time: 60.71979117393494 test time: 83.4683940410614
+Mean test positive score: 0.20632894337177277 
+Mean test negative score: 0.7092374563217163 
+41000 training iterations finished after 10597.84 seconds.
+Validating and testing.
+ training_loss: 1.9601277112960815
+Mean training positive score: 74.69035734024322 
+Mean training negative score: 6.841386980646444 
+Training ROC AUC: 0.9275314
+ Training 20000 entries took 0.12s 
+Iteration 41000 validation roc auc: 0.9261114757701313
+Mean validation positive score: 0.22118020057678223 
+Mean validation negative score: 0.7928130626678467 
+Iteration 41000 test roc auc: 0.9239223384800745
+Iteration time: nan validation time: 60.410407304763794 test time: 83.36381936073303
+Mean test positive score: 0.2258785367012024 
+Mean test negative score: 0.8078323602676392 
+42000 training iterations finished after 10858.16 seconds.
+Validating and testing.
+ training_loss: 1.9662400484085083
+Mean training positive score: 80.70470312378558 
+Mean training negative score: 7.157821456841458 
+Training ROC AUC: 0.9270706
+ Training 20000 entries took 0.12s 
+Iteration 42000 validation roc auc: 0.9307912969447614
+Mean validation positive score: 0.22507406771183014 
+Mean validation negative score: 0.8054654002189636 
+Iteration 42000 test roc auc: 0.9282417010876367
+Iteration time: nan validation time: 60.36362600326538 test time: 83.33658528327942
+Mean test positive score: 0.23311807215213776 
+Mean test negative score: 0.8231632709503174 
+43000 training iterations finished after 11118.06 seconds.
+Validating and testing.
+ training_loss: 1.9652642011642456
+Mean training positive score: 62.6851224125674 
+Mean training negative score: 7.312894900523539 
+Training ROC AUC: 0.9260726
+ Training 20000 entries took 0.12s 
+Iteration 43000 validation roc auc: 0.9288005944696949
+Mean validation positive score: 0.21468479931354523 
+Mean validation negative score: 0.7447275519371033 
+Iteration 43000 test roc auc: 0.9266005931428389
+Iteration time: nan validation time: 60.52838110923767 test time: 83.17872619628906
+Mean test positive score: 0.22334416210651398 
+Mean test negative score: 0.7583075165748596 
+44000 training iterations finished after 11377.27 seconds.
+Validating and testing.
+ training_loss: 1.9562050104141235
+Mean training positive score: 63.060318017025594 
+Mean training negative score: 5.888370027568444 
+Training ROC AUC: 0.9334582
+ Training 20000 entries took 0.12s 
+Iteration 44000 validation roc auc: 0.9310797878531325
+Mean validation positive score: 0.22040444612503052 
+Mean validation negative score: 0.7797940969467163 
+Iteration 44000 test roc auc: 0.9272932371582864
+Iteration time: nan validation time: 60.35818839073181 test time: 83.41679883003235
+Mean test positive score: 0.2247566431760788 
+Mean test negative score: 0.7843499779701233 
+45000 training iterations finished after 11633.05 seconds.
+Validating and testing.
+ training_loss: 1.9644432067871094
+Mean training positive score: 70.30413864681582 
+Mean training negative score: 5.7037857651938975 
+Training ROC AUC: 0.930926
+ Training 20000 entries took 0.12s 
+Iteration 45000 validation roc auc: 0.9366765114755338
+Mean validation positive score: 0.22503869235515594 
+Mean validation negative score: 0.7811512351036072 
+Iteration 45000 test roc auc: 0.9302268850322405
+Iteration time: nan validation time: 60.322367906570435 test time: 83.34949469566345
+Mean test positive score: 0.2367127388715744 
+Mean test negative score: 0.7906239032745361 
+46000 training iterations finished after 11892.31 seconds.
+Validating and testing.
+ training_loss: 1.9628130197525024
+Mean training positive score: 60.982325854801154 
+Mean training negative score: 5.495899271369337 
+Training ROC AUC: 0.9381126
+ Training 20000 entries took 0.12s 
+Iteration 46000 validation roc auc: 0.9356133282445184
+Mean validation positive score: 0.22322840988636017 
+Mean validation negative score: 0.7855828404426575 
+Iteration 46000 test roc auc: 0.9309954386845409
+Iteration time: nan validation time: 60.51847529411316 test time: 83.26119351387024
+Mean test positive score: 0.2313861846923828 
+Mean test negative score: 0.798438549041748 
+47000 training iterations finished after 12150.17 seconds.
+Validating and testing.
+ training_loss: 1.9654483795166016
+Mean training positive score: 69.04478459233127 
+Mean training negative score: 7.011418214713904 
+Training ROC AUC: 0.923605
+ Training 20000 entries took 0.12s 
+Iteration 47000 validation roc auc: 0.9334556460737055
+Mean validation positive score: 0.21402016282081604 
+Mean validation negative score: 0.7552353143692017 
+Iteration 47000 test roc auc: 0.9294960984491727
+Iteration time: nan validation time: 60.55396890640259 test time: 83.22368621826172
+Mean test positive score: 0.22718298435211182 
+Mean test negative score: 0.7754183411598206 
+48000 training iterations finished after 12407.99 seconds.
+Validating and testing.
+ training_loss: 1.9616330862045288
+Mean training positive score: 70.81257421793951 
+Mean training negative score: 5.950099846478798 
+Training ROC AUC: 0.9332068
+ Training 20000 entries took 0.12s 
+Iteration 48000 validation roc auc: 0.9347758597566703
+Mean validation positive score: 0.21929138898849487 
+Mean validation negative score: 0.7709683775901794 
+Iteration 48000 test roc auc: 0.9340908565394724
+Iteration time: nan validation time: 60.3340265750885 test time: 83.38454294204712
+Mean test positive score: 0.22556042671203613 
+Mean test negative score: 0.7760534286499023 
+49000 training iterations finished after 12666.94 seconds.
+Validating and testing.
+ training_loss: 1.9656364917755127
+Mean training positive score: 58.66258727044172 
+Mean training negative score: 5.492668159511086 
+Training ROC AUC: 0.9315436
+ Training 20000 entries took 0.12s 
+Iteration 49000 validation roc auc: 0.9304538606558781
+Mean validation positive score: 0.21155600249767303 
+Mean validation negative score: 0.7327995300292969 
+Iteration 49000 test roc auc: 0.9296666616093344
+Iteration time: nan validation time: 60.52151703834534 test time: 83.4820613861084
+Mean test positive score: 0.21612824499607086 
+Mean test negative score: 0.7535490393638611 
+50000 training iterations finished after 12925.38 seconds.
+Validating and testing.
+ training_loss: 1.963671088218689
+Mean training positive score: 68.1734290697057 
+Mean training negative score: 6.503960194133212 
+Training ROC AUC: 0.9301482
+ Training 20000 entries took 0.12s 
+Iteration 50000 validation roc auc: 0.9227094897143509
+Mean validation positive score: 0.23326419293880463 
+Mean validation negative score: 0.80327308177948 
+Iteration 50000 test roc auc: 0.9203113582356686
+Iteration time: nan validation time: 60.43844413757324 test time: 83.64224910736084
+Mean test positive score: 0.23584429919719696 
+Mean test negative score: 0.8146310448646545 
+51000 training iterations finished after 13187.53 seconds.
+Validating and testing.
+ training_loss: 1.964608907699585
+Mean training positive score: 70.56639724677855 
+Mean training negative score: 6.183301188716978 
+Training ROC AUC: 0.929469
+ Training 20000 entries took 0.12s 
+Iteration 51000 validation roc auc: 0.9345872181335116
+Mean validation positive score: 0.2248188704252243 
+Mean validation negative score: 0.8185665607452393 
+Iteration 51000 test roc auc: 0.9307778715051407
+Iteration time: nan validation time: 60.36675453186035 test time: 83.36818051338196
+Mean test positive score: 0.23743495345115662 
+Mean test negative score: 0.8327667713165283 
+52000 training iterations finished after 13447.77 seconds.
+Validating and testing.
+ training_loss: 1.9575812816619873
+Mean training positive score: 73.65993011703416 
+Mean training negative score: 6.3323808325470585 
+Training ROC AUC: 0.9351802
+ Training 20000 entries took 0.12s 
+Iteration 52000 validation roc auc: 0.9302079078294294
+Mean validation positive score: 0.23379792273044586 
+Mean validation negative score: 0.8465430736541748 
+Iteration 52000 test roc auc: 0.9278988089939039
+Iteration time: nan validation time: 60.47617530822754 test time: 83.47029376029968
+Mean test positive score: 0.23980818688869476 
+Mean test negative score: 0.8550763130187988 
+53000 training iterations finished after 13708.56 seconds.
+Validating and testing.
+ training_loss: 1.9599764347076416
+Mean training positive score: 75.37345303451754 
+Mean training negative score: 6.434327180892093 
+Training ROC AUC: 0.9288244
+ Training 20000 entries took 0.12s 
+Iteration 53000 validation roc auc: 0.9324977593656154
+Mean validation positive score: 0.228830024600029 
+Mean validation negative score: 0.8150684237480164 
+Iteration 53000 test roc auc: 0.9289382707680454
+Iteration time: nan validation time: 60.39998459815979 test time: 83.37008237838745
+Mean test positive score: 0.2395450472831726 
+Mean test negative score: 0.8301699757575989 
+54000 training iterations finished after 13968.36 seconds.
+Validating and testing.
+ training_loss: 1.9607161283493042
+Mean training positive score: 62.67399472680131 
+Mean training negative score: 5.882374597118802 
+Training ROC AUC: 0.9364664
+ Training 20000 entries took 0.11s 
+Iteration 54000 validation roc auc: 0.9323625621159387
+Mean validation positive score: 0.2375437617301941 
+Mean validation negative score: 0.8401769995689392 
+Iteration 54000 test roc auc: 0.9287046068106576
+Iteration time: nan validation time: 60.228243827819824 test time: 83.08061599731445
+Mean test positive score: 0.24896454811096191 
+Mean test negative score: 0.8619410991668701 
+55000 training iterations finished after 14229.78 seconds.
+Validating and testing.
+ training_loss: 1.958173394203186
+Mean training positive score: 77.98228885227388 
+Mean training negative score: 5.892750784674248 
+Training ROC AUC: 0.9326118
+ Training 20000 entries took 0.12s 
+Iteration 55000 validation roc auc: 0.9201485937914488
+Mean validation positive score: 0.22609901428222656 
+Mean validation negative score: 0.7957335114479065 
+Iteration 55000 test roc auc: 0.9210620695079728
+Iteration time: nan validation time: 60.27923107147217 test time: 83.32224535942078
+Mean test positive score: 0.22738449275493622 
+Mean test negative score: 0.8110150098800659 
+56000 training iterations finished after 14485.38 seconds.
+Validating and testing.
+ training_loss: 1.9588544368743896
+Mean training positive score: 67.88121752225919 
+Mean training negative score: 7.012485819834379 
+Training ROC AUC: 0.930033
+ Training 20000 entries took 0.12s 
+Iteration 56000 validation roc auc: 0.9343079024530885
+Mean validation positive score: 0.20618821680545807 
+Mean validation negative score: 0.7413167953491211 
+Iteration 56000 test roc auc: 0.9309708357819216
+Iteration time: nan validation time: 60.31722331047058 test time: 83.36024856567383
+Mean test positive score: 0.2160428911447525 
+Mean test negative score: 0.7570112943649292 
+57000 training iterations finished after 14745.97 seconds.
+Validating and testing.
+ training_loss: 1.957231879234314
+Mean training positive score: 69.0490649685869 
+Mean training negative score: 5.474729410831033 
+Training ROC AUC: 0.9393514000000001
+ Training 20000 entries took 0.11s 
+Iteration 57000 validation roc auc: 0.9332357950869697
+Mean validation positive score: 0.2675592303276062 
+Mean validation negative score: 0.9342079758644104 
+Iteration 57000 test roc auc: 0.9256562596957524
+Iteration time: nan validation time: 60.513792753219604 test time: 83.13296937942505
+Mean test positive score: 0.27837899327278137 
+Mean test negative score: 0.9420828819274902 
+58000 training iterations finished after 15004.78 seconds.
+Validating and testing.
+ training_loss: 1.9578124284744263
+Mean training positive score: 60.15548846136892 
+Mean training negative score: 4.8410136497455065 
+Training ROC AUC: 0.9376628
+ Training 20000 entries took 0.11s 
+Iteration 58000 validation roc auc: 0.9357686542782381
+Mean validation positive score: 0.2386743575334549 
+Mean validation negative score: 0.8142678737640381 
+Iteration 58000 test roc auc: 0.9319439770929101
+Iteration time: nan validation time: 60.56510591506958 test time: 83.4956328868866
+Mean test positive score: 0.2500239610671997 
+Mean test negative score: 0.8383848071098328 
+59000 training iterations finished after 15265.44 seconds.
+Validating and testing.
+ training_loss: 1.9597575664520264
+Mean training positive score: 62.94870186844685 
+Mean training negative score: 5.181483220846025 
+Training ROC AUC: 0.938837
+ Training 20000 entries took 0.13s 
+Iteration 59000 validation roc auc: 0.933057492580945
+Mean validation positive score: 0.270975798368454 
+Mean validation negative score: 0.88642418384552 
+Iteration 59000 test roc auc: 0.9220894361997533
+Iteration time: nan validation time: 60.223337173461914 test time: 83.23355889320374
+Mean test positive score: 0.2870786488056183 
+Mean test negative score: 0.8936740756034851 
+60000 training iterations finished after 15527.27 seconds.
+Validating and testing.
+ training_loss: 1.9637119770050049
+Mean training positive score: 62.550325028248515 
+Mean training negative score: 5.576461560854212 
+Training ROC AUC: 0.9326748
+ Training 20000 entries took 0.12s 
+Iteration 60000 validation roc auc: 0.9331487958473379
+Mean validation positive score: 0.2316369116306305 
+Mean validation negative score: 0.8169306516647339 
+Iteration 60000 test roc auc: 0.9265268821886936
+Iteration time: nan validation time: 60.40631031990051 test time: 83.32787561416626
+Mean test positive score: 0.24441193044185638 
+Mean test negative score: 0.8370957374572754 
+61000 training iterations finished after 15786.08 seconds.
+Validating and testing.
+ training_loss: 1.9582033157348633
+Mean training positive score: 60.931532172906714 
+Mean training negative score: 4.975270250461783 
+Training ROC AUC: 0.9361128
+ Training 20000 entries took 0.12s 
+Iteration 61000 validation roc auc: 0.9352673577529494
+Mean validation positive score: 0.21208162605762482 
+Mean validation negative score: 0.7412505745887756 
+Iteration 61000 test roc auc: 0.9332268688858099
+Iteration time: nan validation time: 60.286123514175415 test time: 83.45114350318909
+Mean test positive score: 0.22026783227920532 
+Mean test negative score: 0.7588812112808228 
+62000 training iterations finished after 16048.90 seconds.
+Validating and testing.
+ training_loss: 1.9572691917419434
+Mean training positive score: 59.779411841419886 
+Mean training negative score: 5.158784884802625 
+Training ROC AUC: 0.9383492
+ Training 20000 entries took 0.11s 
+Iteration 62000 validation roc auc: 0.932647617483388
+Mean validation positive score: 0.25105249881744385 
+Mean validation negative score: 0.8533317446708679 
+Iteration 62000 test roc auc: 0.9273380595629259
+Iteration time: nan validation time: 60.33707118034363 test time: 83.2615396976471
+Mean test positive score: 0.2614362835884094 
+Mean test negative score: 0.864136278629303 
+63000 training iterations finished after 16306.53 seconds.
+Validating and testing.
+ training_loss: 1.9550000429153442
+Mean training positive score: 78.87199209211944 
+Mean training negative score: 5.518019700985478 
+Training ROC AUC: 0.9403272
+ Training 20000 entries took 0.11s 
+Iteration 63000 validation roc auc: 0.9276189633587597
+Mean validation positive score: 0.24366718530654907 
+Mean validation negative score: 0.8566439151763916 
+Iteration 63000 test roc auc: 0.9252807426883923
+Iteration time: nan validation time: 60.42705774307251 test time: 83.38001608848572
+Mean test positive score: 0.24939434230327606 
+Mean test negative score: 0.8679373264312744 
+64000 training iterations finished after 16569.13 seconds.
+Validating and testing.
+ training_loss: 1.9569990634918213
+Mean training positive score: 65.09804755334298 
+Mean training negative score: 5.47508849087078 
+Training ROC AUC: 0.9326766
+ Training 20000 entries took 0.13s 
+Iteration 64000 validation roc auc: 0.9314318229754088
+Mean validation positive score: 0.22848260402679443 
+Mean validation negative score: 0.8075581789016724 
+Iteration 64000 test roc auc: 0.9307355410443462
+Iteration time: nan validation time: 60.4198100566864 test time: 83.17694520950317
+Mean test positive score: 0.24003463983535767 
+Mean test negative score: 0.8268612027168274 
+65000 training iterations finished after 16824.15 seconds.
+Validating and testing.
+ training_loss: 1.9555482864379883
+Mean training positive score: 70.89555393276115 
+Mean training negative score: 5.962858925891261 
+Training ROC AUC: 0.933184
+ Training 20000 entries took 0.11s 
+Iteration 65000 validation roc auc: 0.9360484839604845
+Mean validation positive score: 0.2226988822221756 
+Mean validation negative score: 0.7968973517417908 
+Iteration 65000 test roc auc: 0.9298460396717274
+Iteration time: nan validation time: 60.40248203277588 test time: 83.40709257125854
+Mean test positive score: 0.23238199949264526 
+Mean test negative score: 0.8065000772476196 
+66000 training iterations finished after 17080.23 seconds.
+Validating and testing.
+ training_loss: 1.96645188331604
+Mean training positive score: 66.68413187828425 
+Mean training negative score: 5.931236783488832 
+Training ROC AUC: 0.9331078
+ Training 20000 entries took 0.11s 
+Iteration 66000 validation roc auc: 0.9349360953940119
+Mean validation positive score: 0.25115424394607544 
+Mean validation negative score: 0.8501972556114197 
+Iteration 66000 test roc auc: 0.9266285476013146
+Iteration time: nan validation time: 60.278334617614746 test time: 83.38072347640991
+Mean test positive score: 0.2649235725402832 
+Mean test negative score: 0.8540457487106323 
+67000 training iterations finished after 17336.50 seconds.
+Validating and testing.
+ training_loss: 1.96639084815979
+Mean training positive score: 66.61876208398175 
+Mean training negative score: 6.702767725741413 
+Training ROC AUC: 0.9275266
+ Training 20000 entries took 0.12s 
+Iteration 67000 validation roc auc: 0.9256301278328443
+Mean validation positive score: 0.2090512216091156 
+Mean validation negative score: 0.7432801127433777 
+Iteration 67000 test roc auc: 0.9221163432970237
+Iteration time: nan validation time: 60.41471886634827 test time: 83.22592377662659
+Mean test positive score: 0.2166004180908203 
+Mean test negative score: 0.7659092545509338 
+68000 training iterations finished after 17593.86 seconds.
+Validating and testing.
+ training_loss: 1.9591225385665894
+Mean training positive score: 67.04356430761439 
+Mean training negative score: 6.351639083459792 
+Training ROC AUC: 0.9313434
+ Training 20000 entries took 0.11s 
+Iteration 68000 validation roc auc: 0.9369020519307267
+Mean validation positive score: 0.19588349759578705 
+Mean validation negative score: 0.6971491575241089 
+Iteration 68000 test roc auc: 0.9302687655156283
+Iteration time: nan validation time: 60.35576248168945 test time: 83.31034326553345
+Mean test positive score: 0.202132910490036 
+Mean test negative score: 0.7056261897087097 
+69000 training iterations finished after 17851.37 seconds.
+Validating and testing.
+ training_loss: 1.9636359214782715
+Mean training positive score: 59.80070453684204 
+Mean training negative score: 5.198324119003026 
+Training ROC AUC: 0.9365574
+ Training 20000 entries took 0.11s 
+Iteration 69000 validation roc auc: 0.9350119963299088
+Mean validation positive score: 0.22045555710792542 
+Mean validation negative score: 0.7736939191818237 
+Iteration 69000 test roc auc: 0.9329352369769238
+Iteration time: nan validation time: 60.58020067214966 test time: 83.42040276527405
+Mean test positive score: 0.23173309862613678 
+Mean test negative score: 0.7907423377037048 
+70000 training iterations finished after 18108.63 seconds.
+Validating and testing.
+ training_loss: 1.9604408740997314
+Mean training positive score: 78.99673390892883 
+Mean training negative score: 5.747117444144426 
+Training ROC AUC: 0.9334372
+ Training 20000 entries took 0.12s 
+Iteration 70000 validation roc auc: 0.9347196533618969
+Mean validation positive score: 0.2125273197889328 
+Mean validation negative score: 0.7891983389854431 
+Iteration 70000 test roc auc: 0.9302372174444845
+Iteration time: nan validation time: 60.301124811172485 test time: 83.19619488716125
+Mean test positive score: 0.2185257226228714 
+Mean test negative score: 0.8002939820289612 
+71000 training iterations finished after 18362.42 seconds.
+Validating and testing.
+ training_loss: 1.9584800004959106
+Mean training positive score: 68.83774876843232 
+Mean training negative score: 5.557961656293839 
+Training ROC AUC: 0.933429
+ Training 20000 entries took 0.11s 
+Iteration 71000 validation roc auc: 0.9338889643808552
+Mean validation positive score: 0.22832906246185303 
+Mean validation negative score: 0.8212617635726929 
+Iteration 71000 test roc auc: 0.9292857029786465
+Iteration time: nan validation time: 60.3040246963501 test time: 83.4683985710144
+Mean test positive score: 0.23423270881175995 
+Mean test negative score: 0.8283877968788147 
+72000 training iterations finished after 18622.86 seconds.
+Validating and testing.
+ training_loss: 1.9645534753799438
+Mean training positive score: 61.64126969086342 
+Mean training negative score: 6.372545555120224 
+Training ROC AUC: 0.9268114
+ Training 20000 entries took 0.12s 
+Iteration 72000 validation roc auc: 0.935711697558964
+Mean validation positive score: 0.22159640491008759 
+Mean validation negative score: 0.7743188142776489 
+Iteration 72000 test roc auc: 0.9304412092710205
+Iteration time: nan validation time: 60.35949230194092 test time: 83.30363154411316
+Mean test positive score: 0.23034922778606415 
+Mean test negative score: 0.7807336449623108 
+73000 training iterations finished after 18883.60 seconds.
+Validating and testing.
+ training_loss: 1.9594212770462036
+Mean training positive score: 70.87162324646889 
+Mean training negative score: 5.2704380547246625 
+Training ROC AUC: 0.9376788
+ Training 20000 entries took 0.12s 
+Iteration 73000 validation roc auc: 0.9370545036898832
+Mean validation positive score: 0.2299564927816391 
+Mean validation negative score: 0.7724834084510803 
+Iteration 73000 test roc auc: 0.9308607014841784
+Iteration time: nan validation time: 60.40412402153015 test time: 83.29762554168701
+Mean test positive score: 0.2450491338968277 
+Mean test negative score: 0.7924620509147644 
+74000 training iterations finished after 19139.06 seconds.
+Validating and testing.
+ training_loss: 1.9610705375671387
+Mean training positive score: 64.78977984721998 
+Mean training negative score: 4.7952927477797855 
+Training ROC AUC: 0.939875
+ Training 20000 entries took 0.12s 
+Iteration 74000 validation roc auc: 0.938267834533951
+Mean validation positive score: 0.2254277765750885 
+Mean validation negative score: 0.7954200506210327 
+Iteration 74000 test roc auc: 0.9333483829570021
+Iteration time: nan validation time: 60.25762581825256 test time: 83.30452728271484
+Mean test positive score: 0.24009497463703156 
+Mean test negative score: 0.8098697662353516 
+75000 training iterations finished after 19404.55 seconds.
+Validating and testing.
+ training_loss: 1.9570515155792236
+Mean training positive score: 59.575923472890885 
+Mean training negative score: 5.090528248772132 
+Training ROC AUC: 0.9401286
+ Training 20000 entries took 0.12s 
+Iteration 75000 validation roc auc: 0.9359981708624774
+Mean validation positive score: 0.23879165947437286 
+Mean validation negative score: 0.8316529393196106 
+Iteration 75000 test roc auc: 0.9320607353684082
+Iteration time: nan validation time: 60.27612543106079 test time: 83.10825610160828
+Mean test positive score: 0.2550714612007141 
+Mean test negative score: 0.8437289595603943 
+76000 training iterations finished after 19672.13 seconds.
+Validating and testing.
+ training_loss: 1.9579434394836426
+Mean training positive score: 67.28339242300514 
+Mean training negative score: 5.058400069603324 
+Training ROC AUC: 0.9371012
+ Training 20000 entries took 0.12s 
+Iteration 76000 validation roc auc: 0.942269279647123
+Mean validation positive score: 0.23388153314590454 
+Mean validation negative score: 0.8415120244026184 
+Iteration 76000 test roc auc: 0.9371081521100274
+Iteration time: nan validation time: 60.44932007789612 test time: 83.49954915046692
+Mean test positive score: 0.24480827152729034 
+Mean test negative score: 0.8513322472572327 
+77000 training iterations finished after 19927.75 seconds.
+Validating and testing.
+ training_loss: 1.9597622156143188
+Mean training positive score: 56.34662201499434 
+Mean training negative score: 5.060452955813943 
+Training ROC AUC: 0.9397096
+ Training 20000 entries took 0.12s 
+Iteration 77000 validation roc auc: 0.932045617957215
+Mean validation positive score: 0.25331437587738037 
+Mean validation negative score: 0.8685834407806396 
+Iteration 77000 test roc auc: 0.9288401508670594
+Iteration time: nan validation time: 60.072887659072876 test time: 83.39773464202881
+Mean test positive score: 0.26275646686553955 
+Mean test negative score: 0.8855761289596558 
+78000 training iterations finished after 20185.03 seconds.
+Validating and testing.
+ training_loss: 1.9667222499847412
+Mean training positive score: 59.19838557665078 
+Mean training negative score: 5.4082701414178205 
+Training ROC AUC: 0.9334331
+ Training 20000 entries took 0.11s 
+Iteration 78000 validation roc auc: 0.9320587338658077
+Mean validation positive score: 0.2131001204252243 
+Mean validation negative score: 0.7812432646751404 
+Iteration 78000 test roc auc: 0.9321942405616641
+Iteration time: nan validation time: 60.244659423828125 test time: 83.43034648895264
+Mean test positive score: 0.21971401572227478 
+Mean test negative score: 0.7947640419006348 
+79000 training iterations finished after 20442.02 seconds.
+Validating and testing.
+ training_loss: 1.9616472721099854
+Mean training positive score: 57.86899167320733 
+Mean training negative score: 5.195878938270356 
+Training ROC AUC: 0.9349454
+ Training 20000 entries took 0.12s 
+Iteration 79000 validation roc auc: 0.9393909019314062
+Mean validation positive score: 0.22704778611660004 
+Mean validation negative score: 0.812912106513977 
+Iteration 79000 test roc auc: 0.93357772557964
+Iteration time: nan validation time: 60.62326121330261 test time: 83.39128947257996
+Mean test positive score: 0.23469752073287964 
+Mean test negative score: 0.8180003762245178 
+80000 training iterations finished after 20700.60 seconds.
+Validating and testing.
+ training_loss: 1.956512689590454
+Mean training positive score: 66.54071583735957 
+Mean training negative score: 5.407455113681225 
+Training ROC AUC: 0.9398384
+ Training 20000 entries took 0.11s 
+Iteration 80000 validation roc auc: 0.935952551723649
+Mean validation positive score: 0.2618409991264343 
+Mean validation negative score: 0.8936534523963928 
+Iteration 80000 test roc auc: 0.9309766373871747
+Iteration time: nan validation time: 60.34454345703125 test time: 83.37384414672852
+Mean test positive score: 0.2763024568557739 
+Mean test negative score: 0.8961836695671082 
+81000 training iterations finished after 20954.99 seconds.
+Validating and testing.
+ training_loss: 1.9616479873657227
+Mean training positive score: 61.65187981302192 
+Mean training negative score: 5.535990335212339 
+Training ROC AUC: 0.9375622
+ Training 20000 entries took 0.12s 
+Iteration 81000 validation roc auc: 0.9398287783121952
+Mean validation positive score: 0.229454904794693 
+Mean validation negative score: 0.8454147577285767 
+Iteration 81000 test roc auc: 0.9365475035360543
+Iteration time: nan validation time: 60.39222478866577 test time: 83.33906245231628
+Mean test positive score: 0.23684042692184448 
+Mean test negative score: 0.8563005924224854 
+82000 training iterations finished after 21210.37 seconds.
+Validating and testing.
+ training_loss: 1.959841012954712
+Mean training positive score: 62.92444523704855 
+Mean training negative score: 5.892684303589769 
+Training ROC AUC: 0.9325289999999999
+ Training 20000 entries took 0.12s 
+Iteration 82000 validation roc auc: 0.9322470239589838
+Mean validation positive score: 0.23378072679042816 
+Mean validation negative score: 0.8154355883598328 
+Iteration 82000 test roc auc: 0.9294865232402888
+Iteration time: nan validation time: 60.4180371761322 test time: 83.14069962501526
+Mean test positive score: 0.24729368090629578 
+Mean test negative score: 0.8418864607810974 
+83000 training iterations finished after 21465.67 seconds.
+Validating and testing.
+ training_loss: 1.9597997665405273
+Mean training positive score: 67.5630592990174 
+Mean training negative score: 6.018678139912351 
+Training ROC AUC: 0.9316278
+ Training 20000 entries took 0.12s 
+Iteration 83000 validation roc auc: 0.9340164427410831
+Mean validation positive score: 0.22463369369506836 
+Mean validation negative score: 0.7725768089294434 
+Iteration 83000 test roc auc: 0.9290883490946816
+Iteration time: nan validation time: 60.38821196556091 test time: 83.20269894599915
+Mean test positive score: 0.23604340851306915 
+Mean test negative score: 0.7809867858886719 
+84000 training iterations finished after 21726.98 seconds.
+Validating and testing.
+ training_loss: 1.9574463367462158
+Mean training positive score: 76.76557065368154 
+Mean training negative score: 5.495659734830511 
+Training ROC AUC: 0.9419322
+ Training 20000 entries took 0.12s 
+Iteration 84000 validation roc auc: 0.9385263597268346
+Mean validation positive score: 0.22575707733631134 
+Mean validation negative score: 0.7853589057922363 
+Iteration 84000 test roc auc: 0.9319266436528774
+Iteration time: nan validation time: 60.16583585739136 test time: 83.3008041381836
+Mean test positive score: 0.23734666407108307 
+Mean test negative score: 0.7938892841339111 
+85000 training iterations finished after 21988.45 seconds.
+Validating and testing.
+ training_loss: 1.9621332883834839
+Mean training positive score: 61.06584557150898 
+Mean training negative score: 6.2287071864646135 
+Training ROC AUC: 0.929935
+ Training 20000 entries took 0.13s 
+Iteration 85000 validation roc auc: 0.9363158830699025
+Mean validation positive score: 0.21722033619880676 
+Mean validation negative score: 0.7845414876937866 
+Iteration 85000 test roc auc: 0.9311485675476648
+Iteration time: nan validation time: 60.56913137435913 test time: 83.28129172325134
+Mean test positive score: 0.22507748007774353 
+Mean test negative score: 0.7972868084907532 
+86000 training iterations finished after 22245.69 seconds.
+Validating and testing.
+ training_loss: 1.964514970779419
+Mean training positive score: 64.01402154647181 
+Mean training negative score: 6.105671644769468 
+Training ROC AUC: 0.9241708
+ Training 20000 entries took 0.12s 
+Iteration 86000 validation roc auc: 0.9299661733627713
+Mean validation positive score: 0.2187661975622177 
+Mean validation negative score: 0.763305127620697 
+Iteration 86000 test roc auc: 0.9301686362327748
+Iteration time: nan validation time: 60.422096967697144 test time: 83.40425109863281
+Mean test positive score: 0.22319436073303223 
+Mean test negative score: 0.7692378759384155 
+87000 training iterations finished after 22503.83 seconds.
+Validating and testing.
+ training_loss: 1.958369493484497
+Mean training positive score: 66.43594168298829 
+Mean training negative score: 5.705883731119084 
+Training ROC AUC: 0.936799
+ Training 20000 entries took 0.12s 
+Iteration 87000 validation roc auc: 0.9334034926128485
+Mean validation positive score: 0.23008473217487335 
+Mean validation negative score: 0.8045762777328491 
+Iteration 87000 test roc auc: 0.9299351072686088
+Iteration time: nan validation time: 60.36543679237366 test time: 83.2016966342926
+Mean test positive score: 0.24663959443569183 
+Mean test negative score: 0.82874995470047 
+88000 training iterations finished after 22760.43 seconds.
+Validating and testing.
+ training_loss: 1.9621011018753052
+Mean training positive score: 66.73844257304498 
+Mean training negative score: 5.96636261704655 
+Training ROC AUC: 0.931088
+ Training 20000 entries took 0.13s 
+Iteration 88000 validation roc auc: 0.934761367268482
+Mean validation positive score: 0.2176293581724167 
+Mean validation negative score: 0.7587212324142456 
+Iteration 88000 test roc auc: 0.9266303319944789
+Iteration time: nan validation time: 60.350924253463745 test time: 83.2081093788147
+Mean test positive score: 0.2280898094177246 
+Mean test negative score: 0.7702510356903076 
+89000 training iterations finished after 23018.67 seconds.
+Validating and testing.
+ training_loss: 1.9625052213668823
+Mean training positive score: 64.07385653462562 
+Mean training negative score: 5.437120527325146 
+Training ROC AUC: 0.9352302
+ Training 20000 entries took 0.13s 
+Iteration 89000 validation roc auc: 0.9406321808861037
+Mean validation positive score: 0.22415226697921753 
+Mean validation negative score: 0.8106417655944824 
+Iteration 89000 test roc auc: 0.935385356197817
+Iteration time: nan validation time: 60.478535413742065 test time: 83.52883911132812
+Mean test positive score: 0.23428665101528168 
+Mean test negative score: 0.8197495341300964 
+90000 training iterations finished after 23287.97 seconds.
+Validating and testing.
+ training_loss: 1.9569132328033447
+Mean training positive score: 57.98173498970932 
+Mean training negative score: 4.945512798310495 
+Training ROC AUC: 0.9374844
+ Training 20000 entries took 0.11s 
+Iteration 90000 validation roc auc: 0.9376366343869583
+Mean validation positive score: 0.23013250529766083 
+Mean validation negative score: 0.8028325438499451 
+Iteration 90000 test roc auc: 0.9345103037548899
+Iteration time: nan validation time: 60.43487358093262 test time: 83.4381935596466
+Mean test positive score: 0.2405170500278473 
+Mean test negative score: 0.8115187883377075 
+91000 training iterations finished after 23544.63 seconds.
+Validating and testing.
+ training_loss: 1.9638208150863647
+Mean training positive score: 80.01086142544047 
+Mean training negative score: 6.601574942307832 
+Training ROC AUC: 0.9296154
+ Training 20000 entries took 0.12s 
+Iteration 91000 validation roc auc: 0.9300857201431406
+Mean validation positive score: 0.21929821372032166 
+Mean validation negative score: 0.7703465223312378 
+Iteration 91000 test roc auc: 0.9281378835416949
+Iteration time: nan validation time: 60.49707579612732 test time: 83.2145619392395
+Mean test positive score: 0.22278082370758057 
+Mean test negative score: 0.7803077697753906 
+92000 training iterations finished after 23804.61 seconds.
+Validating and testing.
+ training_loss: 1.9578638076782227
+Mean training positive score: 63.55497764668432 
+Mean training negative score: 5.2453672278067085 
+Training ROC AUC: 0.9395962
+ Training 20000 entries took 0.11s 
+Iteration 92000 validation roc auc: 0.934667260624329
+Mean validation positive score: 0.2473042756319046 
+Mean validation negative score: 0.8553559184074402 
+Iteration 92000 test roc auc: 0.9323810385963279
+Iteration time: nan validation time: 60.400665044784546 test time: 83.21988201141357
+Mean test positive score: 0.25512129068374634 
+Mean test negative score: 0.8613525629043579 
+93000 training iterations finished after 24064.03 seconds.
+Validating and testing.
+ training_loss: 1.957229733467102
+Mean training positive score: 61.76438279078086 
+Mean training negative score: 5.28743686510949 
+Training ROC AUC: 0.9386834
+ Training 20000 entries took 0.11s 
+Iteration 93000 validation roc auc: 0.941812591981217
+Mean validation positive score: 0.22788725793361664 
+Mean validation negative score: 0.8135945796966553 
+Iteration 93000 test roc auc: 0.9361434284798353
+Iteration time: nan validation time: 60.660315990448 test time: 83.59011816978455
+Mean test positive score: 0.24041374027729034 
+Mean test negative score: 0.8305509686470032 
+94000 training iterations finished after 24319.59 seconds.
+Validating and testing.
+ training_loss: 1.9573529958724976
+Mean training positive score: 71.41941791912133 
+Mean training negative score: 4.779975843651091 
+Training ROC AUC: 0.9418056
+ Training 20000 entries took 0.11s 
+Iteration 94000 validation roc auc: 0.9399322256101704
+Mean validation positive score: 0.23756849765777588 
+Mean validation negative score: 0.8503534197807312 
+Iteration 94000 test roc auc: 0.9350411172751568
+Iteration time: nan validation time: 60.30653166770935 test time: 83.32149910926819
+Mean test positive score: 0.2482108622789383 
+Mean test negative score: 0.8663293719291687 
+95000 training iterations finished after 24577.36 seconds.
+Validating and testing.
+ training_loss: 1.9669959545135498
+Mean training positive score: 66.52952161296979 
+Mean training negative score: 6.14375685187128 
+Training ROC AUC: 0.931159
+ Training 20000 entries took 0.13s 
+Iteration 95000 validation roc auc: 0.9410965460849899
+Mean validation positive score: 0.20175278186798096 
+Mean validation negative score: 0.7384414076805115 
+Iteration 95000 test roc auc: 0.9363250362578606
+Iteration time: nan validation time: 60.43035411834717 test time: 83.29452562332153
+Mean test positive score: 0.21349628269672394 
+Mean test negative score: 0.756817638874054 
+96000 training iterations finished after 24839.55 seconds.
+Validating and testing.
+ training_loss: 1.9628196954727173
+Mean training positive score: 64.61174598742987 
+Mean training negative score: 5.684304160603647 
+Training ROC AUC: 0.936625
+ Training 20000 entries took 0.13s 
+Iteration 96000 validation roc auc: 0.9373419252381394
+Mean validation positive score: 0.24604426324367523 
+Mean validation negative score: 0.879971981048584 
+Iteration 96000 test roc auc: 0.9319795563409589
+Iteration time: nan validation time: 60.3836829662323 test time: 83.32392477989197
+Mean test positive score: 0.2619672417640686 
+Mean test negative score: 0.8942663073539734 
+97000 training iterations finished after 25101.83 seconds.
+Validating and testing.
+ training_loss: 1.9627879858016968
+Mean training positive score: 66.33149278323646 
+Mean training negative score: 5.207340628815953 
+Training ROC AUC: 0.9385597999999999
+ Training 20000 entries took 0.11s 
+Iteration 97000 validation roc auc: 0.9388156659484427
+Mean validation positive score: 0.20788083970546722 
+Mean validation negative score: 0.767673134803772 
+Iteration 97000 test roc auc: 0.9355300627252058
+Iteration time: nan validation time: 60.407899618148804 test time: 83.35425305366516
+Mean test positive score: 0.2195548266172409 
+Mean test negative score: 0.790581226348877 
+98000 training iterations finished after 25359.26 seconds.
+Validating and testing.
+ training_loss: 1.9628074169158936
+Mean training positive score: 59.97720529080694 
+Mean training negative score: 5.684454331305284 
+Training ROC AUC: 0.9326464
+ Training 20000 entries took 0.13s 
+Iteration 98000 validation roc auc: 0.9390201736853517
+Mean validation positive score: 0.24487075209617615 
+Mean validation negative score: 0.8448686599731445 
+Iteration 98000 test roc auc: 0.9301377336464626
+Iteration time: nan validation time: 60.27551293373108 test time: 83.10408282279968
+Mean test positive score: 0.2601480484008789 
+Mean test negative score: 0.8601251244544983 
+99000 training iterations finished after 25620.10 seconds.
+Validating and testing.
+ training_loss: 1.963421106338501
+Mean training positive score: 62.276892866480935 
+Mean training negative score: 6.012605971644206 
+Training ROC AUC: 0.9333892
+ Training 20000 entries took 0.12s 
+Iteration 99000 validation roc auc: 0.9341182416883838
+Mean validation positive score: 0.2441786378622055 
+Mean validation negative score: 0.8700989484786987 
+Iteration 99000 test roc auc: 0.9263731993878657
+Iteration time: nan validation time: 60.514556884765625 test time: 83.40861463546753
+Mean test positive score: 0.2583531141281128 
+Mean test negative score: 0.8869099020957947 
+100000 training iterations finished after 25880.08 seconds.
+Validating and testing.
+ training_loss: 1.960457682609558
+Mean training positive score: 82.90794128230988 
+Mean training negative score: 5.310452485373804 
+Training ROC AUC: 0.9370518
+ Training 20000 entries took 0.11s 
+Iteration 100000 validation roc auc: 0.9386638433984147
+Mean validation positive score: 0.22963912785053253 
+Mean validation negative score: 0.7868694067001343 
+Iteration 100000 test roc auc: 0.9300554700182987
+Iteration time: nan validation time: 60.29316020011902 test time: 83.29930520057678
+Mean test positive score: 0.24346572160720825 
+Mean test negative score: 0.7977215647697449 
+101000 training iterations finished after 26138.59 seconds.
+Validating and testing.
+ training_loss: 1.958233118057251
+Mean training positive score: 71.77238421125782 
+Mean training negative score: 4.9656531412747 
+Training ROC AUC: 0.938311
+ Training 20000 entries took 0.11s 
+Iteration 101000 validation roc auc: 0.9448264387176896
+Mean validation positive score: 0.26489225029945374 
+Mean validation negative score: 0.9155302047729492 
+Iteration 101000 test roc auc: 0.9348606577153417
+Iteration time: nan validation time: 60.49136519432068 test time: 83.48298335075378
+Mean test positive score: 0.27939820289611816 
+Mean test negative score: 0.9194722771644592 
+>>> Saving model.
+102000 training iterations finished after 26398.22 seconds.
+Validating and testing.
+ training_loss: 1.956386685371399
+Mean training positive score: 64.45975638211631 
+Mean training negative score: 4.945061208983426 
+Training ROC AUC: 0.9403084
+ Training 20000 entries took 0.11s 
+Iteration 102000 validation roc auc: 0.9396023486929288
+Mean validation positive score: 0.23052042722702026 
+Mean validation negative score: 0.8006110191345215 
+Iteration 102000 test roc auc: 0.9322005216256023
+Iteration time: nan validation time: 60.29999923706055 test time: 83.13915920257568
+Mean test positive score: 0.2406187206506729 
+Mean test negative score: 0.8094049096107483 
+103000 training iterations finished after 26660.01 seconds.
+Validating and testing.
+ training_loss: 1.9528366327285767
+Mean training positive score: 55.89413927579171 
+Mean training negative score: 4.87151962465081 
+Training ROC AUC: 0.9423034
+ Training 20000 entries took 0.13s 
+Iteration 103000 validation roc auc: 0.942940574890361
+Mean validation positive score: 0.23613686859607697 
+Mean validation negative score: 0.8368532657623291 
+Iteration 103000 test roc auc: 0.93779080973034
+Iteration time: nan validation time: 60.139318227767944 test time: 83.34311556816101
+Mean test positive score: 0.2473519742488861 
+Mean test negative score: 0.8454947471618652 
+104000 training iterations finished after 26917.09 seconds.
+Validating and testing.
+ training_loss: 1.9571796655654907
+Mean training positive score: 53.40105674397327 
+Mean training negative score: 4.644614600556245 
+Training ROC AUC: 0.9412332
+ Training 20000 entries took 0.11s 
+Iteration 104000 validation roc auc: 0.9420069762454353
+Mean validation positive score: 0.23479275405406952 
+Mean validation negative score: 0.8193987011909485 
+Iteration 104000 test roc auc: 0.9365768824057689
+Iteration time: nan validation time: 60.337133169174194 test time: 83.27918124198914
+Mean test positive score: 0.24655240774154663 
+Mean test negative score: 0.8334372639656067 
+105000 training iterations finished after 27173.08 seconds.
+Validating and testing.
+ training_loss: 1.9576783180236816
+Mean training positive score: 56.63405951210871 
+Mean training negative score: 4.808281997898028 
+Training ROC AUC: 0.9362194
+ Training 20000 entries took 0.11s 
+Iteration 105000 validation roc auc: 0.9373928645912415
+Mean validation positive score: 0.2587083876132965 
+Mean validation negative score: 0.8465399146080017 
+Iteration 105000 test roc auc: 0.9331093068575648
+Iteration time: nan validation time: 60.39141821861267 test time: 83.26379251480103
+Mean test positive score: 0.2700237035751343 
+Mean test negative score: 0.8495824337005615 
+106000 training iterations finished after 27434.68 seconds.
+Validating and testing.
+ training_loss: 1.9648090600967407
+Mean training positive score: 60.693746347547766 
+Mean training negative score: 5.449846528581218 
+Training ROC AUC: 0.9342366
+ Training 20000 entries took 0.13s 
+Iteration 106000 validation roc auc: 0.9384443941602303
+Mean validation positive score: 0.20520639419555664 
+Mean validation negative score: 0.7353464365005493 
+Iteration 106000 test roc auc: 0.9359167019327408
+Iteration time: nan validation time: 60.21495485305786 test time: 83.64649820327759
+Mean test positive score: 0.2108425498008728 
+Mean test negative score: 0.7452174425125122 
+107000 training iterations finished after 27697.06 seconds.
+Validating and testing.
+ training_loss: 1.9566482305526733
+Mean training positive score: 57.5816982211763 
+Mean training negative score: 4.89791804675283 
+Training ROC AUC: 0.94163
+ Training 20000 entries took 0.13s 
+Iteration 107000 validation roc auc: 0.9440333841230154
+Mean validation positive score: 0.23431293666362762 
+Mean validation negative score: 0.8425830006599426 
+Iteration 107000 test roc auc: 0.9376147506392325
+Iteration time: nan validation time: 60.25038719177246 test time: 83.11087274551392
+Mean test positive score: 0.2412235587835312 
+Mean test negative score: 0.8531523942947388 
+108000 training iterations finished after 27960.96 seconds.
+Validating and testing.
+ training_loss: 1.9573861360549927
+Mean training positive score: 52.80650688703884 
+Mean training negative score: 4.6219831156020375 
+Training ROC AUC: 0.9445825999999999
+ Training 20000 entries took 0.12s 
+Iteration 108000 validation roc auc: 0.9429901228937003
+Mean validation positive score: 0.22104515135288239 
+Mean validation negative score: 0.7727405428886414 
+Iteration 108000 test roc auc: 0.9406033826489848
+Iteration time: nan validation time: 60.32198905944824 test time: 83.0095329284668
+Mean test positive score: 0.22782285511493683 
+Mean test negative score: 0.7812476754188538 
+109000 training iterations finished after 28216.34 seconds.
+Validating and testing.
+ training_loss: 1.9583475589752197
+Mean training positive score: 65.0546760866955 
+Mean training negative score: 5.42202769565954 
+Training ROC AUC: 0.9375378
+ Training 20000 entries took 0.12s 
+Iteration 109000 validation roc auc: 0.9392205132810391
+Mean validation positive score: 0.23582524061203003 
+Mean validation negative score: 0.8188009858131409 
+Iteration 109000 test roc auc: 0.9359595242653901
+Iteration time: nan validation time: 60.421969413757324 test time: 83.0066568851471
+Mean test positive score: 0.24755173921585083 
+Mean test negative score: 0.8307743668556213 
+110000 training iterations finished after 28474.06 seconds.
+Validating and testing.
+ training_loss: 1.956018090248108
+Mean training positive score: 67.01625462118311 
+Mean training negative score: 5.227017474732522 
+Training ROC AUC: 0.93462
+ Training 20000 entries took 0.11s 
+Iteration 110000 validation roc auc: 0.9388788113678297
+Mean validation positive score: 0.23005585372447968 
+Mean validation negative score: 0.8043230772018433 
+Iteration 110000 test roc auc: 0.9318167638251159
+Iteration time: nan validation time: 60.38554120063782 test time: 83.19942378997803
+Mean test positive score: 0.24449247121810913 
+Mean test negative score: 0.8244920969009399 
+111000 training iterations finished after 28733.13 seconds.
+Validating and testing.
+ training_loss: 1.9562002420425415
+Mean training positive score: 59.93237811973082 
+Mean training negative score: 4.961317040020156 
+Training ROC AUC: 0.941474
+ Training 20000 entries took 0.12s 
+Iteration 111000 validation roc auc: 0.9393804239746992
+Mean validation positive score: 0.21252183616161346 
+Mean validation negative score: 0.7529141306877136 
+Iteration 111000 test roc auc: 0.9328052276426235
+Iteration time: nan validation time: 60.35473299026489 test time: 83.91116189956665
+Mean test positive score: 0.22283634543418884 
+Mean test negative score: 0.765903651714325 
+112000 training iterations finished after 28991.75 seconds.
+Validating and testing.
+ training_loss: 1.9560590982437134
+Mean training positive score: 56.20337454460221 
+Mean training negative score: 5.139243887729052 
+Training ROC AUC: 0.9408276
+ Training 20000 entries took 0.12s 
+Iteration 112000 validation roc auc: 0.9405223144734052
+Mean validation positive score: 0.21118168532848358 
+Mean validation negative score: 0.7736260294914246 
+Iteration 112000 test roc auc: 0.9382492436089267
+Iteration time: nan validation time: 60.62316393852234 test time: 83.3918104171753
+Mean test positive score: 0.21913325786590576 
+Mean test negative score: 0.7829886078834534 
+113000 training iterations finished after 29248.33 seconds.
+Validating and testing.
+ training_loss: 1.9613325595855713
+Mean training positive score: 64.03613233805876 
+Mean training negative score: 5.806707411074667 
+Training ROC AUC: 0.937322
+ Training 20000 entries took 0.12s 
+Iteration 113000 validation roc auc: 0.9356480499538875
+Mean validation positive score: 0.23578856885433197 
+Mean validation negative score: 0.8606823086738586 
+Iteration 113000 test roc auc: 0.9351640092082011
+Iteration time: nan validation time: 60.10497689247131 test time: 83.234130859375
+Mean test positive score: 0.24520623683929443 
+Mean test negative score: 0.8821097612380981 
+114000 training iterations finished after 29506.55 seconds.
+Validating and testing.
+ training_loss: 1.9594764709472656
+Mean training positive score: 61.07619517158597 
+Mean training negative score: 6.207548300294075 
+Training ROC AUC: 0.9333804
+ Training 20000 entries took 0.12s 
+Iteration 114000 validation roc auc: 0.9420776721743636
+Mean validation positive score: 0.2289058119058609 
+Mean validation negative score: 0.7724854350090027 
+Iteration 114000 test roc auc: 0.9317295069993846
+Iteration time: nan validation time: 60.10026741027832 test time: 83.48502206802368
+Mean test positive score: 0.2434999942779541 
+Mean test negative score: 0.776322603225708 
+115000 training iterations finished after 29766.90 seconds.
+Validating and testing.
+ training_loss: 1.9528679847717285
+Mean training positive score: 68.82274776998162 
+Mean training negative score: 5.030789649059641 
+Training ROC AUC: 0.9427344
+ Training 20000 entries took 0.11s 
+Iteration 115000 validation roc auc: 0.9386735414902863
+Mean validation positive score: 0.27279967069625854 
+Mean validation negative score: 0.9329515099525452 
+Iteration 115000 test roc auc: 0.9320951865696478
+Iteration time: nan validation time: 60.531484603881836 test time: 83.03303623199463
+Mean test positive score: 0.28617632389068604 
+Mean test negative score: 0.9402031898498535 
+116000 training iterations finished after 30022.78 seconds.
+Validating and testing.
+ training_loss: 1.9616355895996094
+Mean training positive score: 61.63825363971936 
+Mean training negative score: 5.965203600828636 
+Training ROC AUC: 0.9329908
+ Training 20000 entries took 0.11s 
+Iteration 116000 validation roc auc: 0.9334072294651841
+Mean validation positive score: 0.2557625472545624 
+Mean validation negative score: 0.8989494442939758 
+Iteration 116000 test roc auc: 0.9298833831415394
+Iteration time: nan validation time: 60.38829588890076 test time: 83.51948118209839
+Mean test positive score: 0.2655939757823944 
+Mean test negative score: 0.9220242500305176 
+117000 training iterations finished after 30283.86 seconds.
+Validating and testing.
+ training_loss: 1.956091046333313
+Mean training positive score: 69.36972833791437 
+Mean training negative score: 5.722319982075764 
+Training ROC AUC: 0.9340802
+ Training 20000 entries took 0.12s 
+Iteration 117000 validation roc auc: 0.926631022314178
+Mean validation positive score: 0.24021975696086884 
+Mean validation negative score: 0.8601894378662109 
+Iteration 117000 test roc auc: 0.9245949522943419
+Iteration time: nan validation time: 60.340476274490356 test time: 83.24238753318787
+Mean test positive score: 0.2428576797246933 
+Mean test negative score: 0.8643542528152466 
+118000 training iterations finished after 30548.87 seconds.
+Validating and testing.
+ training_loss: 1.9624316692352295
+Mean training positive score: 62.08806222632094 
+Mean training negative score: 5.494710518328013 
+Training ROC AUC: 0.9353272
+ Training 20000 entries took 0.13s 
+Iteration 118000 validation roc auc: 0.9367862538188267
+Mean validation positive score: 0.23361314833164215 
+Mean validation negative score: 0.8317193388938904 
+Iteration 118000 test roc auc: 0.935093879453554
+Iteration time: nan validation time: 60.21351480484009 test time: 83.12590408325195
+Mean test positive score: 0.2433774769306183 
+Mean test negative score: 0.8440671563148499 
+119000 training iterations finished after 30811.79 seconds.
+Validating and testing.
+ training_loss: 1.9619139432907104
+Mean training positive score: 59.03603645135833 
+Mean training negative score: 4.646564321946568 
+Training ROC AUC: 0.9427708
+ Training 20000 entries took 0.13s 
+Iteration 119000 validation roc auc: 0.9337391712518189
+Mean validation positive score: 0.26938727498054504 
+Mean validation negative score: 0.8847001791000366 
+Iteration 119000 test roc auc: 0.9314294263767775
+Iteration time: nan validation time: 60.37833881378174 test time: 83.47549366950989
+Mean test positive score: 0.2766275107860565 
+Mean test negative score: 0.8912779688835144 
+120000 training iterations finished after 31070.03 seconds.
+Validating and testing.
+ training_loss: 1.9556149244308472
+Mean training positive score: 52.62648290556907 
+Mean training negative score: 5.262416797502612 
+Training ROC AUC: 0.9352351999999999
+ Training 20000 entries took 0.11s 
+Iteration 120000 validation roc auc: 0.9336592941868757
+Mean validation positive score: 0.21255335211753845 
+Mean validation negative score: 0.7511242628097534 
+Iteration 120000 test roc auc: 0.9291092016683635
+Iteration time: nan validation time: 60.52032256126404 test time: 83.50017356872559
+Mean test positive score: 0.22031526267528534 
+Mean test negative score: 0.7660248279571533 
+121000 training iterations finished after 31326.79 seconds.
+Validating and testing.
+ training_loss: 1.95200777053833
+Mean training positive score: 76.01356067210384 
+Mean training negative score: 6.083830020474523 
+Training ROC AUC: 0.9396796
+ Training 20000 entries took 0.11s 
+Iteration 121000 validation roc auc: 0.9332831187031084
+Mean validation positive score: 0.23930330574512482 
+Mean validation negative score: 0.8119780421257019 
+Iteration 121000 test roc auc: 0.9309866315405407
+Iteration time: nan validation time: 60.3853178024292 test time: 83.39249396324158
+Mean test positive score: 0.2475881576538086 
+Mean test negative score: 0.8298803567886353 
+122000 training iterations finished after 31584.09 seconds.
+Validating and testing.
+ training_loss: 1.9539237022399902
+Mean training positive score: 50.81458771124061 
+Mean training negative score: 5.5498846778873006 
+Training ROC AUC: 0.9372686
+ Training 20000 entries took 0.12s 
+Iteration 122000 validation roc auc: 0.940962613161637
+Mean validation positive score: 0.23111368715763092 
+Mean validation negative score: 0.8200907111167908 
+Iteration 122000 test roc auc: 0.9372079539955265
+Iteration time: nan validation time: 60.314257860183716 test time: 83.24635815620422
+Mean test positive score: 0.2421286404132843 
+Mean test negative score: 0.8297804594039917 
+123000 training iterations finished after 31841.25 seconds.
+Validating and testing.
+ training_loss: 1.9625989198684692
+Mean training positive score: 64.5285386560334 
+Mean training negative score: 5.2247265842616315 
+Training ROC AUC: 0.9321438
+ Training 20000 entries took 0.12s 
+Iteration 123000 validation roc auc: 0.9365618004479497
+Mean validation positive score: 0.2396382987499237 
+Mean validation negative score: 0.8001007437705994 
+Iteration 123000 test roc auc: 0.9315471280531832
+Iteration time: nan validation time: 60.38759469985962 test time: 83.42772006988525
+Mean test positive score: 0.25264161825180054 
+Mean test negative score: 0.8140367269515991 
+124000 training iterations finished after 32098.29 seconds.
+Validating and testing.
+ training_loss: 1.9555100202560425
+Mean training positive score: 66.98905490064122 
+Mean training negative score: 4.4691899882039765 
+Training ROC AUC: 0.9443876
+ Training 20000 entries took 0.12s 
+Iteration 124000 validation roc auc: 0.9276427403741343
+Mean validation positive score: 0.2394057810306549 
+Mean validation negative score: 0.8315871953964233 
+Iteration 124000 test roc auc: 0.9271583991009191
+Iteration time: nan validation time: 60.65525269508362 test time: 83.79385995864868
+Mean test positive score: 0.24359489977359772 
+Mean test negative score: 0.8387338519096375 
+125000 training iterations finished after 32361.34 seconds.
+Validating and testing.
+ training_loss: 1.9618529081344604
+Mean training positive score: 66.26012886742224 
+Mean training negative score: 5.4662238974739115 
+Training ROC AUC: 0.9316986
+ Training 20000 entries took 0.12s 
+Iteration 125000 validation roc auc: 0.9415602466263461
+Mean validation positive score: 0.2353055626153946 
+Mean validation negative score: 0.839048445224762 
+Iteration 125000 test roc auc: 0.9358750029919618
+Iteration time: nan validation time: 60.452203035354614 test time: 83.37029099464417
+Mean test positive score: 0.24553877115249634 
+Mean test negative score: 0.8502461314201355 
+126000 training iterations finished after 32622.82 seconds.
+Validating and testing.
+ training_loss: 1.9592499732971191
+Mean training positive score: 62.46332363757703 
+Mean training negative score: 5.099363879574128 
+Training ROC AUC: 0.9330842
+ Training 20000 entries took 0.12s 
+Iteration 126000 validation roc auc: 0.9348195351414775
+Mean validation positive score: 0.24994304776191711 
+Mean validation negative score: 0.8756070137023926 
+Iteration 126000 test roc auc: 0.9324252868918624
+Iteration time: nan validation time: 60.452627658843994 test time: 83.27893424034119
+Mean test positive score: 0.2580116391181946 
+Mean test negative score: 0.8901063799858093 
+127000 training iterations finished after 32885.89 seconds.
+Validating and testing.
+ training_loss: 1.9540326595306396
+Mean training positive score: 55.02822114829247 
+Mean training negative score: 4.813420110804095 
+Training ROC AUC: 0.9401806
+ Training 20000 entries took 0.13s 
+Iteration 127000 validation roc auc: 0.9357327893579173
+Mean validation positive score: 0.23924897611141205 
+Mean validation negative score: 0.8369343876838684 
+Iteration 127000 test roc auc: 0.9329953291321105
+Iteration time: nan validation time: 60.52626442909241 test time: 83.47084093093872
+Mean test positive score: 0.2483048141002655 
+Mean test negative score: 0.8623943328857422 
+128000 training iterations finished after 33149.40 seconds.
+Validating and testing.
+ training_loss: 1.9590449333190918
+Mean training positive score: 59.75797158014916 
+Mean training negative score: 4.814018827543875 
+Training ROC AUC: 0.9384968
+ Training 20000 entries took 0.13s 
+Iteration 128000 validation roc auc: 0.9376041193405888
+Mean validation positive score: 0.22977112233638763 
+Mean validation negative score: 0.8106458187103271 
+Iteration 128000 test roc auc: 0.9376858393112496
+Iteration time: nan validation time: 60.50814509391785 test time: 83.45212388038635
+Mean test positive score: 0.2359922230243683 
+Mean test negative score: 0.8267614841461182 
+129000 training iterations finished after 33410.14 seconds.
+Validating and testing.
+ training_loss: 1.958652138710022
+Mean training positive score: 60.755400691169335 
+Mean training negative score: 5.046415751041629 
+Training ROC AUC: 0.9405164
+ Training 20000 entries took 0.12s 
+Iteration 129000 validation roc auc: 0.9363600990428341
+Mean validation positive score: 0.2253599315881729 
+Mean validation negative score: 0.8179097771644592 
+Iteration 129000 test roc auc: 0.9351846367931798
+Iteration time: nan validation time: 60.50913047790527 test time: 83.2244119644165
+Mean test positive score: 0.23187866806983948 
+Mean test negative score: 0.8254036903381348 
+130000 training iterations finished after 33670.78 seconds.
+Validating and testing.
+ training_loss: 1.9565541744232178
+Mean training positive score: 56.61348151819769 
+Mean training negative score: 5.192603101109174 
+Training ROC AUC: 0.9332036
+ Training 20000 entries took 0.12s 
+Iteration 130000 validation roc auc: 0.9419379670696165
+Mean validation positive score: 0.2322508841753006 
+Mean validation negative score: 0.8050146102905273 
+Iteration 130000 test roc auc: 0.9333965227812808
+Iteration time: nan validation time: 60.24484658241272 test time: 83.20403122901917
+Mean test positive score: 0.24160882830619812 
+Mean test negative score: 0.8122755289077759 
+131000 training iterations finished after 33938.11 seconds.
+Validating and testing.
+ training_loss: 1.958879828453064
+Mean training positive score: 69.60197235897064 
+Mean training negative score: 6.101172540654117 
+Training ROC AUC: 0.9349184
+ Training 20000 entries took 0.13s 
+Iteration 131000 validation roc auc: 0.9373108547141352
+Mean validation positive score: 0.22903697192668915 
+Mean validation negative score: 0.8551204800605774 
+Iteration 131000 test roc auc: 0.9322938562496157
+Iteration time: nan validation time: 60.25955533981323 test time: 83.26457214355469
+Mean test positive score: 0.23617643117904663 
+Mean test negative score: 0.8610842823982239 
+132000 training iterations finished after 34206.95 seconds.
+Validating and testing.
+ training_loss: 1.9572378396987915
+Mean training positive score: 72.34335274486111 
+Mean training negative score: 5.63056331458331 
+Training ROC AUC: 0.934995
+ Training 20000 entries took 0.11s 
+Iteration 132000 validation roc auc: 0.9345796233134684
+Mean validation positive score: 0.23800119757652283 
+Mean validation negative score: 0.8379884362220764 
+Iteration 132000 test roc auc: 0.9292350106963199
+Iteration time: nan validation time: 60.330565214157104 test time: 83.2206130027771
+Mean test positive score: 0.2458842545747757 
+Mean test negative score: 0.8417385816574097 
+133000 training iterations finished after 34463.67 seconds.
+Validating and testing.
+ training_loss: 1.955561637878418
+Mean training positive score: 75.46679722736562 
+Mean training negative score: 4.827899418214082 
+Training ROC AUC: 0.9417186
+ Training 20000 entries took 0.12s 
+Iteration 133000 validation roc auc: 0.9391029959216614
+Mean validation positive score: 0.23230485618114471 
+Mean validation negative score: 0.7920663356781006 
+Iteration 133000 test roc auc: 0.9334410627863065
+Iteration time: nan validation time: 60.12932825088501 test time: 83.29517078399658
+Mean test positive score: 0.24545523524284363 
+Mean test negative score: 0.796129584312439 
+134000 training iterations finished after 34719.72 seconds.
+Validating and testing.
+ training_loss: 1.9609369039535522
+Mean training positive score: 60.1962050036876 
+Mean training negative score: 4.783036833013357 
+Training ROC AUC: 0.941348
+ Training 20000 entries took 0.12s 
+Iteration 134000 validation roc auc: 0.9382909705240633
+Mean validation positive score: 0.2192874401807785 
+Mean validation negative score: 0.7784762978553772 
+Iteration 134000 test roc auc: 0.9371532150198325
+Iteration time: nan validation time: 60.41315770149231 test time: 82.91367268562317
+Mean test positive score: 0.22830909490585327 
+Mean test negative score: 0.7857954502105713 
+135000 training iterations finished after 34981.19 seconds.
+Validating and testing.
+ training_loss: 1.9609692096710205
+Mean training positive score: 59.348231008455556 
+Mean training negative score: 4.965387281438648 
+Training ROC AUC: 0.936325
+ Training 20000 entries took 0.12s 
+Iteration 135000 validation roc auc: 0.9416233447811977
+Mean validation positive score: 0.23938308656215668 
+Mean validation negative score: 0.8416657447814941 
+Iteration 135000 test roc auc: 0.9352519922043679
+Iteration time: nan validation time: 60.641947507858276 test time: 83.4974856376648
+Mean test positive score: 0.25239530205726624 
+Mean test negative score: 0.8622686266899109 
+136000 training iterations finished after 35241.24 seconds.
+Validating and testing.
+ training_loss: 1.956674337387085
+Mean training positive score: 54.98560497778728 
+Mean training negative score: 5.600167466481424 
+Training ROC AUC: 0.9353332
+ Training 20000 entries took 0.12s 
+Iteration 136000 validation roc auc: 0.9397583246140112
+Mean validation positive score: 0.24118170142173767 
+Mean validation negative score: 0.8446295857429504 
+Iteration 136000 test roc auc: 0.9330861128497221
+Iteration time: nan validation time: 60.54304480552673 test time: 83.73242473602295
+Mean test positive score: 0.25264155864715576 
+Mean test negative score: 0.8449297547340393 
+137000 training iterations finished after 35507.37 seconds.
+Validating and testing.
+ training_loss: 1.9564484357833862
+Mean training positive score: 82.79573999965818 
+Mean training negative score: 5.511555509296578 
+Training ROC AUC: 0.9336948
+ Training 20000 entries took 0.13s 
+Iteration 137000 validation roc auc: 0.9361832144728734
+Mean validation positive score: 0.23032943904399872 
+Mean validation negative score: 0.8314712643623352 
+Iteration 137000 test roc auc: 0.9324387551811368
+Iteration time: nan validation time: 60.355164527893066 test time: 83.68333578109741
+Mean test positive score: 0.23782747983932495 
+Mean test negative score: 0.8429295420646667 
+138000 training iterations finished after 35763.45 seconds.
+Validating and testing.
+ training_loss: 1.9633108377456665
+Mean training positive score: 62.5314849111805 
+Mean training negative score: 5.764780761109377 
+Training ROC AUC: 0.9325992
+ Training 20000 entries took 0.13s 
+Iteration 138000 validation roc auc: 0.938513808038634
+Mean validation positive score: 0.22146274149417877 
+Mean validation negative score: 0.7839113473892212 
+Iteration 138000 test roc auc: 0.9355635208728583
+Iteration time: nan validation time: 60.39220190048218 test time: 83.4394097328186
+Mean test positive score: 0.22832712531089783 
+Mean test negative score: 0.793943464756012 
+139000 training iterations finished after 36019.08 seconds.
+Validating and testing.
+ training_loss: 1.9563992023468018
+Mean training positive score: 59.63950345850106 
+Mean training negative score: 4.546813814097156 
+Training ROC AUC: 0.9440096
+ Training 20000 entries took 0.11s 
+Iteration 139000 validation roc auc: 0.9402416990182565
+Mean validation positive score: 0.24067895114421844 
+Mean validation negative score: 0.815186619758606 
+Iteration 139000 test roc auc: 0.9332604573717457
+Iteration time: nan validation time: 60.282771587371826 test time: 83.32348346710205
+Mean test positive score: 0.25652727484703064 
+Mean test negative score: 0.8216184377670288 
+140000 training iterations finished after 36279.57 seconds.
+Validating and testing.
+ training_loss: 1.9509823322296143
+Mean training positive score: 54.46255527729604 
+Mean training negative score: 4.572211455101971 
+Training ROC AUC: 0.9442097
+ Training 20000 entries took 0.12s 
+Iteration 140000 validation roc auc: 0.9330707709613784
+Mean validation positive score: 0.2237330973148346 
+Mean validation negative score: 0.8268396258354187 
+Iteration 140000 test roc auc: 0.9316396170300013
+Iteration time: nan validation time: 60.62950658798218 test time: 83.43688631057739
+Mean test positive score: 0.229305699467659 
+Mean test negative score: 0.8414294123649597 
+141000 training iterations finished after 36542.25 seconds.
+Validating and testing.
+ training_loss: 1.9559630155563354
+Mean training positive score: 52.90858738041492 
+Mean training negative score: 4.475826994981474 
+Training ROC AUC: 0.94171
+ Training 20000 entries took 0.11s 
+Iteration 141000 validation roc auc: 0.9399783587508219
+Mean validation positive score: 0.2412033975124359 
+Mean validation negative score: 0.8433354496955872 
+Iteration 141000 test roc auc: 0.9396984656710732
+Iteration time: nan validation time: 60.48405885696411 test time: 83.2342004776001
+Mean test positive score: 0.24839948117733002 
+Mean test negative score: 0.8600897789001465 
+142000 training iterations finished after 36800.07 seconds.
+Validating and testing.
+ training_loss: 1.953262448310852
+Mean training positive score: 57.15065415102537 
+Mean training negative score: 5.067110308561028 
+Training ROC AUC: 0.9343796
+ Training 20000 entries took 0.13s 
+Iteration 142000 validation roc auc: 0.9373455646073705
+Mean validation positive score: 0.23518073558807373 
+Mean validation negative score: 0.8396478295326233 
+Iteration 142000 test roc auc: 0.9326072949946149
+Iteration time: nan validation time: 60.21955847740173 test time: 83.1811351776123
+Mean test positive score: 0.24680200219154358 
+Mean test negative score: 0.8553880453109741 
+143000 training iterations finished after 37056.06 seconds.
+Validating and testing.
+ training_loss: 1.953584909439087
+Mean training positive score: 55.29875341194007 
+Mean training negative score: 5.186616379344625 
+Training ROC AUC: 0.9400066
+ Training 20000 entries took 0.11s 
+Iteration 143000 validation roc auc: 0.9400899916755336
+Mean validation positive score: 0.2291148155927658 
+Mean validation negative score: 0.8158356547355652 
+Iteration 143000 test roc auc: 0.9359810068074413
+Iteration time: nan validation time: 60.312716007232666 test time: 83.29554033279419
+Mean test positive score: 0.23748356103897095 
+Mean test negative score: 0.8176259994506836 
+144000 training iterations finished after 37317.94 seconds.
+Validating and testing.
+ training_loss: 1.9572495222091675
+Mean training positive score: 72.17604990880312 
+Mean training negative score: 5.343707840517996 
+Training ROC AUC: 0.93883
+ Training 20000 entries took 0.11s 
+Iteration 144000 validation roc auc: 0.9402039169302157
+Mean validation positive score: 0.24677781760692596 
+Mean validation negative score: 0.8601190447807312 
+Iteration 144000 test roc auc: 0.9329328784746546
+Iteration time: nan validation time: 60.28847408294678 test time: 83.21909689903259
+Mean test positive score: 0.2593033015727997 
+Mean test negative score: 0.859851598739624 
+145000 training iterations finished after 37575.72 seconds.
+Validating and testing.
+ training_loss: 1.9530739784240723
+Mean training positive score: 58.91659298914609 
+Mean training negative score: 4.862975462234829 
+Training ROC AUC: 0.9435052
+ Training 20000 entries took 0.12s 
+Iteration 145000 validation roc auc: 0.9390206611008738
+Mean validation positive score: 0.2570657730102539 
+Mean validation negative score: 0.8640716671943665 
+Iteration 145000 test roc auc: 0.9351520553256469
+Iteration time: nan validation time: 60.16590356826782 test time: 83.09115362167358
+Mean test positive score: 0.2672833800315857 
+Mean test negative score: 0.8643998503684998 
+146000 training iterations finished after 37830.64 seconds.
+Validating and testing.
+ training_loss: 1.9602099657058716
+Mean training positive score: 62.04704662355574 
+Mean training negative score: 5.2734054545722655 
+Training ROC AUC: 0.9317512
+ Training 20000 entries took 0.12s 
+Iteration 146000 validation roc auc: 0.9277379577348708
+Mean validation positive score: 0.21423394978046417 
+Mean validation negative score: 0.7694737315177917 
+Iteration 146000 test roc auc: 0.9283446481600435
+Iteration time: nan validation time: 60.37206673622131 test time: 83.62583756446838
+Mean test positive score: 0.21909455955028534 
+Mean test negative score: 0.782757043838501 
+147000 training iterations finished after 38092.55 seconds.
+Validating and testing.
+ training_loss: 1.9577875137329102
+Mean training positive score: 81.60757897566647 
+Mean training negative score: 5.33619234785715 
+Training ROC AUC: 0.9383862
+ Training 20000 entries took 0.12s 
+Iteration 147000 validation roc auc: 0.938747049659075
+Mean validation positive score: 0.233415424823761 
+Mean validation negative score: 0.8234243392944336 
+Iteration 147000 test roc auc: 0.9317944496006856
+Iteration time: nan validation time: 60.39606785774231 test time: 83.08222365379333
+Mean test positive score: 0.24444812536239624 
+Mean test negative score: 0.8299461007118225 
+148000 training iterations finished after 38349.26 seconds.
+Validating and testing.
+ training_loss: 1.959865689277649
+Mean training positive score: 55.57351961135033 
+Mean training negative score: 4.880095796904959 
+Training ROC AUC: 0.9367784
+ Training 20000 entries took 0.11s 
+Iteration 148000 validation roc auc: 0.9303197209501826
+Mean validation positive score: 0.22479376196861267 
+Mean validation negative score: 0.7894322872161865 
+Iteration 148000 test roc auc: 0.9243527775573837
+Iteration time: nan validation time: 60.36025285720825 test time: 83.3191032409668
+Mean test positive score: 0.22848659753799438 
+Mean test negative score: 0.7982717752456665 
+149000 training iterations finished after 38612.14 seconds.
+Validating and testing.
+ training_loss: 1.9633378982543945
+Mean training positive score: 51.296940207980505 
+Mean training negative score: 5.553238662232579 
+Training ROC AUC: 0.9338702
+ Training 20000 entries took 0.11s 
+Iteration 149000 validation roc auc: 0.9422181689600798
+Mean validation positive score: 0.22270359098911285 
+Mean validation negative score: 0.7868359684944153 
+Iteration 149000 test roc auc: 0.9346897749160566
+Iteration time: nan validation time: 60.23732829093933 test time: 83.20854115486145
+Mean test positive score: 0.2343713343143463 
+Mean test negative score: 0.7983442544937134 
+150000 training iterations finished after 38872.33 seconds.
+Validating and testing.
+ training_loss: 1.958957314491272
+Mean training positive score: 65.35339594393304 
+Mean training negative score: 5.322181446834772 
+Training ROC AUC: 0.9376698
+ Training 20000 entries took 0.11s 
+Iteration 150000 validation roc auc: 0.9353103064455238
+Mean validation positive score: 0.253619909286499 
+Mean validation negative score: 0.8710185885429382 
+Iteration 150000 test roc auc: 0.9303967359867826
+Iteration time: nan validation time: 60.28723883628845 test time: 83.5234477519989
+Mean test positive score: 0.2613324224948883 
+Mean test negative score: 0.8746194243431091 
+151000 training iterations finished after 39130.56 seconds.
+Validating and testing.
+ training_loss: 1.9626420736312866
+Mean training positive score: 60.00813003315376 
+Mean training negative score: 5.5022107125608 
+Training ROC AUC: 0.9313628
+ Training 20000 entries took 0.11s 
+Iteration 151000 validation roc auc: 0.9324919901382547
+Mean validation positive score: 0.2057383805513382 
+Mean validation negative score: 0.7527875900268555 
+Iteration 151000 test roc auc: 0.9293896446562866
+Iteration time: nan validation time: 60.284608602523804 test time: 83.2845664024353
+Mean test positive score: 0.21148431301116943 
+Mean test negative score: 0.7633773684501648 
+152000 training iterations finished after 39388.26 seconds.
+Validating and testing.
+ training_loss: 1.9595534801483154
+Mean training positive score: 66.49395594083887 
+Mean training negative score: 6.060132312604199 
+Training ROC AUC: 0.9351166
+ Training 20000 entries took 0.11s 
+Iteration 152000 validation roc auc: 0.9393046234759402
+Mean validation positive score: 0.2150520533323288 
+Mean validation negative score: 0.7817419767379761 
+Iteration 152000 test roc auc: 0.9304613729137763
+Iteration time: nan validation time: 60.326571226119995 test time: 83.3704617023468
+Mean test positive score: 0.23059852421283722 
+Mean test negative score: 0.784237802028656 
+153000 training iterations finished after 39651.05 seconds.
+Validating and testing.
+ training_loss: 1.9570356607437134
+Mean training positive score: 72.74062143816525 
+Mean training negative score: 5.735041258036147 
+Training ROC AUC: 0.9344516
+ Training 20000 entries took 0.12s 
+Iteration 153000 validation roc auc: 0.9376191908193366
+Mean validation positive score: 0.2184905856847763 
+Mean validation negative score: 0.7971106767654419 
+Iteration 153000 test roc auc: 0.9320169432568652
+Iteration time: nan validation time: 60.38531422615051 test time: 83.43852376937866
+Mean test positive score: 0.2224411964416504 
+Mean test negative score: 0.7982239723205566 
+154000 training iterations finished after 39914.56 seconds.
+Validating and testing.
+ training_loss: 1.9511020183563232
+Mean training positive score: 65.75934651123667 
+Mean training negative score: 4.758801712301237 
+Training ROC AUC: 0.9431654
+ Training 20000 entries took 0.13s 
+Iteration 154000 validation roc auc: 0.9397112107342487
+Mean validation positive score: 0.22606386244297028 
+Mean validation negative score: 0.7936267256736755 
+Iteration 154000 test roc auc: 0.934965195225134
+Iteration time: nan validation time: 60.17581105232239 test time: 83.0925624370575
+Mean test positive score: 0.23618629574775696 
+Mean test negative score: 0.8074300289154053 
+155000 training iterations finished after 40172.33 seconds.
+Validating and testing.
+ training_loss: 1.9593340158462524
+Mean training positive score: 73.97754533661612 
+Mean training negative score: 5.5734005469885854 
+Training ROC AUC: 0.9358308
+ Training 20000 entries took 0.12s 
+Iteration 155000 validation roc auc: 0.9416852642766961
+Mean validation positive score: 0.2337924838066101 
+Mean validation negative score: 0.8331628441810608 
+Iteration 155000 test roc auc: 0.9357620772826514
+Iteration time: nan validation time: 60.259490728378296 test time: 83.25427961349487
+Mean test positive score: 0.2431587278842926 
+Mean test negative score: 0.8362284898757935 
+156000 training iterations finished after 40437.59 seconds.
+Validating and testing.
+ training_loss: 1.9579533338546753
+Mean training positive score: 76.80376153377195 
+Mean training negative score: 5.994911611735035 
+Training ROC AUC: 0.933334
+ Training 20000 entries took 0.11s 
+Iteration 156000 validation roc auc: 0.9373487815498159
+Mean validation positive score: 0.23751989006996155 
+Mean validation negative score: 0.8597201108932495 
+Iteration 156000 test roc auc: 0.9329791842530897
+Iteration time: nan validation time: 60.4489951133728 test time: 83.25843977928162
+Mean test positive score: 0.244095578789711 
+Mean test negative score: 0.8572620153427124 
+157000 training iterations finished after 40693.92 seconds.
+Validating and testing.
+ training_loss: 1.960103988647461
+Mean training positive score: 61.22867459844097 
+Mean training negative score: 5.6677380346026 
+Training ROC AUC: 0.9371878
+ Training 20000 entries took 0.12s 
+Iteration 157000 validation roc auc: 0.9355940443140468
+Mean validation positive score: 0.2552744746208191 
+Mean validation negative score: 0.8716538548469543 
+Iteration 157000 test roc auc: 0.93122718015225
+Iteration time: nan validation time: 60.191569566726685 test time: 83.29504323005676
+Mean test positive score: 0.2655530869960785 
+Mean test negative score: 0.8926922082901001 
+158000 training iterations finished after 40950.56 seconds.
+Validating and testing.
+ training_loss: 1.9607880115509033
+Mean training positive score: 54.06624650445683 
+Mean training negative score: 4.583982746003156 
+Training ROC AUC: 0.9366908
+ Training 20000 entries took 0.11s 
+Iteration 158000 validation roc auc: 0.9350780987367963
+Mean validation positive score: 0.22020050883293152 
+Mean validation negative score: 0.7878149747848511 
+Iteration 158000 test roc auc: 0.9319437040031737
+Iteration time: nan validation time: 60.28753852844238 test time: 83.36042404174805
+Mean test positive score: 0.22923503816127777 
+Mean test negative score: 0.8087373375892639 
+159000 training iterations finished after 41206.55 seconds.
+Validating and testing.
+ training_loss: 1.958032488822937
+Mean training positive score: 69.61185090685123 
+Mean training negative score: 5.880287804148183 
+Training ROC AUC: 0.9364832
+ Training 20000 entries took 0.12s 
+Iteration 159000 validation roc auc: 0.9353307454030808
+Mean validation positive score: 0.21371477842330933 
+Mean validation negative score: 0.7537032961845398 
+Iteration 159000 test roc auc: 0.9295295193573159
+Iteration time: nan validation time: 60.49906277656555 test time: 83.40394592285156
+Mean test positive score: 0.22398324310779572 
+Mean test negative score: 0.7711619138717651 
+160000 training iterations finished after 41463.54 seconds.
+Validating and testing.
+ training_loss: 1.9615026712417603
+Mean training positive score: 66.93532149769611 
+Mean training negative score: 6.674464023804215 
+Training ROC AUC: 0.9326066
+ Training 20000 entries took 0.12s 
+Iteration 160000 validation roc auc: 0.936984150428837
+Mean validation positive score: 0.21762776374816895 
+Mean validation negative score: 0.7846647500991821 
+Iteration 160000 test roc auc: 0.9328274456649877
+Iteration time: nan validation time: 60.400468587875366 test time: 83.32667970657349
+Mean test positive score: 0.22594571113586426 
+Mean test negative score: 0.8018782138824463 
+161000 training iterations finished after 41721.71 seconds.
+Validating and testing.
+ training_loss: 1.9605556726455688
+Mean training positive score: 57.736165769770544 
+Mean training negative score: 5.444737743113592 
+Training ROC AUC: 0.9381458
+ Training 20000 entries took 0.12s 
+Iteration 161000 validation roc auc: 0.937738610576267
+Mean validation positive score: 0.2508193552494049 
+Mean validation negative score: 0.853234589099884 
+Iteration 161000 test roc auc: 0.9305919734252902
+Iteration time: nan validation time: 60.366475105285645 test time: 83.28351998329163
+Mean test positive score: 0.2595318555831909 
+Mean test negative score: 0.8590811491012573 
+162000 training iterations finished after 41981.56 seconds.
+Validating and testing.
+ training_loss: 1.9538322687149048
+Mean training positive score: 64.91828181124369 
+Mean training negative score: 5.34764938006271 
+Training ROC AUC: 0.937172
+ Training 20000 entries took 0.11s 
+Iteration 162000 validation roc auc: 0.9401398912088554
+Mean validation positive score: 0.2345014214515686 
+Mean validation negative score: 0.8307410478591919 
+Iteration 162000 test roc auc: 0.936762318095043
+Iteration time: nan validation time: 60.361416816711426 test time: 83.4070782661438
+Mean test positive score: 0.24261945486068726 
+Mean test negative score: 0.8405007123947144 
+163000 training iterations finished after 42242.41 seconds.
+Validating and testing.
+ training_loss: 1.9542732238769531
+Mean training positive score: 70.39515989105685 
+Mean training negative score: 5.331400252748378 
+Training ROC AUC: 0.933779
+ Training 20000 entries took 0.11s 
+Iteration 163000 validation roc auc: 0.9350167818641251
+Mean validation positive score: 0.2133575677871704 
+Mean validation negative score: 0.7709829807281494 
+Iteration 163000 test roc auc: 0.9314847006704208
+Iteration time: nan validation time: 60.21640729904175 test time: 83.29191708564758
+Mean test positive score: 0.21835950016975403 
+Mean test negative score: 0.7795826196670532 
+164000 training iterations finished after 42504.48 seconds.
+Validating and testing.
+ training_loss: 1.9577043056488037
+Mean training positive score: 67.29122978799853 
+Mean training negative score: 5.126036442133856 
+Training ROC AUC: 0.9407846
+ Training 20000 entries took 0.13s 
+Iteration 164000 validation roc auc: 0.9374485097196563
+Mean validation positive score: 0.22403529286384583 
+Mean validation negative score: 0.7944333553314209 
+Iteration 164000 test roc auc: 0.9323558274483865
+Iteration time: nan validation time: 60.387349128723145 test time: 83.54407858848572
+Mean test positive score: 0.23493008315563202 
+Mean test negative score: 0.8015456795692444 
+165000 training iterations finished after 42761.77 seconds.
+Validating and testing.
+ training_loss: 1.9587358236312866
+Mean training positive score: 64.04639716023323 
+Mean training negative score: 5.717534906561511 
+Training ROC AUC: 0.9336372
+ Training 20000 entries took 0.11s 
+Iteration 165000 validation roc auc: 0.9382472833231222
+Mean validation positive score: 0.23812276124954224 
+Mean validation negative score: 0.8299492597579956 
+Iteration 165000 test roc auc: 0.9322601063924718
+Iteration time: nan validation time: 60.3103985786438 test time: 83.51963543891907
+Mean test positive score: 0.24866420030593872 
+Mean test negative score: 0.8399511575698853 
+166000 training iterations finished after 43021.31 seconds.
+Validating and testing.
+ training_loss: 1.9619892835617065
+Mean training positive score: 58.41667468829345 
+Mean training negative score: 5.847953374188947 
+Training ROC AUC: 0.9281066
+ Training 20000 entries took 0.11s 
+Iteration 166000 validation roc auc: 0.9327335650871056
+Mean validation positive score: 0.23452399671077728 
+Mean validation negative score: 0.8251853585243225 
+Iteration 166000 test roc auc: 0.9268774254499854
+Iteration time: nan validation time: 60.42075490951538 test time: 83.65074682235718
+Mean test positive score: 0.2397671490907669 
+Mean test negative score: 0.8342869281768799 
+167000 training iterations finished after 43281.07 seconds.
+Validating and testing.
+ training_loss: 1.9556500911712646
+Mean training positive score: 65.84132557383222 
+Mean training negative score: 5.8483893956225605 
+Training ROC AUC: 0.9368826
+ Training 20000 entries took 0.12s 
+Iteration 167000 validation roc auc: 0.9365516208486229
+Mean validation positive score: 0.22007323801517487 
+Mean validation negative score: 0.7886402010917664 
+Iteration 167000 test roc auc: 0.9320148314663466
+Iteration time: nan validation time: 60.228878021240234 test time: 82.9978597164154
+Mean test positive score: 0.22694145143032074 
+Mean test negative score: 0.8009569644927979 
+168000 training iterations finished after 43539.15 seconds.
+Validating and testing.
+ training_loss: 1.9577261209487915
+Mean training positive score: 62.472885928782446 
+Mean training negative score: 5.591514947441246 
+Training ROC AUC: 0.9378672
+ Training 20000 entries took 0.11s 
+Iteration 168000 validation roc auc: 0.9350885087507333
+Mean validation positive score: 0.22434331476688385 
+Mean validation negative score: 0.7671595811843872 
+Iteration 168000 test roc auc: 0.9257253188145009
+Iteration time: nan validation time: 60.20499801635742 test time: 83.49735832214355
+Mean test positive score: 0.2360755056142807 
+Mean test negative score: 0.7724076509475708 
+169000 training iterations finished after 43800.72 seconds.
+Validating and testing.
+ training_loss: 1.9629004001617432
+Mean training positive score: 69.79621922590779 
+Mean training negative score: 5.812947070392761 
+Training ROC AUC: 0.9281324
+ Training 20000 entries took 0.13s 
+Iteration 169000 validation roc auc: 0.9301769761449982
+Mean validation positive score: 0.21776075661182404 
+Mean validation negative score: 0.7719598412513733 
+Iteration 169000 test roc auc: 0.9256750671997035
+Iteration time: nan validation time: 60.411513805389404 test time: 83.22657704353333
+Mean test positive score: 0.2241658866405487 
+Mean test negative score: 0.7722249627113342 
+170000 training iterations finished after 44058.33 seconds.
+Validating and testing.
+ training_loss: 1.958194613456726
+Mean training positive score: 82.07191874181633 
+Mean training negative score: 6.125325682570308 
+Training ROC AUC: 0.9371096
+ Training 20000 entries took 0.11s 
+Iteration 170000 validation roc auc: 0.9390455458787984
+Mean validation positive score: 0.22890819609165192 
+Mean validation negative score: 0.8111677169799805 
+Iteration 170000 test roc auc: 0.9368548970673424
+Iteration time: nan validation time: 60.57574653625488 test time: 83.18422317504883
+Mean test positive score: 0.23404163122177124 
+Mean test negative score: 0.8221631050109863 
+171000 training iterations finished after 44322.93 seconds.
+Validating and testing.
+ training_loss: 1.9565597772598267
+Mean training positive score: 68.43298314123862 
+Mean training negative score: 5.1488900578326895 
+Training ROC AUC: 0.9405634
+ Training 20000 entries took 0.12s 
+Iteration 171000 validation roc auc: 0.9399341516399907
+Mean validation positive score: 0.24717749655246735 
+Mean validation negative score: 0.8640661239624023 
+Iteration 171000 test roc auc: 0.9323119655127633
+Iteration time: nan validation time: 60.266154766082764 test time: 83.33605551719666
+Mean test positive score: 0.2597348988056183 
+Mean test negative score: 0.8676043152809143 
+172000 training iterations finished after 44579.22 seconds.
+Validating and testing.
+ training_loss: 1.9605909585952759
+Mean training positive score: 64.97281801805961 
+Mean training negative score: 5.322620518729748 
+Training ROC AUC: 0.9340548
+ Training 20000 entries took 0.11s 
+Iteration 172000 validation roc auc: 0.9348944671543973
+Mean validation positive score: 0.23045219480991364 
+Mean validation negative score: 0.8126556873321533 
+Iteration 172000 test roc auc: 0.9320659597612638
+Iteration time: nan validation time: 60.18778324127197 test time: 82.93359279632568
+Mean test positive score: 0.2419300675392151 
+Mean test negative score: 0.8270114064216614 
+173000 training iterations finished after 44835.73 seconds.
+Validating and testing.
+ training_loss: 1.9548081159591675
+Mean training positive score: 57.06937724280745 
+Mean training negative score: 5.546814020462905 
+Training ROC AUC: 0.9374844
+ Training 20000 entries took 0.12s 
+Iteration 173000 validation roc auc: 0.9343876968050946
+Mean validation positive score: 0.22797396779060364 
+Mean validation negative score: 0.8236192464828491 
+Iteration 173000 test roc auc: 0.9301369469618241
+Iteration time: nan validation time: 60.19781517982483 test time: 83.30650663375854
+Mean test positive score: 0.23784559965133667 
+Mean test negative score: 0.8483458161354065 
+174000 training iterations finished after 45093.88 seconds.
+Validating and testing.
+ training_loss: 1.9565823078155518
+Mean training positive score: 65.23281198462512 
+Mean training negative score: 5.134064334244261 
+Training ROC AUC: 0.9370304
+ Training 20000 entries took 0.11s 
+Iteration 174000 validation roc auc: 0.9369440789648594
+Mean validation positive score: 0.2445666491985321 
+Mean validation negative score: 0.8584402203559875 
+Iteration 174000 test roc auc: 0.9312721747896211
+Iteration time: nan validation time: 60.50090718269348 test time: 83.13734269142151
+Mean test positive score: 0.2571043074131012 
+Mean test negative score: 0.8766067028045654 
+175000 training iterations finished after 45353.90 seconds.
+Validating and testing.
+ training_loss: 1.9529950618743896
+Mean training positive score: 67.74382899680317 
+Mean training negative score: 5.508452744589759 
+Training ROC AUC: 0.9369908
+ Training 20000 entries took 0.12s 
+Iteration 175000 validation roc auc: 0.9411352675556732
+Mean validation positive score: 0.27267831563949585 
+Mean validation negative score: 0.9299059510231018 
+Iteration 175000 test roc auc: 0.9340154853238611
+Iteration time: nan validation time: 60.476096630096436 test time: 83.21615195274353
+Mean test positive score: 0.2888161242008209 
+Mean test negative score: 0.9532132148742676 
+176000 training iterations finished after 45611.36 seconds.
+Validating and testing.
+ training_loss: 1.958433985710144
+Mean training positive score: 58.971229295138855 
+Mean training negative score: 4.861158838218075 
+Training ROC AUC: 0.9404522
+ Training 20000 entries took 0.12s 
+Iteration 176000 validation roc auc: 0.9400948008420177
+Mean validation positive score: 0.25226444005966187 
+Mean validation negative score: 0.8597756624221802 
+Iteration 176000 test roc auc: 0.9305319495425376
+Iteration time: nan validation time: 60.43766498565674 test time: 83.21421003341675
+Mean test positive score: 0.26304492354393005 
+Mean test negative score: 0.8503538966178894 
+177000 training iterations finished after 45868.73 seconds.
+Validating and testing.
+ training_loss: 1.9532350301742554
+Mean training positive score: 54.00891173634414 
+Mean training negative score: 5.798633782686481 
+Training ROC AUC: 0.9400202
+ Training 20000 entries took 0.12s 
+Iteration 177000 validation roc auc: 0.9362572720918869
+Mean validation positive score: 0.23497624695301056 
+Mean validation negative score: 0.8349958658218384 
+Iteration 177000 test roc auc: 0.9305717461650389
+Iteration time: nan validation time: 60.4986572265625 test time: 83.34670233726501
+Mean test positive score: 0.24490505456924438 
+Mean test negative score: 0.8501924872398376 
+178000 training iterations finished after 46126.24 seconds.
+Validating and testing.
+ training_loss: 1.9592608213424683
+Mean training positive score: 59.73466243558563 
+Mean training negative score: 4.9773271960779475 
+Training ROC AUC: 0.937273
+ Training 20000 entries took 0.11s 
+Iteration 178000 validation roc auc: 0.9360039430438716
+Mean validation positive score: 0.2300739735364914 
+Mean validation negative score: 0.819028913974762 
+Iteration 178000 test roc auc: 0.9334919009233787
+Iteration time: nan validation time: 60.33176803588867 test time: 83.1127827167511
+Mean test positive score: 0.23665882647037506 
+Mean test negative score: 0.8340932130813599 
+179000 training iterations finished after 46381.59 seconds.
+Validating and testing.
+ training_loss: 1.9587942361831665
+Mean training positive score: 63.43704543511188 
+Mean training negative score: 5.140261902077551 
+Training ROC AUC: 0.9403824000000001
+ Training 20000 entries took 0.12s 
+Iteration 179000 validation roc auc: 0.9379879044145667
+Mean validation positive score: 0.23957544565200806 
+Mean validation negative score: 0.8431592583656311 
+Iteration 179000 test roc auc: 0.9364073355738878
+Iteration time: nan validation time: 60.25627398490906 test time: 83.47593832015991
+Mean test positive score: 0.2479637712240219 
+Mean test negative score: 0.8540742993354797 
+180000 training iterations finished after 46637.32 seconds.
+Validating and testing.
+ training_loss: 1.9529860019683838
+Mean training positive score: 59.52014004336439 
+Mean training negative score: 4.619264461616135 
+Training ROC AUC: 0.9391724
+ Training 20000 entries took 0.12s 
+Iteration 180000 validation roc auc: 0.9371696666845878
+Mean validation positive score: 0.25182294845581055 
+Mean validation negative score: 0.8709424138069153 
+Iteration 180000 test roc auc: 0.9351169555362833
+Iteration time: nan validation time: 60.33035397529602 test time: 83.19784021377563
+Mean test positive score: 0.25711286067962646 
+Mean test negative score: 0.8852952122688293 
+181000 training iterations finished after 46898.04 seconds.
+Validating and testing.
+ training_loss: 1.954147458076477
+Mean training positive score: 57.90192656132639 
+Mean training negative score: 4.412054184955081 
+Training ROC AUC: 0.9441414
+ Training 20000 entries took 0.12s 
+Iteration 181000 validation roc auc: 0.9390927631497323
+Mean validation positive score: 0.23685431480407715 
+Mean validation negative score: 0.826812207698822 
+Iteration 181000 test roc auc: 0.9360993881048957
+Iteration time: nan validation time: 60.56188774108887 test time: 83.4423897266388
+Mean test positive score: 0.24340952932834625 
+Mean test negative score: 0.8383861780166626 
+182000 training iterations finished after 47155.43 seconds.
+Validating and testing.
+ training_loss: 1.9547888040542603
+Mean training positive score: 54.47840006204231 
+Mean training negative score: 4.750824767856938 
+Training ROC AUC: 0.941604
+ Training 20000 entries took 0.12s 
+Iteration 182000 validation roc auc: 0.9413462062234396
+Mean validation positive score: 0.243482306599617 
+Mean validation negative score: 0.847580075263977 
+Iteration 182000 test roc auc: 0.9373801153513047
+Iteration time: nan validation time: 60.39116907119751 test time: 83.20698690414429
+Mean test positive score: 0.255889892578125 
+Mean test negative score: 0.8723435997962952 
+183000 training iterations finished after 47414.33 seconds.
+Validating and testing.
+ training_loss: 1.9552983045578003
+Mean training positive score: 54.09225265853456 
+Mean training negative score: 4.285342594749974 
+Training ROC AUC: 0.9448078
+ Training 20000 entries took 0.12s 
+Iteration 183000 validation roc auc: 0.9413881357744678
+Mean validation positive score: 0.2293369621038437 
+Mean validation negative score: 0.796754002571106 
+Iteration 183000 test roc auc: 0.9338643223965104
+Iteration time: nan validation time: 60.310699462890625 test time: 83.36051750183105
+Mean test positive score: 0.24076911807060242 
+Mean test negative score: 0.8075277209281921 
+184000 training iterations finished after 47671.33 seconds.
+Validating and testing.
+ training_loss: 1.9595372676849365
+Mean training positive score: 64.21033665959496 
+Mean training negative score: 5.510460361508889 
+Training ROC AUC: 0.9376362
+ Training 20000 entries took 0.12s 
+Iteration 184000 validation roc auc: 0.9435823593392654
+Mean validation positive score: 0.23825395107269287 
+Mean validation negative score: 0.8427085876464844 
+Iteration 184000 test roc auc: 0.9372380326576906
+Iteration time: nan validation time: 60.39973592758179 test time: 83.25222706794739
+Mean test positive score: 0.2503321170806885 
+Mean test negative score: 0.8562349677085876 
+185000 training iterations finished after 47931.91 seconds.
+Validating and testing.
+ training_loss: 1.9538730382919312
+Mean training positive score: 61.30121663078507 
+Mean training negative score: 4.767010405773087 
+Training ROC AUC: 0.9413707
+ Training 20000 entries took 0.11s 
+Iteration 185000 validation roc auc: 0.9386527598648471
+Mean validation positive score: 0.23585501313209534 
+Mean validation negative score: 0.8170489072799683 
+Iteration 185000 test roc auc: 0.9352080635479568
+Iteration time: nan validation time: 60.29083323478699 test time: 83.25525403022766
+Mean test positive score: 0.24208422005176544 
+Mean test negative score: 0.8273285627365112 
+186000 training iterations finished after 48190.25 seconds.
+Validating and testing.
+ training_loss: 1.9537653923034668
+Mean training positive score: 52.76033968206763 
+Mean training negative score: 4.503667897158325 
+Training ROC AUC: 0.9424402000000001
+ Training 20000 entries took 0.11s 
+Iteration 186000 validation roc auc: 0.9387602896370734
+Mean validation positive score: 0.2939912676811218 
+Mean validation negative score: 0.9654342532157898 
+Iteration 186000 test roc auc: 0.9297928663070792
+Iteration time: nan validation time: 60.50451040267944 test time: 83.63008952140808
+Mean test positive score: 0.31179332733154297 
+Mean test negative score: 0.9598267078399658 
+187000 training iterations finished after 48447.92 seconds.
+Validating and testing.
+ training_loss: 1.9563913345336914
+Mean training positive score: 47.936608420245946 
+Mean training negative score: 4.671176374186515 
+Training ROC AUC: 0.9387204
+ Training 20000 entries took 0.11s 
+Iteration 187000 validation roc auc: 0.9350209854537483
+Mean validation positive score: 0.28369569778442383 
+Mean validation negative score: 0.9629380702972412 
+Iteration 187000 test roc auc: 0.927790479260726
+Iteration time: nan validation time: 60.318970680236816 test time: 83.22736763954163
+Mean test positive score: 0.28992292284965515 
+Mean test negative score: 0.9619330763816833 
+188000 training iterations finished after 48706.78 seconds.
+Validating and testing.
+ training_loss: 1.9594095945358276
+Mean training positive score: 56.56771865656795 
+Mean training negative score: 4.816282257527995 
+Training ROC AUC: 0.9352716
+ Training 20000 entries took 0.11s 
+Iteration 188000 validation roc auc: 0.9386059000319626
+Mean validation positive score: 0.2400306612253189 
+Mean validation negative score: 0.8496849536895752 
+Iteration 188000 test roc auc: 0.9345712601770265
+Iteration time: nan validation time: 60.320157527923584 test time: 83.03492736816406
+Mean test positive score: 0.24851331114768982 
+Mean test negative score: 0.8470533490180969 
+189000 training iterations finished after 48963.45 seconds.
+Validating and testing.
+ training_loss: 1.9568170309066772
+Mean training positive score: 63.2061560240571 
+Mean training negative score: 4.864485061271445 
+Training ROC AUC: 0.9388088
+ Training 20000 entries took 0.11s 
+Iteration 189000 validation roc auc: 0.9375803452792477
+Mean validation positive score: 0.225112184882164 
+Mean validation negative score: 0.7995511293411255 
+Iteration 189000 test roc auc: 0.9319623703073179
+Iteration time: nan validation time: 60.44529747962952 test time: 82.84672808647156
+Mean test positive score: 0.23540019989013672 
+Mean test negative score: 0.8140302896499634 
+190000 training iterations finished after 49218.20 seconds.
+Validating and testing.
+ training_loss: 1.9624103307724
+Mean training positive score: 65.21996895479958 
+Mean training negative score: 5.575023944855742 
+Training ROC AUC: 0.9322016
+ Training 20000 entries took 0.12s 
+Iteration 190000 validation roc auc: 0.9403545106023216
+Mean validation positive score: 0.21626538038253784 
+Mean validation negative score: 0.756158709526062 
+Iteration 190000 test roc auc: 0.9340452396919634
+Iteration time: nan validation time: 60.398306131362915 test time: 83.21583652496338
+Mean test positive score: 0.22486650943756104 
+Mean test negative score: 0.7589576244354248 
+191000 training iterations finished after 49477.35 seconds.
+Validating and testing.
+ training_loss: 1.953766942024231
+Mean training positive score: 49.485444920942236 
+Mean training negative score: 4.638368164680591 
+Training ROC AUC: 0.9448742
+ Training 20000 entries took 0.12s 
+Iteration 191000 validation roc auc: 0.944661875421319
+Mean validation positive score: 0.21976439654827118 
+Mean validation negative score: 0.7828502058982849 
+Iteration 191000 test roc auc: 0.9380864433348526
+Iteration time: nan validation time: 60.32862639427185 test time: 83.3015947341919
+Mean test positive score: 0.2258836179971695 
+Mean test negative score: 0.7909415364265442 
+192000 training iterations finished after 49736.81 seconds.
+Validating and testing.
+ training_loss: 1.954398512840271
+Mean training positive score: 65.98284437109314 
+Mean training negative score: 5.579573658746505 
+Training ROC AUC: 0.9369712
+ Training 20000 entries took 0.11s 
+Iteration 192000 validation roc auc: 0.940535905981386
+Mean validation positive score: 0.21423634886741638 
+Mean validation negative score: 0.7690030932426453 
+Iteration 192000 test roc auc: 0.9381666851679791
+Iteration time: nan validation time: 60.28861141204834 test time: 83.55000901222229
+Mean test positive score: 0.21799911558628082 
+Mean test negative score: 0.7728359699249268 
+193000 training iterations finished after 50002.48 seconds.
+Validating and testing.
+ training_loss: 1.9531716108322144
+Mean training positive score: 52.0564337398685 
+Mean training negative score: 4.733258091412952 
+Training ROC AUC: 0.939601
+ Training 20000 entries took 0.12s 
+Iteration 193000 validation roc auc: 0.9380857508650887
+Mean validation positive score: 0.24963602423667908 
+Mean validation negative score: 0.854420006275177 
+Iteration 193000 test roc auc: 0.9299039114211592
+Iteration time: nan validation time: 60.494059562683105 test time: 83.5806884765625
+Mean test positive score: 0.2555225193500519 
+Mean test negative score: 0.8540413975715637 
+194000 training iterations finished after 50259.25 seconds.
+Validating and testing.
+ training_loss: 1.9627641439437866
+Mean training positive score: 64.44167861679264 
+Mean training negative score: 5.600751429245896 
+Training ROC AUC: 0.932325
+ Training 20000 entries took 0.13s 
+Iteration 194000 validation roc auc: 0.9357405377877007
+Mean validation positive score: 0.219110906124115 
+Mean validation negative score: 0.768765926361084 
+Iteration 194000 test roc auc: 0.9299160018485817
+Iteration time: nan validation time: 60.22565984725952 test time: 83.27816486358643
+Mean test positive score: 0.2254079282283783 
+Mean test negative score: 0.7794773578643799 
+195000 training iterations finished after 50514.45 seconds.
+Validating and testing.
+ training_loss: 1.9522572755813599
+Mean training positive score: 59.02469556660552 
+Mean training negative score: 4.423688501937188 
+Training ROC AUC: 0.941658
+ Training 20000 entries took 0.11s 
+Iteration 195000 validation roc auc: 0.9344036810801837
+Mean validation positive score: 0.25321921706199646 
+Mean validation negative score: 0.8669843673706055 
+Iteration 195000 test roc auc: 0.9275937367253756
+Iteration time: nan validation time: 60.34146308898926 test time: 83.3047103881836
+Mean test positive score: 0.2599547803401947 
+Mean test negative score: 0.870953381061554 
+196000 training iterations finished after 50771.51 seconds.
+Validating and testing.
+ training_loss: 1.956912636756897
+Mean training positive score: 55.106813922965934 
+Mean training negative score: 4.943120417930034 
+Training ROC AUC: 0.9379506
+ Training 20000 entries took 0.11s 
+Iteration 196000 validation roc auc: 0.9350328813465194
+Mean validation positive score: 0.2346145659685135 
+Mean validation negative score: 0.8153205513954163 
+Iteration 196000 test roc auc: 0.9304601579747784
+Iteration time: nan validation time: 60.40688991546631 test time: 83.26235675811768
+Mean test positive score: 0.24327996373176575 
+Mean test negative score: 0.8229901790618896 
+197000 training iterations finished after 51033.04 seconds.
+Validating and testing.
+ training_loss: 1.9599545001983643
+Mean training positive score: 60.88971551614116 
+Mean training negative score: 5.8647898068605855 
+Training ROC AUC: 0.9343148
+ Training 20000 entries took 0.13s 
+Iteration 197000 validation roc auc: 0.9402894568773148
+Mean validation positive score: 0.21184872090816498 
+Mean validation negative score: 0.7830379009246826 
+Iteration 197000 test roc auc: 0.9358138200294757
+Iteration time: nan validation time: 60.24867224693298 test time: 83.26883029937744
+Mean test positive score: 0.2178988754749298 
+Mean test negative score: 0.789785623550415 
+198000 training iterations finished after 51294.21 seconds.
+Validating and testing.
+ training_loss: 1.9578605890274048
+Mean training positive score: 55.72449012505121 
+Mean training negative score: 4.937073077640529 
+Training ROC AUC: 0.9359866
+ Training 20000 entries took 0.13s 
+Iteration 198000 validation roc auc: 0.941803688524348
+Mean validation positive score: 0.20888008177280426 
+Mean validation negative score: 0.7478512525558472 
+Iteration 198000 test roc auc: 0.9376931118771286
+Iteration time: nan validation time: 60.50051736831665 test time: 83.18072772026062
+Mean test positive score: 0.21581415832042694 
+Mean test negative score: 0.7591559290885925 
+199000 training iterations finished after 51561.12 seconds.
+Validating and testing.
+ training_loss: 1.9567197561264038
+Mean training positive score: 63.673553681535005 
+Mean training negative score: 5.222625794746853 
+Training ROC AUC: 0.9369082
+ Training 20000 entries took 0.11s 
+Iteration 199000 validation roc auc: 0.9331195184216481
+Mean validation positive score: 0.22893211245536804 
+Mean validation negative score: 0.8066142201423645 
+Iteration 199000 test roc auc: 0.9308121659901112
+Iteration time: nan validation time: 60.37438654899597 test time: 82.8696072101593
+Mean test positive score: 0.23783791065216064 
+Mean test negative score: 0.8269181847572327 
+200000 training iterations finished after 51817.21 seconds.
+Validating and testing.
+ training_loss: 1.9545153379440308
+Mean training positive score: 71.45113687557524 
+Mean training negative score: 6.499499898006105 
+Training ROC AUC: 0.9306792
+ Training 20000 entries took 0.12s 
+Iteration 200000 validation roc auc: 0.9389929877153564
+Mean validation positive score: 0.23214899003505707 
+Mean validation negative score: 0.8059665560722351 
+Iteration 200000 test roc auc: 0.9310176256739804
+Iteration time: nan validation time: 60.299152135849 test time: 83.3844907283783
+Mean test positive score: 0.24359089136123657 
+Mean test negative score: 0.8174766302108765 
+201000 training iterations finished after 52076.88 seconds.
+Validating and testing.
+ training_loss: 1.9521722793579102
+Mean training positive score: 55.62576345935591 
+Mean training negative score: 4.882975312677809 
+Training ROC AUC: 0.9424998
+ Training 20000 entries took 0.11s 
+Iteration 201000 validation roc auc: 0.9385421194953802
+Mean validation positive score: 0.23353438079357147 
+Mean validation negative score: 0.8464221954345703 
+Iteration 201000 test roc auc: 0.9372402546150916
+Iteration time: nan validation time: 60.34469032287598 test time: 82.90463995933533
+Mean test positive score: 0.24276040494441986 
+Mean test negative score: 0.8601493239402771 
+202000 training iterations finished after 52337.42 seconds.
+Validating and testing.
+ training_loss: 1.9590563774108887
+Mean training positive score: 63.17565685641504 
+Mean training negative score: 5.318266536248182 
+Training ROC AUC: 0.9341608
+ Training 20000 entries took 0.13s 
+Iteration 202000 validation roc auc: 0.93913202520854
+Mean validation positive score: 0.24489642679691315 
+Mean validation negative score: 0.844148576259613 
+Iteration 202000 test roc auc: 0.9346592788610566
+Iteration time: nan validation time: 60.32694125175476 test time: 83.3605809211731
+Mean test positive score: 0.25445032119750977 
+Mean test negative score: 0.8486637473106384 
+203000 training iterations finished after 52597.17 seconds.
+Validating and testing.
+ training_loss: 1.956356406211853
+Mean training positive score: 60.49826786813155 
+Mean training negative score: 5.118946491619088 
+Training ROC AUC: 0.9424832
+ Training 20000 entries took 0.13s 
+Iteration 203000 validation roc auc: 0.941667545983962
+Mean validation positive score: 0.23364834487438202 
+Mean validation negative score: 0.8273341655731201 
+Iteration 203000 test roc auc: 0.9336075901146245
+Iteration time: nan validation time: 60.44905638694763 test time: 83.75267267227173
+Mean test positive score: 0.23852401971817017 
+Mean test negative score: 0.8229442238807678 
+204000 training iterations finished after 52852.19 seconds.
+Validating and testing.
+ training_loss: 1.9549857378005981
+Mean training positive score: 59.903433015556445 
+Mean training negative score: 5.126019589047421 
+Training ROC AUC: 0.936611
+ Training 20000 entries took 0.11s 
+Iteration 204000 validation roc auc: 0.9402072431718993
+Mean validation positive score: 0.24239946901798248 
+Mean validation negative score: 0.8265498876571655 
+Iteration 204000 test roc auc: 0.9333389442929864
+Iteration time: nan validation time: 60.371989011764526 test time: 83.21637105941772
+Mean test positive score: 0.25355517864227295 
+Mean test negative score: 0.8465390801429749 
+205000 training iterations finished after 53114.66 seconds.
+Validating and testing.
+ training_loss: 1.9542346000671387
+Mean training positive score: 63.58680842715637 
+Mean training negative score: 5.069968612440815 
+Training ROC AUC: 0.939183
+ Training 20000 entries took 0.14s 
+Iteration 205000 validation roc auc: 0.9313419642313812
+Mean validation positive score: 0.23762910068035126 
+Mean validation negative score: 0.8126571774482727 
+Iteration 205000 test roc auc: 0.9294383306600382
+Iteration time: nan validation time: 60.454519271850586 test time: 83.04507660865784
+Mean test positive score: 0.24565862119197845 
+Mean test negative score: 0.8366439938545227 
+206000 training iterations finished after 53371.76 seconds.
+Validating and testing.
+ training_loss: 1.9550527334213257
+Mean training positive score: 54.689886600898255 
+Mean training negative score: 4.746736374597414 
+Training ROC AUC: 0.9377676
+ Training 20000 entries took 0.11s 
+Iteration 206000 validation roc auc: 0.9359054437519534
+Mean validation positive score: 0.23783668875694275 
+Mean validation negative score: 0.824539840221405 
+Iteration 206000 test roc auc: 0.9288407979035372
+Iteration time: nan validation time: 60.5021755695343 test time: 83.07897806167603
+Mean test positive score: 0.24807250499725342 
+Mean test negative score: 0.8354578614234924 
+207000 training iterations finished after 53626.50 seconds.
+Validating and testing.
+ training_loss: 1.9519284963607788
+Mean training positive score: 60.42889972727781 
+Mean training negative score: 4.592233098759955 
+Training ROC AUC: 0.9458562
+ Training 20000 entries took 0.11s 
+Iteration 207000 validation roc auc: 0.9343278687652908
+Mean validation positive score: 0.2423386573791504 
+Mean validation negative score: 0.8763406276702881 
+Iteration 207000 test roc auc: 0.9333006682837903
+Iteration time: nan validation time: 60.30272388458252 test time: 83.63528823852539
+Mean test positive score: 0.24432091414928436 
+Mean test negative score: 0.8825782537460327 
+208000 training iterations finished after 53885.31 seconds.
+Validating and testing.
+ training_loss: 1.951732873916626
+Mean training positive score: 56.012716879372114 
+Mean training negative score: 4.721571678751475 
+Training ROC AUC: 0.942487
+ Training 20000 entries took 0.11s 
+Iteration 208000 validation roc auc: 0.9362507495859922
+Mean validation positive score: 0.22376994788646698 
+Mean validation negative score: 0.7967849969863892 
+Iteration 208000 test roc auc: 0.9379111631701524
+Iteration time: nan validation time: 60.42922234535217 test time: 83.37052464485168
+Mean test positive score: 0.23375536501407623 
+Mean test negative score: 0.8197648525238037 
+209000 training iterations finished after 54147.39 seconds.
+Validating and testing.
+ training_loss: 1.9590362310409546
+Mean training positive score: 59.50086053650035 
+Mean training negative score: 5.420913841551899 
+Training ROC AUC: 0.9409002
+ Training 20000 entries took 0.12s 
+Iteration 209000 validation roc auc: 0.9348754284087035
+Mean validation positive score: 0.2190571129322052 
+Mean validation negative score: 0.776023268699646 
+Iteration 209000 test roc auc: 0.9326773254439032
+Iteration time: nan validation time: 60.486042976379395 test time: 83.79095983505249
+Mean test positive score: 0.222660094499588 
+Mean test negative score: 0.7823684811592102 
+210000 training iterations finished after 54405.72 seconds.
+Validating and testing.
+ training_loss: 1.9559909105300903
+Mean training positive score: 62.76050151977796 
+Mean training negative score: 4.923181625149277 
+Training ROC AUC: 0.9379406
+ Training 20000 entries took 0.11s 
+Iteration 210000 validation roc auc: 0.9354343669890305
+Mean validation positive score: 0.22621625661849976 
+Mean validation negative score: 0.7895813584327698 
+Iteration 210000 test roc auc: 0.9330163616967551
+Iteration time: nan validation time: 60.75918769836426 test time: 83.68191623687744
+Mean test positive score: 0.2351587563753128 
+Mean test negative score: 0.8046575784683228 
+211000 training iterations finished after 54664.82 seconds.
+Validating and testing.
+ training_loss: 1.9544789791107178
+Mean training positive score: 58.78461999276646 
+Mean training negative score: 4.691838323685484 
+Training ROC AUC: 0.9408288
+ Training 20000 entries took 0.11s 
+Iteration 211000 validation roc auc: 0.9386456229199912
+Mean validation positive score: 0.2684697210788727 
+Mean validation negative score: 0.9534218907356262 
+Iteration 211000 test roc auc: 0.9326752384797242
+Iteration time: nan validation time: 60.23064661026001 test time: 83.38424897193909
+Mean test positive score: 0.2843592166900635 
+Mean test negative score: 0.9654234647750854 
+212000 training iterations finished after 54923.29 seconds.
+Validating and testing.
+ training_loss: 1.958428144454956
+Mean training positive score: 63.13078700986645 
+Mean training negative score: 5.782419158318796 
+Training ROC AUC: 0.9349432
+ Training 20000 entries took 0.11s 
+Iteration 212000 validation roc auc: 0.93576759082619
+Mean validation positive score: 0.23550443351268768 
+Mean validation negative score: 0.8288612365722656 
+Iteration 212000 test roc auc: 0.9324690759001129
+Iteration time: nan validation time: 60.24374794960022 test time: 83.19004034996033
+Mean test positive score: 0.2412814199924469 
+Mean test negative score: 0.8337740302085876 
+213000 training iterations finished after 55178.30 seconds.
+Validating and testing.
+ training_loss: 1.953396201133728
+Mean training positive score: 60.749601131277565 
+Mean training negative score: 4.842051484812353 
+Training ROC AUC: 0.9398384
+ Training 20000 entries took 0.12s 
+Iteration 213000 validation roc auc: 0.9420165207275666
+Mean validation positive score: 0.24825839698314667 
+Mean validation negative score: 0.8774719834327698 
+Iteration 213000 test roc auc: 0.9369891036046942
+Iteration time: nan validation time: 60.207003593444824 test time: 83.23947930335999
+Mean test positive score: 0.2565326988697052 
+Mean test negative score: 0.8823085427284241 
+214000 training iterations finished after 55446.06 seconds.
+Validating and testing.
+ training_loss: 1.9509447813034058
+Mean training positive score: 64.82300643843978 
+Mean training negative score: 4.780555629350674 
+Training ROC AUC: 0.9401028
+ Training 20000 entries took 0.11s 
+Iteration 214000 validation roc auc: 0.9379721653242554
+Mean validation positive score: 0.26042017340660095 
+Mean validation negative score: 0.913973867893219 
+Iteration 214000 test roc auc: 0.9317445548645209
+Iteration time: nan validation time: 60.55864238739014 test time: 83.51711916923523
+Mean test positive score: 0.2688189148902893 
+Mean test negative score: 0.9136533737182617 
+215000 training iterations finished after 55706.46 seconds.
+Validating and testing.
+ training_loss: 1.9584190845489502
+Mean training positive score: 63.23257736402635 
+Mean training negative score: 4.941055363055756 
+Training ROC AUC: 0.9362254
+ Training 20000 entries took 0.13s 
+Iteration 215000 validation roc auc: 0.9384341672963681
+Mean validation positive score: 0.22058741748332977 
+Mean validation negative score: 0.8057311773300171 
+Iteration 215000 test roc auc: 0.93576899607319
+Iteration time: nan validation time: 60.59524655342102 test time: 83.6144323348999
+Mean test positive score: 0.22585339844226837 
+Mean test negative score: 0.808074951171875 
+216000 training iterations finished after 55963.41 seconds.
+Validating and testing.
+ training_loss: 1.9565175771713257
+Mean training positive score: 64.71165727460165 
+Mean training negative score: 5.103852866595313 
+Training ROC AUC: 0.9357946
+ Training 20000 entries took 0.12s 
+Iteration 216000 validation roc auc: 0.9346788581597198
+Mean validation positive score: 0.25289100408554077 
+Mean validation negative score: 0.870955765247345 
+Iteration 216000 test roc auc: 0.9264302425582108
+Iteration time: nan validation time: 60.11658215522766 test time: 83.62960815429688
+Mean test positive score: 0.2583792805671692 
+Mean test negative score: 0.863178014755249 
+217000 training iterations finished after 56219.34 seconds.
+Validating and testing.
+ training_loss: 1.9601340293884277
+Mean training positive score: 64.59102384633431 
+Mean training negative score: 5.592596191502044 
+Training ROC AUC: 0.9311882
+ Training 20000 entries took 0.11s 
+Iteration 217000 validation roc auc: 0.9410773300972881
+Mean validation positive score: 0.23168954253196716 
+Mean validation negative score: 0.8323307633399963 
+Iteration 217000 test roc auc: 0.9366161219872736
+Iteration time: nan validation time: 60.62248754501343 test time: 83.19200348854065
+Mean test positive score: 0.2433522343635559 
+Mean test negative score: 0.8481190800666809 
+218000 training iterations finished after 56474.64 seconds.
+Validating and testing.
+ training_loss: 1.952246069908142
+Mean training positive score: 58.1699361509356 
+Mean training negative score: 4.977547673690428 
+Training ROC AUC: 0.9407676
+ Training 20000 entries took 0.11s 
+Iteration 218000 validation roc auc: 0.9359228991357089
+Mean validation positive score: 0.23584431409835815 
+Mean validation negative score: 0.8419363498687744 
+Iteration 218000 test roc auc: 0.9361639908956723
+Iteration time: nan validation time: 60.55335831642151 test time: 83.29288935661316
+Mean test positive score: 0.24338939785957336 
+Mean test negative score: 0.8626168370246887 
+219000 training iterations finished after 56732.67 seconds.
+Validating and testing.
+ training_loss: 1.9580234289169312
+Mean training positive score: 69.71729883330897 
+Mean training negative score: 5.188475285984265 
+Training ROC AUC: 0.939283
+ Training 20000 entries took 0.11s 
+Iteration 219000 validation roc auc: 0.9395984611848864
+Mean validation positive score: 0.22582508623600006 
+Mean validation negative score: 0.7979886531829834 
+Iteration 219000 test roc auc: 0.9366413362385074
+Iteration time: nan validation time: 60.10761213302612 test time: 83.07232666015625
+Mean test positive score: 0.23854899406433105 
+Mean test negative score: 0.8135090470314026 
+220000 training iterations finished after 56990.54 seconds.
+Validating and testing.
+ training_loss: 1.9567688703536987
+Mean training positive score: 79.22291794045304 
+Mean training negative score: 5.1434683570469515 
+Training ROC AUC: 0.9356274
+ Training 20000 entries took 0.11s 
+Iteration 220000 validation roc auc: 0.9344182474192086
+Mean validation positive score: 0.22668643295764923 
+Mean validation negative score: 0.8057949542999268 
+Iteration 220000 test roc auc: 0.9316860609049509
+Iteration time: nan validation time: 60.505900144577026 test time: 83.39525890350342
+Mean test positive score: 0.23679886758327484 
+Mean test negative score: 0.8322205543518066 
+221000 training iterations finished after 57245.92 seconds.
+Validating and testing.
+ training_loss: 1.960351586341858
+Mean training positive score: 67.64409016645322 
+Mean training negative score: 6.374414047098662 
+Training ROC AUC: 0.9337361
+ Training 20000 entries took 0.11s 
+Iteration 221000 validation roc auc: 0.9307623060603178
+Mean validation positive score: 0.22083395719528198 
+Mean validation negative score: 0.7918593287467957 
+Iteration 221000 test roc auc: 0.9315818957902537
+Iteration time: nan validation time: 60.39386439323425 test time: 83.42902493476868
+Mean test positive score: 0.22598902881145477 
+Mean test negative score: 0.8085982799530029 
+222000 training iterations finished after 57502.76 seconds.
+Validating and testing.
+ training_loss: 1.9589484930038452
+Mean training positive score: 69.04960264756794 
+Mean training negative score: 5.499063602877784 
+Training ROC AUC: 0.9367726
+ Training 20000 entries took 0.12s 
+Iteration 222000 validation roc auc: 0.9422446164217084
+Mean validation positive score: 0.21954362094402313 
+Mean validation negative score: 0.7822291851043701 
+Iteration 222000 test roc auc: 0.9366256568533556
+Iteration time: nan validation time: 60.366519927978516 test time: 83.49187755584717
+Mean test positive score: 0.23009386658668518 
+Mean test negative score: 0.7968480587005615 
+223000 training iterations finished after 57759.75 seconds.
+Validating and testing.
+ training_loss: 1.95328688621521
+Mean training positive score: 55.26282692320837 
+Mean training negative score: 5.476836185674601 
+Training ROC AUC: 0.9331612
+ Training 20000 entries took 0.12s 
+Iteration 223000 validation roc auc: 0.9360563800919414
+Mean validation positive score: 0.23533989489078522 
+Mean validation negative score: 0.836652398109436 
+Iteration 223000 test roc auc: 0.9315513159463573
+Iteration time: nan validation time: 60.13638782501221 test time: 82.94850564002991
+Mean test positive score: 0.24178528785705566 
+Mean test negative score: 0.8448560237884521 
+224000 training iterations finished after 58013.48 seconds.
+Validating and testing.
+ training_loss: 1.9595401287078857
+Mean training positive score: 61.276833309138965 
+Mean training negative score: 5.611553870962664 
+Training ROC AUC: 0.9344352
+ Training 20000 entries took 0.12s 
+Iteration 224000 validation roc auc: 0.9381358660428536
+Mean validation positive score: 0.2240997552871704 
+Mean validation negative score: 0.7970109581947327 
+Iteration 224000 test roc auc: 0.9357703025593154
+Iteration time: nan validation time: 60.308616399765015 test time: 83.40696787834167
+Mean test positive score: 0.23754438757896423 
+Mean test negative score: 0.8191308379173279 
+225000 training iterations finished after 58273.99 seconds.
+Validating and testing.
+ training_loss: 1.9566876888275146
+Mean training positive score: 62.540449764322375 
+Mean training negative score: 4.714746927044882 
+Training ROC AUC: 0.944144
+ Training 20000 entries took 0.12s 
+Iteration 225000 validation roc auc: 0.9433211548380274
+Mean validation positive score: 0.23990941047668457 
+Mean validation negative score: 0.8564401865005493 
+Iteration 225000 test roc auc: 0.938124823304346
+Iteration time: nan validation time: 60.25657892227173 test time: 83.3830897808075
+Mean test positive score: 0.24813595414161682 
+Mean test negative score: 0.8626434206962585 
+226000 training iterations finished after 58530.71 seconds.
+Validating and testing.
+ training_loss: 1.9598267078399658
+Mean training positive score: 64.51527587435342 
+Mean training negative score: 4.924156929787224 
+Training ROC AUC: 0.9389642
+ Training 20000 entries took 0.11s 
+Iteration 226000 validation roc auc: 0.9368075464920558
+Mean validation positive score: 0.20728905498981476 
+Mean validation negative score: 0.758636474609375 
+Iteration 226000 test roc auc: 0.9336449475492525
+Iteration time: nan validation time: 60.510048627853394 test time: 83.23946022987366
+Mean test positive score: 0.2126370221376419 
+Mean test negative score: 0.7715741991996765 
+227000 training iterations finished after 58784.56 seconds.
+Validating and testing.
+ training_loss: 1.9553087949752808
+Mean training positive score: 62.594222073186536 
+Mean training negative score: 6.209493783278804 
+Training ROC AUC: 0.934183
+ Training 20000 entries took 0.11s 
+Iteration 227000 validation roc auc: 0.9379516141134266
+Mean validation positive score: 0.22913622856140137 
+Mean validation negative score: 0.8293350338935852 
+Iteration 227000 test roc auc: 0.9342043346348408
+Iteration time: nan validation time: 60.32479929924011 test time: 83.11554741859436
+Mean test positive score: 0.23636005818843842 
+Mean test negative score: 0.835994303226471 
+228000 training iterations finished after 59045.31 seconds.
+Validating and testing.
+ training_loss: 1.9524939060211182
+Mean training positive score: 56.83851257800277 
+Mean training negative score: 5.116040792142986 
+Training ROC AUC: 0.9372284
+ Training 20000 entries took 0.12s 
+Iteration 228000 validation roc auc: 0.9368098595002603
+Mean validation positive score: 0.21459011733531952 
+Mean validation negative score: 0.781836211681366 
+Iteration 228000 test roc auc: 0.9320717287819461
+Iteration time: nan validation time: 60.260427951812744 test time: 83.27316069602966
+Mean test positive score: 0.21990840137004852 
+Mean test negative score: 0.7897970676422119 
+229000 training iterations finished after 59302.18 seconds.
+Validating and testing.
+ training_loss: 1.957412838935852
+Mean training positive score: 49.61845196358225 
+Mean training negative score: 4.844267971514457 
+Training ROC AUC: 0.937926
+ Training 20000 entries took 0.11s 
+Iteration 229000 validation roc auc: 0.9428667683641921
+Mean validation positive score: 0.23546987771987915 
+Mean validation negative score: 0.7944125533103943 
+Iteration 229000 test roc auc: 0.9353290345429687
+Iteration time: nan validation time: 60.21410155296326 test time: 83.41430068016052
+Mean test positive score: 0.24455277621746063 
+Mean test negative score: 0.7924758195877075 
+230000 training iterations finished after 59562.47 seconds.
+Validating and testing.
+ training_loss: 1.9540361166000366
+Mean training positive score: 57.41504233629235 
+Mean training negative score: 4.673179406015367 
+Training ROC AUC: 0.9412418
+ Training 20000 entries took 0.11s 
+Iteration 230000 validation roc auc: 0.9408561379793584
+Mean validation positive score: 0.2556585669517517 
+Mean validation negative score: 0.9177991151809692 
+Iteration 230000 test roc auc: 0.931946981080011
+Iteration time: nan validation time: 60.31491756439209 test time: 83.18444085121155
+Mean test positive score: 0.26893526315689087 
+Mean test negative score: 0.9183160662651062 
+231000 training iterations finished after 59819.25 seconds.
+Validating and testing.
+ training_loss: 1.9550259113311768
+Mean training positive score: 60.921134521861774 
+Mean training negative score: 5.027146186773346 
+Training ROC AUC: 0.9416686
+ Training 20000 entries took 0.13s 
+Iteration 231000 validation roc auc: 0.9392071846820367
+Mean validation positive score: 0.27099815011024475 
+Mean validation negative score: 0.9499547481536865 
+Iteration 231000 test roc auc: 0.9337162084540012
+Iteration time: nan validation time: 60.40967154502869 test time: 83.4226450920105
+Mean test positive score: 0.2864103615283966 
+Mean test negative score: 0.9570556282997131 
+232000 training iterations finished after 60079.13 seconds.
+Validating and testing.
+ training_loss: 1.9616745710372925
+Mean training positive score: 69.43245750565741 
+Mean training negative score: 6.448882926948931 
+Training ROC AUC: 0.930939
+ Training 20000 entries took 0.11s 
+Iteration 232000 validation roc auc: 0.9363953849725954
+Mean validation positive score: 0.2229231595993042 
+Mean validation negative score: 0.792919933795929 
+Iteration 232000 test roc auc: 0.9338897026738908
+Iteration time: nan validation time: 60.45039486885071 test time: 83.33329010009766
+Mean test positive score: 0.23405712842941284 
+Mean test negative score: 0.8083345890045166 
+233000 training iterations finished after 60335.40 seconds.
+Validating and testing.
+ training_loss: 1.9603242874145508
+Mean training positive score: 59.91707035130139 
+Mean training negative score: 5.3863243788450275 
+Training ROC AUC: 0.9416564000000001
+ Training 20000 entries took 0.11s 
+Iteration 233000 validation roc auc: 0.9413404547202796
+Mean validation positive score: 0.24036483466625214 
+Mean validation negative score: 0.8263536691665649 
+Iteration 233000 test roc auc: 0.9365247253694012
+Iteration time: nan validation time: 60.46978521347046 test time: 83.33965992927551
+Mean test positive score: 0.25122442841529846 
+Mean test negative score: 0.8317357301712036 
+234000 training iterations finished after 60590.04 seconds.
+Validating and testing.
+ training_loss: 1.9508612155914307
+Mean training positive score: 65.16917060921381 
+Mean training negative score: 4.765993171962267 
+Training ROC AUC: 0.9458202
+ Training 20000 entries took 0.11s 
+Iteration 234000 validation roc auc: 0.9404648496603748
+Mean validation positive score: 0.23047910630702972 
+Mean validation negative score: 0.809729278087616 
+Iteration 234000 test roc auc: 0.9350421149836825
+Iteration time: nan validation time: 59.96870183944702 test time: 83.18791818618774
+Mean test positive score: 0.23971565067768097 
+Mean test negative score: 0.8132553696632385 
+235000 training iterations finished after 60844.62 seconds.
+Validating and testing.
+ training_loss: 1.9527363777160645
+Mean training positive score: 61.672980422511195 
+Mean training negative score: 5.136866323847832 
+Training ROC AUC: 0.9411418
+ Training 20000 entries took 0.12s 
+Iteration 235000 validation roc auc: 0.93876375471833
+Mean validation positive score: 0.25765499472618103 
+Mean validation negative score: 0.8837470412254333 
+Iteration 235000 test roc auc: 0.9346484468187266
+Iteration time: nan validation time: 60.45661211013794 test time: 83.35125994682312
+Mean test positive score: 0.26592522859573364 
+Mean test negative score: 0.8925042152404785 
+236000 training iterations finished after 61105.56 seconds.
+Validating and testing.
+ training_loss: 1.9633722305297852
+Mean training positive score: 65.26189595114997 
+Mean training negative score: 4.817344551821965 
+Training ROC AUC: 0.9366828
+ Training 20000 entries took 0.11s 
+Iteration 236000 validation roc auc: 0.9446190537521838
+Mean validation positive score: 0.22974564135074615 
+Mean validation negative score: 0.7970743775367737 
+Iteration 236000 test roc auc: 0.937652340820795
+Iteration time: nan validation time: 60.00985074043274 test time: 83.06050205230713
+Mean test positive score: 0.24157243967056274 
+Mean test negative score: 0.7991117835044861 
+237000 training iterations finished after 61358.89 seconds.
+Validating and testing.
+ training_loss: 1.9612548351287842
+Mean training positive score: 57.14020259668408 
+Mean training negative score: 5.108520522751689 
+Training ROC AUC: 0.9364776
+ Training 20000 entries took 0.11s 
+Iteration 237000 validation roc auc: 0.9406743940243448
+Mean validation positive score: 0.21485260128974915 
+Mean validation negative score: 0.780269980430603 
+Iteration 237000 test roc auc: 0.93517099782282
+Iteration time: nan validation time: 60.35622549057007 test time: 83.30035614967346
+Mean test positive score: 0.2213607281446457 
+Mean test negative score: 0.7795377969741821 
+238000 training iterations finished after 61615.00 seconds.
+Validating and testing.
+ training_loss: 1.9577136039733887
+Mean training positive score: 63.49730071709614 
+Mean training negative score: 5.8629786113191384 
+Training ROC AUC: 0.935273
+ Training 20000 entries took 0.13s 
+Iteration 238000 validation roc auc: 0.9404772890953036
+Mean validation positive score: 0.22264468669891357 
+Mean validation negative score: 0.8018153309822083 
+Iteration 238000 test roc auc: 0.9372327601638019
+Iteration time: nan validation time: 59.94109320640564 test time: 83.03827929496765
+Mean test positive score: 0.22690732777118683 
+Mean test negative score: 0.8089613318443298 
+239000 training iterations finished after 61870.87 seconds.
+Validating and testing.
+ training_loss: 1.9520385265350342
+Mean training positive score: 61.02975960187197 
+Mean training negative score: 5.29659722002694 
+Training ROC AUC: 0.9438428
+ Training 20000 entries took 0.11s 
+Iteration 239000 validation roc auc: 0.9424897923373554
+Mean validation positive score: 0.23644135892391205 
+Mean validation negative score: 0.8385915756225586 
+Iteration 239000 test roc auc: 0.9349800243081519
+Iteration time: nan validation time: 60.33627486228943 test time: 83.25137543678284
+Mean test positive score: 0.24391178786754608 
+Mean test negative score: 0.8366952538490295 
+240000 training iterations finished after 62125.46 seconds.
+Validating and testing.
+ training_loss: 1.9534425735473633
+Mean training positive score: 52.64728801885867 
+Mean training negative score: 4.491383517299575 
+Training ROC AUC: 0.9409684
+ Training 20000 entries took 0.11s 
+Iteration 240000 validation roc auc: 0.9403012405168141
+Mean validation positive score: 0.2399718016386032 
+Mean validation negative score: 0.8541685342788696 
+Iteration 240000 test roc auc: 0.9352272062074936
+Iteration time: nan validation time: 60.29057812690735 test time: 83.43434619903564
+Mean test positive score: 0.24987167119979858 
+Mean test negative score: 0.8638784885406494 
+241000 training iterations finished after 62384.13 seconds.
+Validating and testing.
+ training_loss: 1.9557421207427979
+Mean training positive score: 69.64742267643146 
+Mean training negative score: 6.088555707032253 
+Training ROC AUC: 0.9365824
+ Training 20000 entries took 0.11s 
+Iteration 241000 validation roc auc: 0.9399903698508981
+Mean validation positive score: 0.24143676459789276 
+Mean validation negative score: 0.8580960631370544 
+Iteration 241000 test roc auc: 0.9344719718864295
+Iteration time: nan validation time: 60.36573672294617 test time: 83.0536162853241
+Mean test positive score: 0.2486155927181244 
+Mean test negative score: 0.8620481491088867 
+242000 training iterations finished after 62642.03 seconds.
+Validating and testing.
+ training_loss: 1.956804633140564
+Mean training positive score: 56.27916487811892 
+Mean training negative score: 4.659852778706411 
+Training ROC AUC: 0.9401968
+ Training 20000 entries took 0.12s 
+Iteration 242000 validation roc auc: 0.931692218071477
+Mean validation positive score: 0.2888931632041931 
+Mean validation negative score: 0.9158540964126587 
+Iteration 242000 test roc auc: 0.9288511039377955
+Iteration time: nan validation time: 60.37794804573059 test time: 83.37709546089172
+Mean test positive score: 0.2998618483543396 
+Mean test negative score: 0.9289999604225159 
+243000 training iterations finished after 62897.75 seconds.
+Validating and testing.
+ training_loss: 1.953680396080017
+Mean training positive score: 62.265557339379846 
+Mean training negative score: 4.905128553247749 
+Training ROC AUC: 0.938099
+ Training 20000 entries took 0.12s 
+Iteration 243000 validation roc auc: 0.9379499480385514
+Mean validation positive score: 0.2359006106853485 
+Mean validation negative score: 0.8426868319511414 
+Iteration 243000 test roc auc: 0.9345039373504092
+Iteration time: nan validation time: 60.356765031814575 test time: 83.06243944168091
+Mean test positive score: 0.23785778880119324 
+Mean test negative score: 0.8459014296531677 
+244000 training iterations finished after 63153.51 seconds.
+Validating and testing.
+ training_loss: 1.9550837278366089
+Mean training positive score: 61.44411926182294 
+Mean training negative score: 4.7366144492829605 
+Training ROC AUC: 0.9401944
+ Training 20000 entries took 0.11s 
+Iteration 244000 validation roc auc: 0.9320470063529444
+Mean validation positive score: 0.21318382024765015 
+Mean validation negative score: 0.7597349882125854 
+Iteration 244000 test roc auc: 0.9299539504604233
+Iteration time: nan validation time: 60.40548491477966 test time: 83.08996605873108
+Mean test positive score: 0.21658197045326233 
+Mean test negative score: 0.765387773513794 
+245000 training iterations finished after 63409.16 seconds.
+Validating and testing.
+ training_loss: 1.9549356698989868
+Mean training positive score: 61.07800146892015 
+Mean training negative score: 5.238973622508702 
+Training ROC AUC: 0.9415046
+ Training 20000 entries took 0.12s 
+Iteration 245000 validation roc auc: 0.9363329632914077
+Mean validation positive score: 0.22730688750743866 
+Mean validation negative score: 0.7913320064544678 
+Iteration 245000 test roc auc: 0.9315385024517919
+Iteration time: nan validation time: 59.93190050125122 test time: 82.95996356010437
+Mean test positive score: 0.2343716323375702 
+Mean test negative score: 0.7962103486061096 
+246000 training iterations finished after 63669.07 seconds.
+Validating and testing.
+ training_loss: 1.956143856048584
+Mean training positive score: 70.43456184512858 
+Mean training negative score: 5.499119071066797 
+Training ROC AUC: 0.9362002
+ Training 20000 entries took 0.12s 
+Iteration 246000 validation roc auc: 0.9371263369216962
+Mean validation positive score: 0.24100594222545624 
+Mean validation negative score: 0.8394458293914795 
+Iteration 246000 test roc auc: 0.9335860393001392
+Iteration time: nan validation time: 60.30221891403198 test time: 83.05582094192505
+Mean test positive score: 0.25233182311058044 
+Mean test negative score: 0.8587048053741455 
+247000 training iterations finished after 63924.18 seconds.
+Validating and testing.
+ training_loss: 1.9617440700531006
+Mean training positive score: 66.96928683510153 
+Mean training negative score: 4.89923303036383 
+Training ROC AUC: 0.9367446
+ Training 20000 entries took 0.11s 
+Iteration 247000 validation roc auc: 0.9394535894756059
+Mean validation positive score: 0.21830464899539948 
+Mean validation negative score: 0.767370343208313 
+Iteration 247000 test roc auc: 0.9365211426182567
+Iteration time: nan validation time: 60.54036855697632 test time: 83.39457726478577
+Mean test positive score: 0.22505252063274384 
+Mean test negative score: 0.7595062255859375 
+248000 training iterations finished after 64177.85 seconds.
+Validating and testing.
+ training_loss: 1.950287103652954
+Mean training positive score: 59.94533927672942 
+Mean training negative score: 4.977555384820437 
+Training ROC AUC: 0.9447978
+ Training 20000 entries took 0.12s 
+Iteration 248000 validation roc auc: 0.940283516316013
+Mean validation positive score: 0.24037815630435944 
+Mean validation negative score: 0.8422154188156128 
+Iteration 248000 test roc auc: 0.9367625586002085
+Iteration time: nan validation time: 60.292736768722534 test time: 82.98817658424377
+Mean test positive score: 0.24777233600616455 
+Mean test negative score: 0.8538039326667786 
+249000 training iterations finished after 64434.01 seconds.
+Validating and testing.
+ training_loss: 1.9595963954925537
+Mean training positive score: 57.41565291115728 
+Mean training negative score: 5.401230980703306 
+Training ROC AUC: 0.935508
+ Training 20000 entries took 0.11s 
+Iteration 249000 validation roc auc: 0.9374566539899244
+Mean validation positive score: 0.22922547161579132 
+Mean validation negative score: 0.8198747634887695 
+Iteration 249000 test roc auc: 0.9339223229325794
+Iteration time: nan validation time: 60.00657820701599 test time: 83.0133945941925
+Mean test positive score: 0.23615007102489471 
+Mean test negative score: 0.8257402777671814 
+250000 training iterations finished after 64687.71 seconds.
+Validating and testing.
+ training_loss: 1.957371473312378
+Mean training positive score: 57.73944909084571 
+Mean training negative score: 5.2439827202648335 
+Training ROC AUC: 0.935692
+ Training 20000 entries took 0.11s 
+Iteration 250000 validation roc auc: 0.937444400659104
+Mean validation positive score: 0.24558418989181519 
+Mean validation negative score: 0.8519718050956726 
+Iteration 250000 test roc auc: 0.9343120002634323
+Iteration time: nan validation time: 60.21965217590332 test time: 82.98227119445801
+Mean test positive score: 0.2514629662036896 
+Mean test negative score: 0.8561551570892334 
+251000 training iterations finished after 64948.24 seconds.
+Validating and testing.
+ training_loss: 1.9577096700668335
+Mean training positive score: 58.98761183634561 
+Mean training negative score: 5.021919013032454 
+Training ROC AUC: 0.9354823999999999
+ Training 20000 entries took 0.11s 
+Iteration 251000 validation roc auc: 0.9389782234560892
+Mean validation positive score: 0.24276010692119598 
+Mean validation negative score: 0.8368076086044312 
+Iteration 251000 test roc auc: 0.9326815676446955
+Iteration time: nan validation time: 60.30300974845886 test time: 83.50668549537659
+Mean test positive score: 0.25482121109962463 
+Mean test negative score: 0.8600261211395264 
+252000 training iterations finished after 65209.69 seconds.
+Validating and testing.
+ training_loss: 1.9549553394317627
+Mean training positive score: 60.24046222942525 
+Mean training negative score: 4.870252374661874 
+Training ROC AUC: 0.9387476
+ Training 20000 entries took 0.12s 
+Iteration 252000 validation roc auc: 0.9377651732452007
+Mean validation positive score: 0.2458944171667099 
+Mean validation negative score: 0.8785486817359924 
+Iteration 252000 test roc auc: 0.9320726690795613
+Iteration time: nan validation time: 60.34481143951416 test time: 83.30914402008057
+Mean test positive score: 0.255437433719635 
+Mean test negative score: 0.878433108329773 
+253000 training iterations finished after 65472.91 seconds.
+Validating and testing.
+ training_loss: 1.9555524587631226
+Mean training positive score: 67.95155802622081 
+Mean training negative score: 4.741090655554353 
+Training ROC AUC: 0.9378238
+ Training 20000 entries took 0.13s 
+Iteration 253000 validation roc auc: 0.9383864537478118
+Mean validation positive score: 0.22787845134735107 
+Mean validation negative score: 0.8099868297576904 
+Iteration 253000 test roc auc: 0.9372187472467007
+Iteration time: nan validation time: 60.478551149368286 test time: 83.31802797317505
+Mean test positive score: 0.23590806126594543 
+Mean test negative score: 0.8337933421134949 
+254000 training iterations finished after 65735.20 seconds.
+Validating and testing.
+ training_loss: 1.9547287225723267
+Mean training positive score: 58.786643899638776 
+Mean training negative score: 4.6037313716036445 
+Training ROC AUC: 0.9427534
+ Training 20000 entries took 0.11s 
+Iteration 254000 validation roc auc: 0.9411764231499331
+Mean validation positive score: 0.2408381700515747 
+Mean validation negative score: 0.8436962366104126 
+Iteration 254000 test roc auc: 0.9344795563332007
+Iteration time: nan validation time: 60.28070378303528 test time: 83.447514295578
+Mean test positive score: 0.246833935379982 
+Mean test negative score: 0.8419355154037476 
+255000 training iterations finished after 65995.27 seconds.
+Validating and testing.
+ training_loss: 1.9532749652862549
+Mean training positive score: 57.83895697632682 
+Mean training negative score: 5.304618853614465 
+Training ROC AUC: 0.9395606
+ Training 20000 entries took 0.11s 
+Iteration 255000 validation roc auc: 0.9390834047717094
+Mean validation positive score: 0.22425054013729095 
+Mean validation negative score: 0.7880830764770508 
+Iteration 255000 test roc auc: 0.9343781376323301
+Iteration time: nan validation time: 60.765928506851196 test time: 83.7650899887085
+Mean test positive score: 0.23182269930839539 
+Mean test negative score: 0.8014137148857117 
+256000 training iterations finished after 66255.02 seconds.
+Validating and testing.
+ training_loss: 1.9603933095932007
+Mean training positive score: 62.83864454076714 
+Mean training negative score: 5.791250125541593 
+Training ROC AUC: 0.9352114
+ Training 20000 entries took 0.11s 
+Iteration 256000 validation roc auc: 0.937452955540024
+Mean validation positive score: 0.24444995820522308 
+Mean validation negative score: 0.877324104309082 
+Iteration 256000 test roc auc: 0.9345002087445189
+Iteration time: nan validation time: 60.249945878982544 test time: 83.43843007087708
+Mean test positive score: 0.24938863515853882 
+Mean test negative score: 0.8832151889801025 
+257000 training iterations finished after 66517.78 seconds.
+Validating and testing.
+ training_loss: 1.949451208114624
+Mean training positive score: 51.51820190009218 
+Mean training negative score: 4.235325739731895 
+Training ROC AUC: 0.9450822
+ Training 20000 entries took 0.12s 
+Iteration 257000 validation roc auc: 0.938379449734462
+Mean validation positive score: 0.26569196581840515 
+Mean validation negative score: 0.9123644232749939 
+Iteration 257000 test roc auc: 0.934204876159375
+Iteration time: nan validation time: 60.42989206314087 test time: 83.39793252944946
+Mean test positive score: 0.27483662962913513 
+Mean test negative score: 0.9271115660667419 
+258000 training iterations finished after 66775.77 seconds.
+Validating and testing.
+ training_loss: 1.9567500352859497
+Mean training positive score: 54.7152290451466 
+Mean training negative score: 5.047483991017546 
+Training ROC AUC: 0.9397814
+ Training 20000 entries took 0.11s 
+Iteration 258000 validation roc auc: 0.9363522472218793
+Mean validation positive score: 0.24285364151000977 
+Mean validation negative score: 0.8634876608848572 
+Iteration 258000 test roc auc: 0.9331498637867186
+Iteration time: nan validation time: 60.52431392669678 test time: 83.22504830360413
+Mean test positive score: 0.24895402789115906 
+Mean test negative score: 0.8764246702194214 
+259000 training iterations finished after 67034.61 seconds.
+Validating and testing.
+ training_loss: 1.947383999824524
+Mean training positive score: 57.2570056235711 
+Mean training negative score: 4.4657728720421055 
+Training ROC AUC: 0.9422022
+ Training 20000 entries took 0.12s 
+Iteration 259000 validation roc auc: 0.9319620306262374
+Mean validation positive score: 0.24507302045822144 
+Mean validation negative score: 0.8390955924987793 
+Iteration 259000 test roc auc: 0.9294150016589736
+Iteration time: nan validation time: 60.15919899940491 test time: 83.45145153999329
+Mean test positive score: 0.2552158534526825 
+Mean test negative score: 0.8603395819664001 
+260000 training iterations finished after 67290.07 seconds.
+Validating and testing.
+ training_loss: 1.9537419080734253
+Mean training positive score: 62.50477092951941 
+Mean training negative score: 5.080378108531469 
+Training ROC AUC: 0.9371062
+ Training 20000 entries took 0.11s 
+Iteration 260000 validation roc auc: 0.9397327279140211
+Mean validation positive score: 0.25309526920318604 
+Mean validation negative score: 0.8888424038887024 
+Iteration 260000 test roc auc: 0.9352354842401294
+Iteration time: nan validation time: 60.33662009239197 test time: 83.01347541809082
+Mean test positive score: 0.26103323698043823 
+Mean test negative score: 0.8919944763183594 
+261000 training iterations finished after 67546.19 seconds.
+Validating and testing.
+ training_loss: 1.9609932899475098
+Mean training positive score: 56.584452730208476 
+Mean training negative score: 4.7747129345962 
+Training ROC AUC: 0.9411374
+ Training 20000 entries took 0.12s 
+Iteration 261000 validation roc auc: 0.9418547667170231
+Mean validation positive score: 0.23686744272708893 
+Mean validation negative score: 0.834115743637085 
+Iteration 261000 test roc auc: 0.932564495936659
+Iteration time: nan validation time: 60.636168003082275 test time: 83.27532505989075
+Mean test positive score: 0.25189030170440674 
+Mean test negative score: 0.8351560235023499 
+262000 training iterations finished after 67808.11 seconds.
+Validating and testing.
+ training_loss: 1.9544717073440552
+Mean training positive score: 64.90138238420889 
+Mean training negative score: 4.963508833336939 
+Training ROC AUC: 0.9394244
+ Training 20000 entries took 0.12s 
+Iteration 262000 validation roc auc: 0.934013113545366
+Mean validation positive score: 0.27283570170402527 
+Mean validation negative score: 0.9206047654151917 
+Iteration 262000 test roc auc: 0.9258660174396781
+Iteration time: nan validation time: 60.053053855895996 test time: 83.23217582702637
+Mean test positive score: 0.28394919633865356 
+Mean test negative score: 0.92148756980896 
+263000 training iterations finished after 68064.68 seconds.
+Validating and testing.
+ training_loss: 1.9590188264846802
+Mean training positive score: 65.60610304638226 
+Mean training negative score: 5.509673841909863 
+Training ROC AUC: 0.9339278
+ Training 20000 entries took 0.12s 
+Iteration 263000 validation roc auc: 0.9413078865013077
+Mean validation positive score: 0.22509054839611053 
+Mean validation negative score: 0.7725637555122375 
+Iteration 263000 test roc auc: 0.9362658533673645
+Iteration time: nan validation time: 60.13575053215027 test time: 83.05323529243469
+Mean test positive score: 0.235256165266037 
+Mean test negative score: 0.7761825323104858 
+264000 training iterations finished after 68322.08 seconds.
+Validating and testing.
+ training_loss: 1.9557310342788696
+Mean training positive score: 59.763064935009346 
+Mean training negative score: 5.332365866824609 
+Training ROC AUC: 0.9409794
+ Training 20000 entries took 0.11s 
+Iteration 264000 validation roc auc: 0.9414494142447039
+Mean validation positive score: 0.2401426136493683 
+Mean validation negative score: 0.8630982637405396 
+Iteration 264000 test roc auc: 0.9330077904029818
+Iteration time: nan validation time: 60.22617769241333 test time: 83.0304708480835
+Mean test positive score: 0.24721333384513855 
+Mean test negative score: 0.8656070828437805 
+265000 training iterations finished after 68579.20 seconds.
+Validating and testing.
+ training_loss: 1.953727126121521
+Mean training positive score: 53.44583677401499 
+Mean training negative score: 4.537151006714377 
+Training ROC AUC: 0.9422882
+ Training 20000 entries took 0.12s 
+Iteration 265000 validation roc auc: 0.9389425623640775
+Mean validation positive score: 0.2365138977766037 
+Mean validation negative score: 0.8345827460289001 
+Iteration 265000 test roc auc: 0.9338933862820403
+Iteration time: nan validation time: 60.57632803916931 test time: 83.67986488342285
+Mean test positive score: 0.24589569866657257 
+Mean test negative score: 0.855975329875946 
+266000 training iterations finished after 68836.20 seconds.
+Validating and testing.
+ training_loss: 1.9461523294448853
+Mean training positive score: 53.77249691155574 
+Mean training negative score: 3.8947387814441967 
+Training ROC AUC: 0.9460594
+ Training 20000 entries took 0.12s 
+Iteration 266000 validation roc auc: 0.942087210748428
+Mean validation positive score: 0.262285053730011 
+Mean validation negative score: 0.9055651426315308 
+Iteration 266000 test roc auc: 0.9313708191470327
+Iteration time: nan validation time: 60.20434808731079 test time: 82.99308609962463
+Mean test positive score: 0.273098886013031 
+Mean test negative score: 0.905994176864624 
