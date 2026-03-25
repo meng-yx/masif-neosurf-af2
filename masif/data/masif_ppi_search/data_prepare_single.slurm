@@ -12,4 +12,9 @@
 PDBID="1F3X"
 CHAIN1="G"
 CHAIN2="H"
-./data_prepare_one.sh $PDBID\_$CHAIN1\_$CHAIN2
+PINDER_PDB_DIR="$1"
+if [ -z "$PINDER_PDB_DIR" ]; then
+    echo "Usage: sbatch data_prepare_single.slurm /path/to/pinder_pdb_dir"
+    exit 1
+fi
+./data_prepare_one.sh $PDBID\_$CHAIN1\_$CHAIN2 "$PINDER_PDB_DIR"

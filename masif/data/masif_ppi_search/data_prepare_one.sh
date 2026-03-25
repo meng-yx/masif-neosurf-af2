@@ -4,17 +4,38 @@ masif_source=$masif_root/source/
 docker_image=$masif_neosurf_root/masif-neosurf_v0.1.sif
 echo "docker image: $docker_image"
 export PYTHONPATH=$PYTHONPATH:$masif_source
+if [ -z "$2" ]; then
+    echo "Usage: $0 PDBID_CHAIN1_CHAIN2 /path/to/pinder_pdb_dir"
+    exit 1
+fi
 PDB_ID=$(echo $1| cut -d"_" -f1)
 CHAIN1=$(echo $1| cut -d"_" -f2)
 CHAIN2=$(echo $1| cut -d"_" -f3)
+PINDER_PDB_DIR=$2
+PINDER_PDB_DIR_REAL=$(readlink -f "$PINDER_PDB_DIR")
 
-# Singularity bind paths - bind the entire repo root to make all paths accessible
-SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root"
+if [ ! -d "$PINDER_PDB_DIR_REAL" ]; then
+    echo "Error: pinder_pdb_dir does not exist or is not a directory: $PINDER_PDB_DIR"
+    exit 1
+fi
 
-echo "Running pdb_download.py"
+# Bind repo root and the resolved Pinder directory (important when pinderMaSIF is a symlink).
+SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root,$PINDER_PDB_DIR_REAL:$PINDER_PDB_DIR_REAL"
+
+# Construct the path to the expected final output .npy file
+FINAL_OUT_PATH="data_preparation/04b-precomputation_12A/precomputation/${PDB_ID}_${CHAIN1}_${CHAIN2}/p1_sc_labels.npy"
+if [ -f "$FINAL_OUT_PATH" ]; then
+    echo "$FINAL_OUT_PATH already exists"
+    echo "Skipped data preparation"
+    exit 0
+fi
+
+echo "Running 00d-pdb_from_pinder.py"
 # Run Python scripts inside Singularity container
-singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/00-pdb_download.py $1 
-singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN1 
-singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/01-pdb_extract_and_triangulate.py $PDB_ID\_$CHAIN2
-singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_site $1
-singularity exec --bind $SINGULARITY_BIND $docker_image python $masif_source/data_preparation/04-masif_precompute.py masif_ppi_search $1
+echo "Using Pinder PDB directory: $PINDER_PDB_DIR_REAL"
+singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/00d-pdb_from_pinder.py" "$1" --pinder-pdb-dir "$PINDER_PDB_DIR_REAL"
+singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}_${CHAIN1}"
+singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}_${CHAIN2}"
+singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_site "$1"
+singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_ppi_search "$1"
+
