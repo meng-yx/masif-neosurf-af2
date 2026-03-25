@@ -9,9 +9,7 @@ from cache_shard_common import FINAL_CACHE_FILES, ensure_dir, load_params, read_
 def parse_args():
     parser = argparse.ArgumentParser(description='Merge subset cache shards into final cache.')
     parser.add_argument('custom_params_module', nargs='?', default=None)
-    parser.add_argument('--subset-root', default=None)
     parser.add_argument('--num-subsets', type=int, required=True)
-    parser.add_argument('--cache-dir', default=None)
     return parser.parse_args()
 
 
@@ -49,8 +47,9 @@ def load_parts_arrays(subset_dir, manifest):
 def main():
     args = parse_args()
     params = load_params(args.custom_params_module)
-    subset_root = args.subset_root or os.path.join(params['cache_dir'], 'subsets')
-    cache_dir = args.cache_dir or params['cache_dir']
+    # Keep all cache artifacts under params["cache_dir"] (custom_params.py).
+    subset_root = os.path.join(params['cache_dir'], 'subsets')
+    cache_dir = params['cache_dir']
     ensure_dir(cache_dir)
 
     combined = {name: [] for name in FINAL_CACHE_FILES}

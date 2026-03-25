@@ -270,8 +270,6 @@ class SubsetPartWriter:
 def parse_args():
     parser = argparse.ArgumentParser(description='Generate one cache subset from a global catalog.')
     parser.add_argument('custom_params_module', nargs='?', default=None)
-    parser.add_argument('--catalog-dir', default=None)
-    parser.add_argument('--subset-root', default=None)
     parser.add_argument('--subset-id', type=int, required=True)
     parser.add_argument('--num-subsets', type=int, required=True)
     parser.add_argument('--progress-every-records', type=int, default=1)
@@ -377,8 +375,9 @@ def main():
         raise ValueError('--subset-id must be in [0, num_subsets).')
 
     params = load_params(args.custom_params_module)
-    catalog_dir = args.catalog_dir or os.path.join(params['cache_dir'], 'catalog')
-    subset_root = args.subset_root or os.path.join(params['cache_dir'], 'subsets')
+    # Keep all cache artifacts under params["cache_dir"] (custom_params.py).
+    catalog_dir = os.path.join(params['cache_dir'], 'catalog')
+    subset_root = os.path.join(params['cache_dir'], 'subsets')
     subset_dir = os.path.join(subset_root, 'subset_{}'.format(args.subset_id))
     ensure_dir(subset_dir)
 

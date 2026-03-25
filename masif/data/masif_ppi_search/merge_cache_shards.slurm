@@ -17,10 +17,6 @@ Usage: sbatch merge_cache_shards.slurm [OPTIONS]
 Options:
   --custom-params-module MODULE   Python module for custom params.
                                   Sets CUSTOM_PARAMS_MODULE.
-  --subset-root DIR               Subset shard root directory.
-                                  Sets CACHE_SUBSET_ROOT.
-  --cache-output-dir DIR          Final merged cache output directory.
-                                  Sets CACHE_OUTPUT_DIR.
   --num-subsets INT               Number of subsets/shards to merge.
                                   Sets NUM_SUBSETS.
   -h, --help                      Show this help message.
@@ -32,16 +28,6 @@ while [[ $# -gt 0 ]]; do
         --custom-params-module)
             [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
             export CUSTOM_PARAMS_MODULE="$2"
-            shift 2
-            ;;
-        --subset-root)
-            [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
-            export CACHE_SUBSET_ROOT="$2"
-            shift 2
-            ;;
-        --cache-output-dir)
-            [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
-            export CACHE_OUTPUT_DIR="$2"
             shift 2
             ;;
         --num-subsets)

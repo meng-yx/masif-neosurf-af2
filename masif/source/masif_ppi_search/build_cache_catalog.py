@@ -25,11 +25,6 @@ def parse_args():
         help="Python module path containing custom_params dictionary",
     )
     parser.add_argument(
-        "--catalog-dir",
-        default=None,
-        help="Catalog output directory. Defaults to <cache_dir>/catalog.",
-    )
-    parser.add_argument(
         "--seed",
         type=int,
         default=None,
@@ -138,7 +133,8 @@ def main():
         x.rstrip() for x in open(params["testing_list"]).readlines()
     )
     all_pairs = sorted(os.listdir(params["masif_precomputation_dir"]))
-    catalog_dir = args.catalog_dir or os.path.join(params["cache_dir"], "catalog")
+    # Keep all cache artifacts under params["cache_dir"] (custom_params.py).
+    catalog_dir = os.path.join(params["cache_dir"], "catalog")
     ensure_dir(catalog_dir)
 
     print("Building cache catalog in {}".format(catalog_dir))

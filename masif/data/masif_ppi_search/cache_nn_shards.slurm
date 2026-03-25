@@ -20,10 +20,6 @@ Usage: sbatch [--array=RANGE] cache_nn_shards.slurm [OPTIONS]
 Options:
   --custom-params-module MODULE   Python module for custom params.
                                   Sets CUSTOM_PARAMS_MODULE.
-  --catalog-dir DIR               Cache catalog directory.
-                                  Sets CACHE_CATALOG_DIR.
-  --subset-root DIR               Subset shard root directory.
-                                  Sets CACHE_SUBSET_ROOT.
   --num-subsets INT               Number of subsets/shards.
                                   Sets NUM_SUBSETS.
   --pair-cache-max-records INT    Max records per in-memory pair cache.
@@ -42,16 +38,6 @@ while [[ $# -gt 0 ]]; do
         --custom-params-module)
             [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
             export CUSTOM_PARAMS_MODULE="$2"
-            shift 2
-            ;;
-        --catalog-dir)
-            [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
-            export CACHE_CATALOG_DIR="$2"
-            shift 2
-            ;;
-        --subset-root)
-            [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; }
-            export CACHE_SUBSET_ROOT="$2"
             shift 2
             ;;
         --num-subsets)
