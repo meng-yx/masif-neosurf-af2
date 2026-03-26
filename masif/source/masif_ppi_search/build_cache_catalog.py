@@ -33,19 +33,30 @@ def parse_args():
     return parser.parse_args()
 
 
-def build_record(params, ppi_pair_id):
+def resolve_split(params, ppi_pair_id):
+    if ppi_pair_id in params["_training_list"]:
+        return "train" if np.random.random() <= params["range_val_samples"] else "val"
+    elif ppi_pair_id in params["_testing_list"]:
+        return "test"
+    return None
+
+
+def get_model_type(ppi_pair_id):
+    # Example: 1ATP-PP_L_R -> PP
+    return ppi_pair_id.split("-")[1].split("_")[0]
+
+
+def to_pp_complex_id(ppi_pair_id):
+    model_type = get_model_type(ppi_pair_id)
+    return ppi_pair_id.replace("-{}_".format(model_type), "-PP_", 1)
+
+
+def build_pp_record(params, ppi_pair_id, split):
     in_dir = os.path.join(params["masif_precomputation_dir"], ppi_pair_id)
     fields = ppi_pair_id.split("_")
     if len(fields) < 3:
         return None
     pdb_id = fields[0]
-
-    if ppi_pair_id in params["_training_list"]:
-        split = "train" if np.random.random() <= params["range_val_samples"] else "val"
-    elif ppi_pair_id in params["_testing_list"]:
-        split = "test"
-    else:
-        return None
 
     try:
         labels = np.load(os.path.join(in_dir, "p1_sc_labels.npy"))
@@ -98,6 +109,96 @@ def build_record(params, ppi_pair_id):
     }
 
 
+def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record):
+    target_in_dir = os.path.join(params["masif_precomputation_dir"], target_ppi_pair_id)
+    target_fields = target_ppi_pair_id.split("_")
+    if len(target_fields) < 3:
+        return None
+
+    pp_fields = pp_record["ppi_pair_id"].split("_")
+    if len(pp_fields) < 3:
+        return None
+
+    try:
+        pp_ply1 = masif_opts["ply_file_template"].format(pp_fields[0], pp_fields[1])
+        pp_ply2 = masif_opts["ply_file_template"].format(pp_fields[0], pp_fields[2])
+        tgt_ply1 = masif_opts["ply_file_template"].format(target_fields[0], target_fields[1])
+        tgt_ply2 = masif_opts["ply_file_template"].format(target_fields[0], target_fields[2])
+
+        pp_v1 = pymesh.load_mesh(pp_ply1).vertices
+        pp_v2 = pymesh.load_mesh(pp_ply2).vertices
+        target_v1 = pymesh.load_mesh(tgt_ply1).vertices
+        target_v2 = pymesh.load_mesh(tgt_ply2).vertices
+    except Exception as exc:
+        print("Could not load mapping meshes for {}: {}".format(target_ppi_pair_id, exc))
+        return None
+
+    if len(pp_record["k1"]) == 0 or len(pp_record["k2"]) == 0:
+        return None
+
+    pp_coords_p1 = pp_v1[np.asarray(pp_record["k1"], dtype=int)]
+    pp_coords_p2 = pp_v2[np.asarray(pp_record["k2"], dtype=int)]
+
+    kdt_tgt_v1 = cKDTree(target_v1)
+    _, k1_map = kdt_tgt_v1.query(pp_coords_p1)
+    k1_map = np.asarray(k1_map, dtype=int)
+
+    kdt_tgt_v2 = cKDTree(target_v2)
+    _, k2_map = kdt_tgt_v2.query(pp_coords_p2)
+    k2_map = np.asarray(k2_map, dtype=int)
+
+    if len(k1_map) == 0 or len(k2_map) == 0:
+        return None
+
+    v1_candidates = target_v1[k1_map]
+    kdt_v1 = cKDTree(v1_candidates)
+    dneg, _ = kdt_v1.query(target_v2)
+    k_neg2 = np.where(dneg > params["pos_interface_cutoff"])[0]
+    if len(k_neg2) == 0:
+        print("No non-interface negatives for {}, skipping.".format(target_ppi_pair_id))
+        return None
+
+    return {
+        "ppi_pair_id": target_ppi_pair_id,
+        "pdb_id": target_fields[0],
+        "split": split,
+        "in_dir": target_in_dir,
+        "k1": k1_map,
+        "k2": k2_map,
+        "k_neg2": np.asarray(k_neg2, dtype=int),
+        "within_dneg": np.asarray(dneg[k_neg2], dtype=float),
+    }
+
+
+def build_record(params, ppi_pair_id, pp_record_cache):
+    split = resolve_split(params, ppi_pair_id)
+    if split is None:
+        return None
+
+    model_type = get_model_type(ppi_pair_id)
+    if model_type == "PP":
+        print("Building PP-native positives for {}".format(ppi_pair_id))
+        return build_pp_record(params, ppi_pair_id, split)
+
+    if model_type in ["PA", "AP"]:
+        pp_id = to_pp_complex_id(ppi_pair_id)
+        if pp_id not in pp_record_cache:
+            pp_split = resolve_split(params, pp_id)
+            if pp_split is None:
+                print("Could not resolve split for PP source {}, skipping {}.".format(pp_id, ppi_pair_id))
+                return None
+            pp_record_cache[pp_id] = build_pp_record(params, pp_id, pp_split)
+        pp_record = pp_record_cache.get(pp_id)
+        if pp_record is None:
+            print("Could not build PP source {}, skipping {}.".format(pp_id, ppi_pair_id))
+            return None
+        print("Building mapped-from-PP positives for {} via {}".format(ppi_pair_id, pp_id))
+        return build_mapped_record_from_pp(params, ppi_pair_id, split, pp_record)
+
+    # Leave AA (and any unknown model type) unchanged for now.
+    return None
+
+
 def build_pools(records):
     pools = {
         "trainval": {
@@ -140,10 +241,11 @@ def main():
     print("Building cache catalog in {}".format(catalog_dir))
     print("Scanning {} candidate directories".format(len(all_pairs)))
     records = []
+    pp_record_cache = {}
     for count, ppi_pair_id in enumerate(all_pairs):
         if count % 100 == 0:
             print("{}/{}".format(count, len(all_pairs)))
-        rec = build_record(params, ppi_pair_id)
+        rec = build_record(params, ppi_pair_id, pp_record_cache)
         if rec is not None:
             records.append(rec)
     if len(records) == 0:
