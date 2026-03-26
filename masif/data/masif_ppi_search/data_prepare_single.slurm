@@ -10,6 +10,10 @@
 
 COMPLEX_ID="$1"
 PINDER_PDB_DIR="$2"
+
+echo "complex_id: $COMPLEX_ID"
+echo "pinder_pdb_dir: $PINDER_PDB_DIR"
+
 if [ -z "$COMPLEX_ID" ] || [ -z "$PINDER_PDB_DIR" ]; then
     echo "Usage: sbatch data_prepare_single.slurm COMPLEX_ID /path/to/pinder_pdb_dir"
     exit 1

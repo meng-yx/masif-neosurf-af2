@@ -32,7 +32,7 @@ s.close()
 ")
 
 # --- launch Jupyter inside Singularity ---
-singularity exec --cleanenv --bind $SINGULARITY_BIND $IMAGE \
+singularity exec --bind $SINGULARITY_BIND $IMAGE \
   bash -c "pip install pandas numpy tqdm pyyaml && \
     jupyter notebook \
     --no-browser \
