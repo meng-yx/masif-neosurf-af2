@@ -23,9 +23,10 @@ fi
 SINGULARITY_BIND="$masif_neosurf_root:$masif_neosurf_root,$PINDER_PDB_DIR_REAL:$PINDER_PDB_DIR_REAL"
 
 # Construct the path to the expected final output .npy file
-FINAL_OUT_PATH="data_preparation/04b-precomputation_12A/precomputation/${PDB_ID}_${CHAIN1}_${CHAIN2}/p1_sc_labels.npy"
-if [ -f "$FINAL_OUT_PATH" ]; then
-    echo "$FINAL_OUT_PATH already exists"
+FINAL_OUT_PATH_1="data_preparation/04b-precomputation_12A/precomputation/${PDB_ID}_${CHAIN1}_${CHAIN2}/p1_sc_labels.npy"
+FINAL_OUT_PATH_2="data_preparation/04b-precomputation_12A/precomputation/${PDB_ID}_${CHAIN1}_${CHAIN2}/p2_sc_labels.npy"
+if [ -f "$FINAL_OUT_PATH_1" ] && [ -f "$FINAL_OUT_PATH_2" ]; then
+    echo "$FINAL_OUT_PATH_1 and $FINAL_OUT_PATH_2 already exist"
     echo "Skipped data preparation"
     exit 0
 fi
