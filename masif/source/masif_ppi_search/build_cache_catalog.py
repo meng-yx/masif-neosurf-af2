@@ -43,11 +43,16 @@ def resolve_split(params, ppi_pair_id):
 
 def get_model_type(ppi_pair_id):
     # Example: 1ATP-PP_L_R -> PP
-    return ppi_pair_id.split("-")[1].split("_")[0]
+    try:
+        return ppi_pair_id.split("-")[1].split("_")[0]
+    except Exception:
+        return None
 
 
 def to_pp_complex_id(ppi_pair_id):
     model_type = get_model_type(ppi_pair_id)
+    if model_type is None:
+        return None
     return ppi_pair_id.replace("-{}_".format(model_type), "-PP_", 1)
 
 
@@ -221,6 +226,43 @@ def build_pools(records):
     return pools
 
 
+def collect_allowed_pairs(params):
+    """
+    Restrict catalog candidates to:
+      1) PP complexes explicitly listed in training/testing lists.
+      2) Existing non-PP variants (PA/AP/AA/...) whose PP source is listed.
+    """
+    listed_ids = params["_training_list"] | params["_testing_list"]
+    pp_ids = sorted(
+        ppi_pair_id for ppi_pair_id in listed_ids if get_model_type(ppi_pair_id) == "PP"
+    )
+    pp_id_set = set(pp_ids)
+
+    precomp_dir = params["masif_precomputation_dir"]
+    existing_dirs = sorted(os.listdir(precomp_dir))
+    existing_set = set(existing_dirs)
+
+    missing_pp = sorted(pp_id for pp_id in pp_ids if pp_id not in existing_set)
+    if missing_pp:
+        print(
+            "Warning: {} PP IDs listed but missing in precomputation dir.".format(
+                len(missing_pp)
+            )
+        )
+        print("First 10 missing PP IDs: {}".format(missing_pp[:10]))
+
+    available_pp = [pp_id for pp_id in pp_ids if pp_id in existing_set]
+    derived_ids = [
+        ppi_pair_id
+        for ppi_pair_id in existing_dirs
+        if get_model_type(ppi_pair_id) != "PP"
+        and to_pp_complex_id(ppi_pair_id) in pp_id_set
+    ]
+
+    all_pairs = sorted(set(available_pp) | set(derived_ids))
+    return all_pairs, available_pp, derived_ids
+
+
 def main():
     args = parse_args()
     params = load_params(args.custom_params_module)
@@ -233,13 +275,23 @@ def main():
     params["_testing_list"] = set(
         x.rstrip() for x in open(params["testing_list"]).readlines()
     )
-    all_pairs = sorted(os.listdir(params["masif_precomputation_dir"]))
+    all_pairs, available_pp, derived_ids = collect_allowed_pairs(params)
     # Keep all cache artifacts under params["cache_dir"] (custom_params.py).
     catalog_dir = os.path.join(params["cache_dir"], "catalog")
     ensure_dir(catalog_dir)
 
     print("Building cache catalog in {}".format(catalog_dir))
-    print("Scanning {} candidate directories".format(len(all_pairs)))
+    print(
+        "Restricted candidate set from train/test lists: "
+        "{} PP + {} mapped variants = {} total".format(
+            len(available_pp), len(derived_ids), len(all_pairs)
+        )
+    )
+    if len(all_pairs) == 0:
+        raise RuntimeError(
+            "No candidate pairs found after list-based filtering. "
+            "Check training/testing lists and masif_precomputation_dir."
+        )
     records = []
     pp_record_cache = {}
     for count, ppi_pair_id in enumerate(all_pairs):
