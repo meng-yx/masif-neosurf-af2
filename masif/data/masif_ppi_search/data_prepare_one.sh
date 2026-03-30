@@ -50,12 +50,20 @@ if [ "$MODEL_TYPE" == "PP" ]; then
     exit 0
 else
     echo "Non-PP model detected, prepare the PP model first..."
-    echo "Equivalent PP model: ${PDB_ID}-PP_${CHAIN1}_${CHAIN2}"
-    singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/00d-pdb_from_pinder.py" "${PDB_ID}-PP_${CHAIN1}_${CHAIN2}" --pinder-pdb-dir "$PINDER_PDB_DIR_REAL"
-    singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}-PP_${CHAIN1}"
-    singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}-PP_${CHAIN2}"
-    singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_site "${PDB_ID}-PP_${CHAIN1}_${CHAIN2}"
-    singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_ppi_search "${PDB_ID}-PP_${CHAIN1}_${CHAIN2}"
+    PP_MODEL="${PDB_ID}-PP_${CHAIN1}_${CHAIN2}"
+    PP_FINAL_OUT_PATH_1="data_preparation/04b-precomputation_12A/precomputation/${PP_MODEL}/p1_sc_labels.npy"
+    PP_FINAL_OUT_PATH_2="data_preparation/04b-precomputation_12A/precomputation/${PP_MODEL}/p2_sc_labels.npy"
+    echo "Equivalent PP model: ${PP_MODEL}"
+    if [ -f "$PP_FINAL_OUT_PATH_1" ] && [ -f "$PP_FINAL_OUT_PATH_2" ]; then
+        echo "$PP_FINAL_OUT_PATH_1 and $PP_FINAL_OUT_PATH_2 already exist"
+        echo "Skipped PP data preparation"
+    else
+        singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/00d-pdb_from_pinder.py" "${PP_MODEL}" --pinder-pdb-dir "$PINDER_PDB_DIR_REAL"
+        singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}-PP_${CHAIN1}"
+        singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${PDB_ID}-PP_${CHAIN2}"
+        singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_site "${PP_MODEL}"
+        singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_ppi_search "${PP_MODEL}"
+    fi
     echo "Preparing ${1}..."
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/00d-pdb_from_pinder.py" "$1" --pinder-pdb-dir "$PINDER_PDB_DIR_REAL"
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${MODEL}_${CHAIN1}"
