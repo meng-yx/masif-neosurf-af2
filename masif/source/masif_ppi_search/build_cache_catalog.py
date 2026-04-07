@@ -42,21 +42,23 @@ def resolve_split(params, ppi_pair_id):
 
 
 def get_model_type(ppi_pair_id):
-    # Example: 1ATP-PP_L_R -> PP
-    try:
-        return ppi_pair_id.split("-")[1].split("_")[0]
-    except Exception:
-        return None
+    # Expected ID format: <pdb>-<chainL>-<chainR>-<TYPE>_<chain1>_<chain2>
+    # Example: 1ATP-LA-LB-PP_L_R -> PP
+    model_token = ppi_pair_id.split("_")[0]
+    model_fields = model_token.split("-")
+    if len(model_fields) >= 4:
+        return model_fields[3]
+    return None
 
 
 def to_pp_complex_id(ppi_pair_id):
     model_type = get_model_type(ppi_pair_id)
     if model_type is None:
-        return None
+        return ppi_pair_id
     return ppi_pair_id.replace("-{}_".format(model_type), "-PP_", 1)
 
 
-def build_pp_record(params, ppi_pair_id, split):
+def build_pp_record(params, ppi_pair_id, split, diag=None):
     in_dir = os.path.join(params["masif_precomputation_dir"], ppi_pair_id)
     fields = ppi_pair_id.split("_")
     if len(fields) < 3:
@@ -114,7 +116,7 @@ def build_pp_record(params, ppi_pair_id, split):
     }
 
 
-def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record):
+def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, diag=None):
     target_in_dir = os.path.join(params["masif_precomputation_dir"], target_ppi_pair_id)
     target_fields = target_ppi_pair_id.split("_")
     if len(target_fields) < 3:
@@ -175,7 +177,7 @@ def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record):
     }
 
 
-def build_record(params, ppi_pair_id, pp_record_cache):
+def build_record(params, ppi_pair_id, pp_record_cache, diag=None):
     split = resolve_split(params, ppi_pair_id)
     if split is None:
         return None
@@ -183,22 +185,30 @@ def build_record(params, ppi_pair_id, pp_record_cache):
     model_type = get_model_type(ppi_pair_id)
     if model_type == "PP":
         print("Building PP-native positives for {}".format(ppi_pair_id))
-        return build_pp_record(params, ppi_pair_id, split)
+        return build_pp_record(params, ppi_pair_id, split, diag=diag)
 
     if model_type in ["PA", "AP"]:
         pp_id = to_pp_complex_id(ppi_pair_id)
         if pp_id not in pp_record_cache:
             pp_split = resolve_split(params, pp_id)
             if pp_split is None:
-                print("Could not resolve split for PP source {}, skipping {}.".format(pp_id, ppi_pair_id))
-                return None
-            pp_record_cache[pp_id] = build_pp_record(params, pp_id, pp_split)
+                # PP source may be intentionally absent from train/test lists.
+                # For mapped AP/PA entries listed in train/test, inherit the target split.
+                pp_split = split
+                print(
+                    "PP source {} not listed in split files; using target split {} for {}.".format(
+                        pp_id, split, ppi_pair_id
+                    )
+                )
+            pp_record_cache[pp_id] = build_pp_record(params, pp_id, pp_split, diag=diag)
         pp_record = pp_record_cache.get(pp_id)
         if pp_record is None:
             print("Could not build PP source {}, skipping {}.".format(pp_id, ppi_pair_id))
             return None
         print("Building mapped-from-PP positives for {} via {}".format(ppi_pair_id, pp_id))
-        return build_mapped_record_from_pp(params, ppi_pair_id, split, pp_record)
+        return build_mapped_record_from_pp(
+            params, ppi_pair_id, split, pp_record, diag=diag
+        )
 
     # Leave AA (and any unknown model type) unchanged for now.
     return None
@@ -226,43 +236,6 @@ def build_pools(records):
     return pools
 
 
-def collect_allowed_pairs(params):
-    """
-    Restrict catalog candidates to:
-      1) PP complexes explicitly listed in training/testing lists.
-      2) Existing non-PP variants (PA/AP/AA/...) whose PP source is listed.
-    """
-    listed_ids = params["_training_list"] | params["_testing_list"]
-    pp_ids = sorted(
-        ppi_pair_id for ppi_pair_id in listed_ids if get_model_type(ppi_pair_id) == "PP"
-    )
-    pp_id_set = set(pp_ids)
-
-    precomp_dir = params["masif_precomputation_dir"]
-    existing_dirs = sorted(os.listdir(precomp_dir))
-    existing_set = set(existing_dirs)
-
-    missing_pp = sorted(pp_id for pp_id in pp_ids if pp_id not in existing_set)
-    if missing_pp:
-        print(
-            "Warning: {} PP IDs listed but missing in precomputation dir.".format(
-                len(missing_pp)
-            )
-        )
-        print("First 10 missing PP IDs: {}".format(missing_pp[:10]))
-
-    available_pp = [pp_id for pp_id in pp_ids if pp_id in existing_set]
-    derived_ids = [
-        ppi_pair_id
-        for ppi_pair_id in existing_dirs
-        if get_model_type(ppi_pair_id) != "PP"
-        and to_pp_complex_id(ppi_pair_id) in pp_id_set
-    ]
-
-    all_pairs = sorted(set(available_pp) | set(derived_ids))
-    return all_pairs, available_pp, derived_ids
-
-
 def main():
     args = parse_args()
     params = load_params(args.custom_params_module)
@@ -275,23 +248,13 @@ def main():
     params["_testing_list"] = set(
         x.rstrip() for x in open(params["testing_list"]).readlines()
     )
-    all_pairs, available_pp, derived_ids = collect_allowed_pairs(params)
+    all_pairs = sorted(os.listdir(params["masif_precomputation_dir"]))
     # Keep all cache artifacts under params["cache_dir"] (custom_params.py).
     catalog_dir = os.path.join(params["cache_dir"], "catalog")
     ensure_dir(catalog_dir)
 
     print("Building cache catalog in {}".format(catalog_dir))
-    print(
-        "Restricted candidate set from train/test lists: "
-        "{} PP + {} mapped variants = {} total".format(
-            len(available_pp), len(derived_ids), len(all_pairs)
-        )
-    )
-    if len(all_pairs) == 0:
-        raise RuntimeError(
-            "No candidate pairs found after list-based filtering. "
-            "Check training/testing lists and masif_precomputation_dir."
-        )
+    print("Scanning {} candidate directories".format(len(all_pairs)))
     records = []
     pp_record_cache = {}
     for count, ppi_pair_id in enumerate(all_pairs):
