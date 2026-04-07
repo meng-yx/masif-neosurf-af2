@@ -16,6 +16,11 @@ from cache_shard_common import (
 from default_config.masif_opts import masif_opts
 
 
+def _bump(stats, key):
+    if stats is not None:
+        stats[key] = stats.get(key, 0) + 1
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Build metadata catalog for sharded cache.")
     parser.add_argument(
@@ -58,10 +63,11 @@ def to_pp_complex_id(ppi_pair_id):
     return ppi_pair_id.replace("-{}_".format(model_type), "-PP_", 1)
 
 
-def build_pp_record(params, ppi_pair_id, split, diag=None):
+def build_pp_record(params, ppi_pair_id, split, stats=None):
     in_dir = os.path.join(params["masif_precomputation_dir"], ppi_pair_id)
     fields = ppi_pair_id.split("_")
     if len(fields) < 3:
+        _bump(stats, "pp_bad_id_format")
         return None
     pdb_id = fields[0]
 
@@ -70,6 +76,7 @@ def build_pp_record(params, ppi_pair_id, split, diag=None):
         labels = np.median(labels[0], axis=1)
     except Exception as exc:
         print("Could not open {}: {}".format(os.path.join(in_dir, "p1_sc_labels.npy"), exc))
+        _bump(stats, "pp_missing_or_bad_labels")
         return None
 
     ply_fn1 = masif_opts["ply_file_template"].format(fields[0], fields[1])
@@ -80,6 +87,7 @@ def build_pp_record(params, ppi_pair_id, split, diag=None):
     )[0]
     k_accept = int(params["pos_surf_accept_probability"] * len(pos_labels))
     if k_accept < 1:
+        _bump(stats, "pp_no_positive_labels_after_filter")
         return None
     chosen = np.arange(len(pos_labels))
     np.random.shuffle(chosen)
@@ -92,6 +100,7 @@ def build_pp_record(params, ppi_pair_id, split, diag=None):
     d, r = kdt.query(v1)
     contact_points = np.where(d < params["pos_interface_cutoff"])[0]
     if len(contact_points) == 0:
+        _bump(stats, "pp_no_interface_contacts")
         return None
 
     k1 = chosen[contact_points]
@@ -102,6 +111,7 @@ def build_pp_record(params, ppi_pair_id, split, diag=None):
     k_neg2 = np.where(dneg > params["pos_interface_cutoff"])[0]
     if len(k_neg2) == 0:
         print("No non-interface negatives for {}, skipping.".format(ppi_pair_id))
+        _bump(stats, "pp_no_noninterface_negatives")
         return None
 
     return {
@@ -116,14 +126,16 @@ def build_pp_record(params, ppi_pair_id, split, diag=None):
     }
 
 
-def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, diag=None):
+def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, stats=None):
     target_in_dir = os.path.join(params["masif_precomputation_dir"], target_ppi_pair_id)
     target_fields = target_ppi_pair_id.split("_")
     if len(target_fields) < 3:
+        _bump(stats, "map_bad_target_id_format")
         return None
 
     pp_fields = pp_record["ppi_pair_id"].split("_")
     if len(pp_fields) < 3:
+        _bump(stats, "map_bad_source_pp_id_format")
         return None
 
     try:
@@ -138,9 +150,11 @@ def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, di
         target_v2 = pymesh.load_mesh(tgt_ply2).vertices
     except Exception as exc:
         print("Could not load mapping meshes for {}: {}".format(target_ppi_pair_id, exc))
+        _bump(stats, "map_mesh_load_error")
         return None
 
     if len(pp_record["k1"]) == 0 or len(pp_record["k2"]) == 0:
+        _bump(stats, "map_empty_pp_indices")
         return None
 
     pp_coords_p1 = pp_v1[np.asarray(pp_record["k1"], dtype=int)]
@@ -155,6 +169,7 @@ def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, di
     k2_map = np.asarray(k2_map, dtype=int)
 
     if len(k1_map) == 0 or len(k2_map) == 0:
+        _bump(stats, "map_empty_mapped_indices")
         return None
 
     v1_candidates = target_v1[k1_map]
@@ -163,6 +178,7 @@ def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, di
     k_neg2 = np.where(dneg > params["pos_interface_cutoff"])[0]
     if len(k_neg2) == 0:
         print("No non-interface negatives for {}, skipping.".format(target_ppi_pair_id))
+        _bump(stats, "map_no_noninterface_negatives")
         return None
 
     return {
@@ -177,15 +193,19 @@ def build_mapped_record_from_pp(params, target_ppi_pair_id, split, pp_record, di
     }
 
 
-def build_record(params, ppi_pair_id, pp_record_cache, diag=None):
+def build_record(params, ppi_pair_id, pp_record_cache, stats=None):
     split = resolve_split(params, ppi_pair_id)
     if split is None:
+        _bump(stats, "split_not_listed")
         return None
 
     model_type = get_model_type(ppi_pair_id)
     if model_type == "PP":
         print("Building PP-native positives for {}".format(ppi_pair_id))
-        return build_pp_record(params, ppi_pair_id, split, diag=diag)
+        rec = build_pp_record(params, ppi_pair_id, split, stats=stats)
+        if rec is not None:
+            _bump(stats, "built_pp")
+        return rec
 
     if model_type in ["PA", "AP"]:
         pp_id = to_pp_complex_id(ppi_pair_id)
@@ -200,17 +220,22 @@ def build_record(params, ppi_pair_id, pp_record_cache, diag=None):
                         pp_id, split, ppi_pair_id
                     )
                 )
-            pp_record_cache[pp_id] = build_pp_record(params, pp_id, pp_split, diag=diag)
+            pp_record_cache[pp_id] = build_pp_record(params, pp_id, pp_split, stats=stats)
         pp_record = pp_record_cache.get(pp_id)
         if pp_record is None:
             print("Could not build PP source {}, skipping {}.".format(pp_id, ppi_pair_id))
+            _bump(stats, "map_missing_pp_source_record")
             return None
         print("Building mapped-from-PP positives for {} via {}".format(ppi_pair_id, pp_id))
-        return build_mapped_record_from_pp(
-            params, ppi_pair_id, split, pp_record, diag=diag
+        rec = build_mapped_record_from_pp(
+            params, ppi_pair_id, split, pp_record, stats=stats
         )
+        if rec is not None:
+            _bump(stats, "built_mapped")
+        return rec
 
     # Leave AA (and any unknown model type) unchanged for now.
+    _bump(stats, "unsupported_model_type")
     return None
 
 
@@ -256,11 +281,12 @@ def main():
     print("Building cache catalog in {}".format(catalog_dir))
     print("Scanning {} candidate directories".format(len(all_pairs)))
     records = []
+    stats = {}
     pp_record_cache = {}
     for count, ppi_pair_id in enumerate(all_pairs):
         if count % 100 == 0:
             print("{}/{}".format(count, len(all_pairs)))
-        rec = build_record(params, ppi_pair_id, pp_record_cache)
+        rec = build_record(params, ppi_pair_id, pp_record_cache, stats=stats)
         if rec is not None:
             records.append(rec)
     if len(records) == 0:
@@ -312,6 +338,19 @@ def main():
     save_json(os.path.join(catalog_dir, "manifest.json"), manifest)
     write_success_marker(catalog_dir)
     print("Catalog complete with {} records.".format(len(records)))
+    total_candidates = len(all_pairs)
+    failed_total = total_candidates - len(records)
+    print("Catalog summary: {} scanned, {} built, {} failed.".format(total_candidates, len(records), failed_total))
+    if failed_total > 0:
+        print("Failure reason counts:")
+        ignore_keys = {"built_pp", "built_mapped"}
+        reason_counts = [
+            (k, int(v))
+            for k, v in stats.items()
+            if k not in ignore_keys and int(v) > 0
+        ]
+        for key, value in sorted(reason_counts, key=lambda x: (-x[1], x[0])):
+            print("  - {}: {}".format(key, value))
 
 
 if __name__ == "__main__":
