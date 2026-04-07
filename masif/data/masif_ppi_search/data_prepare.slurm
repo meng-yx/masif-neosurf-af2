@@ -2,9 +2,9 @@
 #SBATCH --nodes 1
 #SBATCH --partition=bigmem
 #SBATCH --ntasks-per-node 1
-#SBATCH --cpus-per-task 2
-#SBATCH --mem 28000
-#SBATCH --time 01:00:00
+#SBATCH --cpus-per-task 4
+#SBATCH --mem 56000
+#SBATCH --time 02:00:00
 #SBATCH --output=exelogs/masif_precompute_%A/_masif_precompute.%A_%a.out
 #SBATCH --error=exelogs/masif_precompute_%A/_masif_precompute.%A_%a.out
 

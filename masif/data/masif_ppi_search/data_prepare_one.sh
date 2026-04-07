@@ -2,8 +2,9 @@ masif_neosurf_root=$(git rev-parse --show-toplevel)
 masif_root=$masif_neosurf_root/masif
 masif_source=$masif_root/source/
 docker_image=$masif_neosurf_root/masif-neosurf_v0.1.sif
+set -euo pipefail
 #echo "docker image: $docker_image"
-export PYTHONPATH=$PYTHONPATH:$masif_source
+export PYTHONPATH="${PYTHONPATH:-}:$masif_source"
 if [ -z "$2" ]; then
     echo "Usage: $0 PDBID_CHAIN1_CHAIN2 /path/to/pinder_pdb_dir"
     exit 1
@@ -37,6 +38,8 @@ run_prepare_pipeline() {
     COMPLEX_CHAIN2=$(echo "$COMPLEX_ID" | cut -d"_" -f3)
 
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/00d-pdb_from_pinder.py" "$COMPLEX_ID" --pinder-pdb-dir "$PINDER_PDB_DIR_REAL"
+    # Needs the conda env MaSIF to run pdbfixer, because it is not available in the original singularity image
+    conda run -n MaSIF python "$masif_source/data_preparation/00e-repair_sidechains_pdbfixer.py" "$COMPLEX_MODEL"
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${COMPLEX_MODEL}_${COMPLEX_CHAIN1}"
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/01-pdb_extract_and_triangulate.py" "${COMPLEX_MODEL}_${COMPLEX_CHAIN2}"
     singularity exec --bind "$SINGULARITY_BIND" "$docker_image" python "$masif_source/data_preparation/04-masif_precompute.py" masif_site "$COMPLEX_ID"

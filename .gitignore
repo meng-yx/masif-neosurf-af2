@@ -5,7 +5,6 @@ exelogs/
 /data/
 notebooks/*.ent
 *.ent
-data_preparation/
 logs/
 archive/
 __pycache__/
