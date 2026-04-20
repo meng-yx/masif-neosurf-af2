@@ -29,4 +29,4 @@ _run_python() {
   fi
 }
 
-_run_python "$masif_seed_search_source/masif_coherence/train.py" "${1:-nn_models.v1.custom_params}"
+_run_python "$masif_seed_search_source/masif_coherence/train.py" "${1}"
