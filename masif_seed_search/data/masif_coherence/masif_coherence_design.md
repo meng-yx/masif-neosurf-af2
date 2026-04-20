@@ -143,3 +143,15 @@ The design is opinionated; ablate to check each claim:
 ## 9. Why this is the right shape for the problem
 
 The central question you are asking is second-order: not "are these two patches compatible?" (first-order, MaSIF descriptors already answer that) but "are these compatibilities themselves mutually arranged in a way that is consistent with a single interface?" Second-order correspondence problems have a long and productive history in computer vision under various names — spectral matching, graph matching networks, SuperGlue — and in all of them the representation that works is exactly the one proposed here: nodes are candidate correspondences, edges are pairwise-relation consistency features, and attention learns how to weight those consistencies. The innovation specific to MaSIF-Coherence is using SE(3)-invariant relational edge features derived from the two proteins' intra-distance and normal geometry, so that the whole system is invariant by construction and no pose is ever chosen.
+
+## 10. Framework and layout (v1)
+
+The v1 baseline is implemented in **PyTorch**, not in TensorFlow 1 like the existing `masif_ppi_search` stack. The new module only consumes on-disk `.ply` meshes and `.npy` descriptor files produced by the existing MaSIF preprocessing pipeline, so it does not need to share a graph with any TF1 code. PyTorch also matches the assumptions of `minimal_v1_plan.md` and keeps the baseline under ~300 lines without dragging along the legacy TF1 / Python 3.7 environment.
+
+Directory layout:
+
+- Code: `masif_seed_search/source/masif_coherence/` — `config.py`, `data.py`, `model.py`, `train.py`, `check_invariance.py`.
+- Data, lists, and trained checkpoints: `masif_seed_search/data/masif_coherence/` — `lists/`, `nn_models/v{n}/custom_params.py`, `nn_models/v{n}/model_data/`, plus a one-line `train_nn.sh` runner mirroring the one under `masif/data/masif_ppi_search/`.
+- Training and testing pair lists are initially re-used verbatim from `masif/data/masif_ppi_search/lists/{training,testing}.txt`, so v1 is directly comparable to MaSIF-search on the same split.
+
+Dependencies live in a self-contained `masif_seed_search/source/masif_coherence/requirements.txt` (`torch`, `numpy`, `trimesh`, `scikit-learn`); installing this module does not modify any existing MaSIF environment.

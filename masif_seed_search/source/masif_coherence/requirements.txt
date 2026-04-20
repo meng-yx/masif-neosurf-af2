@@ -1,0 +1,6 @@
+# Pip fallback. Preferred for training: conda env from
+# masif_seed_search/data/masif_coherence/environment.yml
+torch>=2.0
+numpy>=1.22
+trimesh>=3.20
+scikit-learn>=1.1
