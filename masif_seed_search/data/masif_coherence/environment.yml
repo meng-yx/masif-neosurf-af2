@@ -5,20 +5,27 @@
 #   data.py   -> torch, numpy, trimesh (.ply loading)
 #   model.py  -> torch
 #
+# GPU stack: aligned with PyTorch "Get Started" (Linux + CUDA 12.6), e.g. for
+# NVIDIA H100 with driver 560.x and nvidia-smi "CUDA Version: 12.6".
+# https://pytorch.org/get-started/locally/  (Stable build, CUDA 12.6)
+#
 # Create once:
 #   conda env create -f masif_seed_search/data/masif_coherence/environment.yml
 # Update after edits:
 #   conda env update -f masif_seed_search/data/masif_coherence/environment.yml --prune
 #
-# For CUDA builds, replace the pytorch line with the variant from
-# https://pytorch.org/ (or add nvidia channel) and adjust channels accordingly.
+# CPU-only: use conda-forge only — drop pytorch-cuda and the pytorch/nvidia channels,
+# or create a separate env with  - pytorch>=2.0  from conda-forge.
 
 name: masif-coherence
 channels:
+  - pytorch
+  - nvidia
   - conda-forge
 dependencies:
   - python>=3.10,<3.13
   - pytorch>=2.0
+  - pytorch-cuda=12.6
   - numpy>=1.22
   - trimesh>=3.20
   - scikit-learn>=1.1
