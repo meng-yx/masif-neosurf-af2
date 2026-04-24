@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task 1
 #SBATCH --mem 7000
 #SBATCH --time 01:00:00
-#SBATCH --array=1-120
+#SBATCH --array=1-1000
 #SBATCH --output=exelogs/compute_descriptors-%A/slurm-%A_%a.out
 #SBATCH --error=exelogs/compute_descriptors-%A/slurm-%A_%a.out
 
