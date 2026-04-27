@@ -1,16 +1,15 @@
 """On-disk data loading for MaSIF-Coherence v1.
 
-Consumes the existing MaSIF-search precomputation dir verbatim:
+Consumes descriptor arrays and a mandatory prebuilt vertex cache:
 
-    <masif_precomputation_dir>/<pdbid>_<chains1>_<chains2>/
+    <descriptors_dir>/<pdbid>_<chains1>_<chains2>/
         p1_desc_straight.npy   # (V_A, 80)
         p1_desc_flipped.npy
         p2_desc_straight.npy   # (V_B, 80)
         p2_desc_flipped.npy
 
-and the PLY mesh dir for 3D vertex coordinates:
-
-    <ply_chain_dir>/<pdbid>_<chains>.ply
+    <cache_dir>/manifest.json
+    <cache_dir>/vertices/<one-file-per-pdb-chain>.npy
 
 Positives are cognate pairs from the training/testing lists (one ppi_pair_id per
 line). Negatives for a positive (p1_A, p2_A) are constructed by pairing p1_A
@@ -19,10 +18,11 @@ with p2_B sampled from a different ppi_pair_id.
 
 from __future__ import annotations
 
+import json
 import os
 import random
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -46,30 +46,56 @@ class ProteinSurface:
     D: torch.Tensor  # (V, 80) float32
 
 
-def _load_ply_vertices(ply_path: str) -> np.ndarray:
-    """Return vertex coordinates as an (V, 3) float32 array.
+def _load_cache_entries(cache_dir: str) -> Dict[str, Dict[str, object]]:
+    manifest_path = os.path.join(cache_dir, "manifest.json")
+    if not os.path.exists(manifest_path):
+        raise FileNotFoundError(
+            f"Missing cache manifest at {manifest_path}. Run build_cache.py first."
+        )
+    with open(manifest_path, "r") as f:
+        manifest = json.load(f)
+    entries = manifest.get("entries")
+    if not isinstance(entries, dict):
+        raise RuntimeError(f"Malformed cache manifest at {manifest_path}.")
+    return entries
 
-    Imports `trimesh` lazily so the rest of the module is importable without it.
-    """
-    import trimesh
 
-    mesh = trimesh.load(ply_path, process=False)
-    if hasattr(mesh, "vertices"):
-        verts = np.asarray(mesh.vertices, dtype=np.float32)
-    else:
-        raise RuntimeError(f"Loaded PLY at {ply_path} has no vertices attribute.")
+def _load_cached_vertices(
+    cache_dir: str, cache_entries: Dict[str, Dict[str, object]], chain_key: str
+) -> np.ndarray:
+    entry = cache_entries.get(chain_key)
+    if entry is None:
+        raise FileNotFoundError(
+            f"No cache entry for chain {chain_key!r}. Re-run build_cache.py."
+        )
+    source_ply = str(entry["source_ply"])
+    cached_rel = str(entry["cache_relpath"])
+    cached_path = os.path.join(cache_dir, cached_rel)
+    if not os.path.exists(cached_path):
+        raise FileNotFoundError(
+            f"Missing cached vertices file {cached_path}. Re-run build_cache.py."
+        )
+    if not os.path.exists(source_ply):
+        raise FileNotFoundError(
+            f"Source PLY does not exist anymore: {source_ply}. Re-run build_cache.py."
+        )
+    expected_mtime = float(entry["ply_mtime"])
+    current_mtime = os.path.getmtime(source_ply)
+    if abs(current_mtime - expected_mtime) > 1e-6:
+        raise RuntimeError(
+            f"Stale cache for {chain_key}. Source PLY changed: {source_ply}. "
+            "Re-run build_cache.py."
+        )
+    verts = np.load(cached_path).astype(np.float32)
     if verts.ndim != 2 or verts.shape[1] != 3:
-        raise RuntimeError(f"Unexpected vertex array shape {verts.shape} at {ply_path}.")
+        raise RuntimeError(f"Unexpected cached vertex shape {verts.shape} at {cached_path}.")
     return verts
 
 
-def _ply_path(ply_chain_dir: str, pdb_id: str, chain: str) -> str:
-    return os.path.join(ply_chain_dir, f"{pdb_id}_{chain}.ply")
-
-
 def load_protein(
-    precomputation_dir: str,
-    ply_chain_dir: str,
+    descriptors_dir: str,
+    cache_dir: str,
+    cache_entries: Dict[str, Dict[str, object]],
     ppi_pair_id: str,
     side: str,
     desc_type: str,
@@ -77,9 +103,10 @@ def load_protein(
     """Load one side of a ppi_pair_id.
 
     Args:
-        precomputation_dir: directory containing one sub-folder per ppi_pair_id
+        descriptors_dir: directory containing one sub-folder per ppi_pair_id
             with the `p{1,2}_desc_{straight,flipped}.npy` files.
-        ply_chain_dir: directory containing `<pdbid>_<chains>.ply` meshes.
+        cache_dir: directory containing cached vertices and `manifest.json`.
+        cache_entries: parsed map from `manifest.json["entries"]`.
         ppi_pair_id: e.g. `1A0G_A_B`.
         side: "p1" or "p2".
         desc_type: "straight" or "flipped".
@@ -95,7 +122,7 @@ def load_protein(
     pdb_id = fields[0]
     chain = fields[1] if side == "p1" else fields[2]
 
-    pair_dir = os.path.join(precomputation_dir, ppi_pair_id)
+    pair_dir = os.path.join(descriptors_dir, ppi_pair_id)
     desc_path = os.path.join(pair_dir, f"{side}_desc_{desc_type}.npy")
     if not os.path.exists(desc_path):
         raise FileNotFoundError(desc_path)
@@ -103,8 +130,8 @@ def load_protein(
     if D.ndim != 2 or D.shape[1] != 80:
         raise RuntimeError(f"Unexpected descriptor shape {D.shape} at {desc_path}.")
 
-    ply_path = _ply_path(ply_chain_dir, pdb_id, chain)
-    X = _load_ply_vertices(ply_path)
+    chain_key = f"{pdb_id}_{chain}"
+    X = _load_cached_vertices(cache_dir, cache_entries, chain_key)
 
     # The .ply mesh vertex order is the canonical order MaSIF uses when producing
     # descriptors, so `X` and `D` should already be aligned row-for-row.
@@ -150,18 +177,20 @@ class CoherenceDataset(Dataset):
     def __init__(
         self,
         pair_ids: List[str],
-        precomputation_dir: str,
-        ply_chain_dir: str,
+        descriptors_dir: str,
+        cache_dir: str,
         neg_per_pos: int = 1,
         seed: int = 0,
         skip_missing: bool = True,
     ):
         self.pair_ids = list(pair_ids)
-        self.precomputation_dir = precomputation_dir
-        self.ply_chain_dir = ply_chain_dir
+        self.descriptors_dir = descriptors_dir
+        self.cache_dir = cache_dir
+        self.cache_entries = _load_cache_entries(cache_dir)
         self.neg_per_pos = int(neg_per_pos)
         self.skip_missing = skip_missing
         self._rng = random.Random(seed)
+        self._surface_cache: Dict[Tuple[str, str, str], ProteinSurface] = {}
 
         # Pre-compute the flat index -> (pos_idx, is_positive, neg_source_idx) mapping.
         self._items: List[Tuple[int, int, Optional[int]]] = []
@@ -183,14 +212,20 @@ class CoherenceDataset(Dataset):
         return len(self._items)
 
     def _try_load(self, ppi_pair_id: str, side: str, desc_type: str):
+        key = (ppi_pair_id, side, desc_type)
+        if key in self._surface_cache:
+            return self._surface_cache[key]
         try:
-            return load_protein(
-                self.precomputation_dir,
-                self.ply_chain_dir,
+            protein = load_protein(
+                self.descriptors_dir,
+                self.cache_dir,
+                self.cache_entries,
                 ppi_pair_id,
                 side,
                 desc_type,
             )
+            self._surface_cache[key] = protein
+            return protein
         except (FileNotFoundError, RuntimeError) as exc:
             if self.skip_missing:
                 return None

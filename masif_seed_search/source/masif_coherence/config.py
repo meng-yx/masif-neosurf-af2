@@ -14,7 +14,7 @@ coherence_opts = {
     # Data paths (relative to the directory train.py is run from, matching
     # the masif_opts["ppi_search"] convention).
     # ------------------------------------------------------------------
-    "masif_precomputation_dir": "data_preparation/04b-precomputation_12A/precomputation/",
+    "descriptors_dir": "data_preparation/04b-precomputation_12A/precomputation/",
     "ply_chain_dir": "data_preparation/01-benchmark_surfaces/",
     "training_list": "lists/training.txt",
     "testing_list": "lists/testing.txt",

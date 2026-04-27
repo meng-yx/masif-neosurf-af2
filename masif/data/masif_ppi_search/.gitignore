@@ -4,3 +4,4 @@ exelogs/
 lists_full/
 lists/
 nn_models/
+*.tar.gz

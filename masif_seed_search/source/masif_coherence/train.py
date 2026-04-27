@@ -16,6 +16,7 @@ epoch and a checkpoint is saved to `params["model_dir"]`.
 from __future__ import annotations
 
 import importlib
+import json
 import os
 import random
 import sys
@@ -34,6 +35,41 @@ if _THIS_DIR not in sys.path:
 from config import get_default_params, merge_custom_params  # noqa: E402
 from data import CoherenceDataset, read_pair_list  # noqa: E402
 from model import build_model_from_params  # noqa: E402
+
+
+def _resolve_cache_dir(params: dict) -> str:
+    if "model_dir" not in params:
+        raise KeyError("Missing required parameter 'model_dir'.")
+    return os.path.join(str(params["model_dir"]), "cache")
+
+
+def _pair_chain_keys(ppi_pair_id: str) -> tuple[str, str]:
+    fields = ppi_pair_id.split("_")
+    if len(fields) < 3:
+        raise ValueError(f"ppi_pair_id {ppi_pair_id!r} must be PDBID_CHAINS1_CHAINS2")
+    return (f"{fields[0]}_{fields[1]}", f"{fields[0]}_{fields[2]}")
+
+
+def _load_available_chain_keys(cache_dir: str) -> set[str]:
+    manifest_path = os.path.join(cache_dir, "manifest.json")
+    with open(manifest_path, "r") as f:
+        manifest = json.load(f)
+    entries = manifest.get("entries")
+    if not isinstance(entries, dict):
+        raise RuntimeError(f"Malformed cache manifest at {manifest_path}: missing entries.")
+    return set(entries.keys())
+
+
+def _filter_pairs_by_available_chains(pair_ids: List[str], available_chain_keys: set[str]):
+    kept: List[str] = []
+    dropped: List[str] = []
+    for pair_id in pair_ids:
+        c1, c2 = _pair_chain_keys(pair_id)
+        if c1 in available_chain_keys and c2 in available_chain_keys:
+            kept.append(pair_id)
+        else:
+            dropped.append(pair_id)
+    return kept, dropped
 
 
 def _resolve_device(pref: str) -> torch.device:
@@ -82,28 +118,57 @@ def main(custom_params_module: str) -> None:
     params = get_default_params()
     custom_mod = importlib.import_module(custom_params_module, package=None)
     params = merge_custom_params(params, custom_mod.custom_params)
+    cache_dir = _resolve_cache_dir(params)
+    manifest_path = os.path.join(cache_dir, "manifest.json")
+    if not os.path.exists(manifest_path):
+        raise FileNotFoundError(
+            f"Missing cache manifest at {manifest_path}. Run build_cache.py first."
+        )
+    available_chain_keys = _load_available_chain_keys(cache_dir)
 
     _set_seed(params["seed"])
     device = _resolve_device(params["device"])
     print(f"Using device: {device}")
+    print(f"Using cache dir: {cache_dir}")
 
     training_ids = read_pair_list(params["training_list"])
     train_ids, val_ids = _split_train_val(
         training_ids, params["val_fraction"], params["seed"]
     )
-    print(f"Train pairs: {len(train_ids)}  Val pairs: {len(val_ids)}")
+    train_ids, dropped_train_ids = _filter_pairs_by_available_chains(
+        train_ids, available_chain_keys
+    )
+    val_ids, dropped_val_ids = _filter_pairs_by_available_chains(val_ids, available_chain_keys)
+
+    os.makedirs(params["model_dir"], exist_ok=True)
+    dropped_train_path = os.path.join(params["model_dir"], "dropped_pairs_train.txt")
+    with open(dropped_train_path, "w") as f:
+        for pair_id in dropped_train_ids:
+            f.write(f"{pair_id}\n")
+    dropped_val_path = os.path.join(params["model_dir"], "dropped_pairs_val.txt")
+    with open(dropped_val_path, "w") as f:
+        for pair_id in dropped_val_ids:
+            f.write(f"{pair_id}\n")
+
+    print(
+        f"Train pairs kept: {len(train_ids)} (dropped {len(dropped_train_ids)} missing-chain pairs)"
+    )
+    print(f"Val pairs kept: {len(val_ids)} (dropped {len(dropped_val_ids)} missing-chain pairs)")
+    print(f"Wrote dropped pair lists: {dropped_train_path}, {dropped_val_path}")
+    if len(train_ids) == 0:
+        raise RuntimeError("No train pairs remain after dropping pairs with missing chain cache.")
 
     train_ds = CoherenceDataset(
         pair_ids=train_ids,
-        precomputation_dir=params["masif_precomputation_dir"],
-        ply_chain_dir=params["ply_chain_dir"],
+        descriptors_dir=params["descriptors_dir"],
+        cache_dir=cache_dir,
         neg_per_pos=params["neg_per_pos"],
         seed=params["seed"],
     )
     val_ds = CoherenceDataset(
         pair_ids=val_ids,
-        precomputation_dir=params["masif_precomputation_dir"],
-        ply_chain_dir=params["ply_chain_dir"],
+        descriptors_dir=params["descriptors_dir"],
+        cache_dir=cache_dir,
         neg_per_pos=params["neg_per_pos"],
         seed=params["seed"] + 1,
     )
@@ -118,8 +183,6 @@ def main(custom_params_module: str) -> None:
         weight_decay=params["weight_decay"],
     )
     loss_fn = torch.nn.BCEWithLogitsLoss()
-
-    os.makedirs(params["model_dir"], exist_ok=True)
 
     grad_accum = max(1, int(params["grad_accum_steps"]))
     log_every = max(1, int(params["log_every"]))

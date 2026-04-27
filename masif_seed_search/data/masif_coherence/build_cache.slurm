@@ -1,19 +1,19 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --time=24:00:00
-#SBATCH --partition=h100
-#SBATCH --qos=long
-#SBATCH --gpus-per-node=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --output=logs/train_nn.%A.out
-#SBATCH --error=logs/train_nn.%A.out
+#SBATCH --job-name=build_cache
+#SBATCH --partition=l40s
+#SBATCH --output=logs/build_cache-%A.out
+#SBATCH --error=logs/build_cache-%A.out
+#SBATCH --time=02:00:00
+#SBATCH --cpus-per-task=8
+#SBATCH --gres=gpu:1
+#SBATCH --mem=32000
+
 
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
-Usage: sbatch train_nn.slurm [OPTIONS]
+Usage: sbatch build_cache.slurm [OPTIONS]
 
 Options:
   --custom-params-module MODULE   Python module for custom params.
@@ -43,5 +43,4 @@ done
 
 export CUSTOM_PARAMS_MODULE=${CUSTOM_PARAMS_MODULE:-nn_models.v1.custom_params}
 
-
-./train_nn.sh "${CUSTOM_PARAMS_MODULE}"
+bash ./build_cache.sh "${CUSTOM_PARAMS_MODULE}"

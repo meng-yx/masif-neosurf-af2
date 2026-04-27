@@ -1,0 +1,13 @@
+cache/
+data_preparation
+descriptors
+lists
+*.out
+*.err
+*.log
+*.txt
+*.npy
+*.npz
+*.pt
+*.pth
+*.pkl
