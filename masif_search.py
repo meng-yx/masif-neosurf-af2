@@ -448,7 +448,7 @@ if __name__ == "__main__":
     else:
         # use a predefined subset of protein IDs
         with open(args.database_subset, "r") as f:
-            args.seed_ppi_pair_ids = [x.rstrip() for x in f.readlines()]
+            args.seed_ppi_pair_ids = [x.rstrip() for x in f.readlines() if x.strip()]
 
     # Target locations
     args.top_target_dir = os.path.join(args.masif_target_root)

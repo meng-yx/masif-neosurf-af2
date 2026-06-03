@@ -300,14 +300,13 @@ def test_alignments(transformation, source_structure, target_pcd_tree, interface
 def _seed_candidate_mask(pdb_chain_id, params):
     """Vertex indices on seed mesh within seed_site_cutoff of seed anchor residue.
 
-    Returns None if seed anchor trio is unset or this chain is not the anchor chain.
+    Returns None if seed anchor trio is unset.
     """
     if params.get('seed_chain') is None:
         return None
 
-    pdb_id, chain = pdb_chain_id.split('_', 1)
-    if chain != params['seed_chain']:
-        return None
+    chain = params['seed_chain']
+    seed_resid = params['seed_resid']
 
     ply_path = os.path.join(params['seed_surf_dir'], f'{pdb_chain_id}.ply')
     pdb_path = os.path.join(params['seed_pdb_dir'], f'{pdb_chain_id}.pdb')
@@ -315,9 +314,11 @@ def _seed_candidate_mask(pdb_chain_id, params):
         mesh = read_point_cloud(ply_path)
         vertices = np.asarray(mesh.points)
         struct = PDBParser(QUIET=True).get_structure('', pdb_path)
+        if chain not in struct[0]:
+            return None
         resid_matches = [
             r.id for r in struct[0][chain].get_residues()
-            if r.id[1] == params['seed_resid']
+            if r.id[1] == seed_resid
         ]
         if len(resid_matches) != 1:
             raise ValueError(f"Seed residue ID not unique: {resid_matches}")
