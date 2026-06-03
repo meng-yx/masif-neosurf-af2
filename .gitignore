@@ -1,2 +1,4 @@
 # examples
 example/output/*
+__pycache__
+data/

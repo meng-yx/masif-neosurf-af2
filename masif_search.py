@@ -17,7 +17,89 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif', 'source').resolve()))
 sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resolve()))
 from masif.source.default_config.masif_opts import masif_opts
 from masif_seed_search.source.alignment_evaluation_nn import AlignmentEvaluationNN
-from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, get_target_vix, match_descriptors, align_protein, compute_nn_score
+from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
+
+
+def _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor):
+    """Poisson-disk subsample on full mesh; return n_keep centers closest to anchor (search_grid.py)."""
+    mesh_coords = np.asarray(o3d_mesh.vertices)
+    n_mesh = len(mesh_coords)
+    candidates = np.asarray(candidates)
+    if n_keep >= len(candidates):
+        return candidates
+    n_poisson = int(n_keep * n_mesh / len(candidates))
+    sampled_points = o3d_mesh.sample_points_poisson_disk(n_poisson)
+    squared_dists = np.sum(
+        np.square(
+            np.asarray(sampled_points.points).reshape(-1, 1, 3) - mesh_coords.reshape(1, -1, 3)
+        ),
+        axis=-1,
+    )
+    mesh_inds = np.argmin(squared_dists, axis=-1)
+    order = np.argsort(dists_to_anchor[mesh_inds])
+    return mesh_inds[order[:n_keep]]
+
+
+def _target_dists_to_anchor(mymesh, target_struct, params):
+    """Per-vertex Euclidean distance from mesh vertices to target anchor."""
+    vertices = np.asarray(mymesh.vertices)
+    if 'target_point' in params:
+        anchor_coord = np.array(params['target_point']['coord'])
+        return np.sqrt(np.sum(np.square(vertices - anchor_coord), axis=1))
+
+    target_chain = params['target_residue']['chain']
+    target_resid = [
+        x.id for x in target_struct[0][target_chain].get_residues()
+        if x.id[1] == params['target_residue']['resid']
+    ]
+    if len(target_resid) != 1:
+        raise RuntimeError(f"Target residue ID not unique: {target_resid}")
+    target_resid = target_resid[0]
+    print(f"Using residue: {target_resid}")
+
+    if 'target_atom' in params:
+        coord = target_struct[0][target_chain][target_resid][params['target_atom']['atom_id']].get_coord()
+        return np.sqrt(np.sum(np.square(vertices - coord), axis=1))
+
+    residue_coords = np.stack([
+        a.get_coord() for a in target_struct[0][target_chain][target_resid].get_atoms()
+        if a.element != 'H'
+    ])
+    return np.sqrt(np.min(
+        np.sum(np.square(vertices.reshape(-1, 1, 3) - residue_coords.reshape(1, -1, 3)), axis=-1),
+        axis=1,
+    ))
+
+
+def _select_target_vertices(mymesh, target_struct, target_ply_fn, params):
+    """Select target patch center vertex indices."""
+    if params.get('target_site_vix') is not None:
+        return np.asarray(params['target_site_vix'], dtype=int)
+
+    dists_to_anchor = _target_dists_to_anchor(mymesh, target_struct, params)
+    candidates = np.where(dists_to_anchor < params['target_site_cutoff'])[0]
+    if len(candidates) == 0:
+        raise RuntimeError(
+            f"No mesh vertices within {params['target_site_cutoff']} Å of target anchor. "
+            "Check --target_chain, --target_resid, --target_site_cutoff."
+        )
+
+    n_keep = max(1, round(len(candidates) * params['target_site_sample_ratio']))
+    if n_keep < len(candidates):
+        np.random.seed(params['random_seed'])
+        o3d_mesh = o3d.io.read_triangle_mesh(target_ply_fn)
+        if not o3d_mesh.has_vertex_normals():
+            o3d_mesh.compute_vertex_normals()
+        target_vertices = _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor)
+    else:
+        target_vertices = candidates
+
+    if params.get('target_site_max') and len(target_vertices) > params['target_site_max']:
+        order = np.argsort(dists_to_anchor[target_vertices])
+        target_vertices = target_vertices[order[:params['target_site_max']]]
+
+    print(f"Selected {len(target_vertices)} target site(s).")
+    return target_vertices
 
 
 def score_complex(
@@ -155,56 +237,13 @@ def masif_search(params):
     # target_ca_coords = [atom.get_coord() for atom in target_struct.get_atoms() if atom.get_id() == 'CA']
     target_ca_pcd_tree = None # cKDTree(np.array(target_ca_coords))
 
-    # If a specific residue is selected, then go after that residue
-    if 'site_vix' in params and params['site_vix'] is not None:
-        assert params['num_sites'] is None or params['num_sites'] == len(params['site_vix'])
-        target_vertices = params['site_vix']
+    target_vertices = _select_target_vertices(mymesh, target_struct, target_ply_fn, params)
 
-    else:
-        assert params['num_sites'] is not None, "Please specify for how many sites the search should be performed."
-
-        if 'target_residue' in params:
-            target_chain = params['target_residue']['chain']
-            # Use the tuple for biopython: (' ', resid, ' ')
-            target_resid = [x.id for x in target_struct[0][target_chain].get_residues() if x.id[1] == params['target_residue']['resid']]
-            assert len(target_resid) == 1, print(f"Target residue ID not unique: {target_resid}")
-            target_resid = target_resid[0]
-            print(f"Using residue: {target_resid}")
-
-            target_cutoff = params['target_cutoff']
-            if 'target_atom' in params:
-                target_atom_id = params['target_atom']['atom_id']
-                coord = target_struct[0][target_chain][target_resid][target_atom_id].get_coord()
-                # find atom indices close to the target.
-                dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
-                neigh_indices = np.where(dists < target_cutoff)[0]
-
-            else:
-                residue_coords = np.stack([a.get_coord() for a in target_struct[0][target_chain][target_resid].get_atoms() if a.element != 'H'])
-                dists = np.sqrt(np.sum(np.square(np.asarray(mymesh.vertices).reshape(-1, 1, 3) - residue_coords.reshape(1, -1, 3)), axis=-1))
-                neigh_indices = np.where(np.any(dists < target_cutoff, axis=-1))[0]
-
-            # Get a target vertex for every target site.
-            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices)
-
-        elif 'target_point' in params:
-            coord = np.array(params['target_point']['coord'])
-            target_cutoff = params['target_cutoff']
-
-            # find atom indices close to the target.
-            dists = np.sqrt(np.sum(np.square(mymesh.vertices - coord), axis=1))
-            neigh_indices = np.where(dists < target_cutoff)[0]
-            # Get a target vertex for every target site.
-            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'], selected_vertices=neigh_indices)
-        else:
-            # Get a target vertex for every target site.
-            target_vertices = get_target_vix(target_coord, iface, num_sites=params['num_sites'])
-
-    if params.get('score_binder', None) is not None:
+    if params.get('seed_score_binder', None) is not None:
         score_complex(
             target_name=target_ppi_pair_id,
             target_vertices=target_vertices,
-            source_name=params['score_binder'],
+            source_name=params['seed_score_binder'],
             target_pcd=target_pcd,
             target_coord=target_coord,
             target_desc=target_desc,
@@ -300,49 +339,95 @@ def masif_search(params):
 if __name__ == "__main__":
 
     parser = ArgumentParser()
-    parser.add_argument("--target", dest="target_name", type=str)
-    parser.add_argument("--target_dir", dest="masif_target_root", type=Path)
-    parser.add_argument("--database", dest="top_seed_dir", type=Path)
+    parser.add_argument("--target", dest="target_name", type=str, required=True)
+    parser.add_argument("--target_dir", dest="masif_target_root", type=Path, required=True)
     parser.add_argument("--out_dir", type=Path, default=None)
-    parser.add_argument("--resid", dest="target_resid", type=int, default=None)
-    parser.add_argument("--chain", dest="target_chain", type=str, default=None)
-    parser.add_argument("--atom_id", dest="target_atom_id", type=str, default=None)
-    parser.add_argument("--coord", dest="target_coord", type=float, nargs="+", default=None)
 
-    parser.add_argument("--subset", dest="database_subset", type=Path, default=None)
-    parser.add_argument("--cutoff", dest="target_cutoff", type=float, default=10.0)
-    parser.add_argument("--num_sites", type=int, default=None)
-    parser.add_argument("--site_vix", type=int, nargs='+', default=None)
-    parser.add_argument("--site_vix_file", type=Path, default=None)
-    parser.add_argument("--desc_dist_cutoff", type=float, default=2.0, help="Recommended values: [1.5-2.0] (lower is stricter)")
-    parser.add_argument("--iface_cutoff", type=float, default=0.75, help="Recommended values: [0.75-0.95] range (higher is stricter)")
-    parser.add_argument("--nn_score_cutoff", type=float, default=0.8, help="# Recommended values: [0.8-0.95] (higher is stricter)")
-    parser.add_argument("--desc_dist_score_cutoff", type=float, default=0.0, help="# Recommended values: [0.0-20.0] (higher is stricter)")
+    parser.add_argument("--target_chain", type=str, default=None)
+    parser.add_argument("--target_resid", type=int, default=None)
+    parser.add_argument("--target_atom_id", type=str, default=None)
+    parser.add_argument("--target_coord", type=float, nargs="+", default=None)
+    parser.add_argument("--target_site_cutoff", type=float, default=10.0)
+    parser.add_argument("--target_site_sample_ratio", type=float, default=1.0)
+    parser.add_argument("--target_site_max", type=int, default=None)
+    parser.add_argument("--target_site_vix", type=int, nargs='+', default=None)
+    parser.add_argument("--target_site_vix_file", type=Path, default=None)
+
+    parser.add_argument("--seed_dir", dest="top_seed_dir", type=Path, required=True)
+    parser.add_argument("--seed_subset", dest="database_subset", type=Path, default=None)
+    parser.add_argument("--seed_chain", type=str, default=None)
+    parser.add_argument("--seed_resid", type=int, default=None)
+    parser.add_argument("--seed_atom_id", type=str, default=None)
+    parser.add_argument("--seed_site_cutoff", type=float, default=None)
+    parser.add_argument("--seed_desc_dist_cutoff", type=float, default=2.0,
+                        help="Recommended values: [1.5-2.0] (lower is stricter)")
+    parser.add_argument("--seed_iface_cutoff", type=float, default=0.75,
+                        help="Recommended values: [0.75-0.95] (higher is stricter)")
+    parser.add_argument("--seed_nn_score_cutoff", type=float, default=0.8,
+                        help="Recommended values: [0.8-0.95] (higher is stricter)")
+    parser.add_argument("--seed_desc_dist_score_cutoff", type=float, default=0.0,
+                        help="Recommended values: [0.0-20.0] (higher is stricter)")
+    parser.add_argument("--seed_score_binder", type=str, default=None,
+                        help="Score one processed seed protein without database search.")
+
     parser.add_argument("--allowed_CA_clashes", type=int, default=0)
     parser.add_argument("--allowed_heavy_atom_clashes", type=int, default=5)
-    parser.add_argument("--ransac_iter", type=int, default=100000)  # Note: previous default was 2000
+    parser.add_argument("--ransac_iter", type=int, default=100000)
     parser.add_argument("--n_retry_alignment", type=int, default=1)
-    parser.add_argument("--sim", dest="similarity_mode", action="store_true")
-    parser.add_argument("--score_binder", type=str, default=None, help="Specify a name of a processed protein to score it without alignment.")
-    parser.add_argument("--random_seed", type=int, default=None)
+    parser.add_argument("--similarity_mode", action="store_true")
+    parser.add_argument("--random_seed", type=int, default=42)
     args = parser.parse_args()
 
-    if args.random_seed is not None:
-        assert version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'), "Random seed not supported by all Open3D versions"
-        np.random.seed(args.random_seed)
-        args.maybe_seed = {"seed": args.random_seed}
+    has_vix = args.target_site_vix is not None or args.target_site_vix_file is not None
+    has_residue = args.target_chain is not None and args.target_resid is not None
+    has_point = args.target_coord is not None
+    has_partial_residue = (args.target_chain is None) != (args.target_resid is None)
 
-    # Definition of the target patch
+    if has_partial_residue:
+        parser.error("--target_chain and --target_resid must be used together")
+    if not has_vix and not has_residue and not has_point:
+        parser.error(
+            "Provide --target_site_vix / --target_site_vix_file, "
+            "or --target_chain + --target_resid, or --target_coord"
+        )
+    if has_point and has_residue:
+        parser.error("--target_coord and --target_chain/--target_resid are mutually exclusive")
+
+    seed_trio = [args.seed_chain, args.seed_resid, args.seed_site_cutoff]
+    if any(x is not None for x in seed_trio) and not all(x is not None for x in seed_trio):
+        parser.error("--seed_chain, --seed_resid, and --seed_site_cutoff must all be set together")
+    if args.seed_score_binder and any(x is not None for x in seed_trio):
+        parser.error(
+            "--seed_score_binder cannot be combined with "
+            "--seed_chain/--seed_resid/--seed_site_cutoff"
+        )
+
+    if not (0 < args.target_site_sample_ratio <= 1.0):
+        parser.error("--target_site_sample_ratio must be in (0, 1]")
+
+    np.random.seed(args.random_seed)
+    if version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'):
+        args.maybe_seed = {"seed": args.random_seed}
+    else:
+        args.maybe_seed = {}
+
     if args.target_coord is not None:
         args.target_point = {'coord': args.target_coord}
-    elif args.target_resid is not None and args.target_chain is not None:
+    elif has_residue:
         args.target_residue = {'resid': args.target_resid, 'chain': args.target_chain}
         if args.target_atom_id is not None:
             args.target_atom = {'atom_id': args.target_atom_id}
 
-    if args.site_vix_file is not None and args.site_vix is None:
-        target_vix = [int(line) for line in args.site_vix_file.read_text().strip().split('\n')]
-        args.site_vix = target_vix
+    if args.target_site_vix_file is not None and args.target_site_vix is None:
+        args.target_site_vix = [
+            int(line) for line in args.target_site_vix_file.read_text().strip().split('\n') if line.strip()
+        ]
+
+    # Keys consumed by masif_search() and alignment_utils (legacy names)
+    args.desc_dist_cutoff = args.seed_desc_dist_cutoff
+    args.iface_cutoff = args.seed_iface_cutoff
+    args.nn_score_cutoff = args.seed_nn_score_cutoff
+    args.desc_dist_score_cutoff = args.seed_desc_dist_score_cutoff
 
     # Database locations
     args.seed_surf_dir = os.path.join(args.top_seed_dir, masif_opts['ply_chain_dir'])

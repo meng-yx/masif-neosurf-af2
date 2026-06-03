@@ -296,6 +296,54 @@ def test_alignments(transformation, source_structure, target_pcd_tree, interface
     rmsd = np.sqrt(np.mean(np.square(np.linalg.norm(structure_coords[interface_atoms,:]-np.asarray(structure_coord_pcd.points)[interface_atoms,:],axis=1))))
     return rmsd
 
+
+def _seed_candidate_mask(pdb_chain_id, params):
+    """Vertex indices on seed mesh within seed_site_cutoff of seed anchor residue.
+
+    Returns None if seed anchor trio is unset or this chain is not the anchor chain.
+    """
+    if params.get('seed_chain') is None:
+        return None
+
+    pdb_id, chain = pdb_chain_id.split('_', 1)
+    if chain != params['seed_chain']:
+        return None
+
+    ply_path = os.path.join(params['seed_surf_dir'], f'{pdb_chain_id}.ply')
+    pdb_path = os.path.join(params['seed_pdb_dir'], f'{pdb_chain_id}.pdb')
+    try:
+        mesh = read_point_cloud(ply_path)
+        vertices = np.asarray(mesh.points)
+        struct = PDBParser(QUIET=True).get_structure('', pdb_path)
+        resid_matches = [
+            r.id for r in struct[0][chain].get_residues()
+            if r.id[1] == params['seed_resid']
+        ]
+        if len(resid_matches) != 1:
+            raise ValueError(f"Seed residue ID not unique: {resid_matches}")
+        resid = resid_matches[0]
+        if params.get('seed_atom_id'):
+            atom_coords = np.array([
+                struct[0][chain][resid][params['seed_atom_id']].get_coord()
+            ])
+        else:
+            atom_coords = np.stack([
+                a.get_coord() for a in struct[0][chain][resid].get_atoms()
+                if a.element != 'H'
+            ])
+        dists = np.sqrt(np.min(
+            np.sum(
+                np.square(vertices.reshape(-1, 1, 3) - atom_coords.reshape(1, -1, 3)),
+                axis=-1,
+            ),
+            axis=1,
+        ))
+        return set(np.where(dists < params['seed_site_cutoff'])[0])
+    except Exception as e:
+        print(f"Warning: skipping seed spatial filter for {pdb_chain_id}: {e}")
+        return None
+
+
 def match_descriptors(directory_list, pids, target_desc, params, return_scores=False):
     """ 
         Match descriptors to the target descriptor.
@@ -338,7 +386,10 @@ def match_descriptors(directory_list, pids, target_desc, params, return_scores=F
             near_points = np.where(diff < params['desc_dist_cutoff'])[0]
 
             selected = np.intersect1d(true_iface, near_points)
-            if len(selected > 0):
+            seed_mask = _seed_candidate_mask(pdb_chain_id, params)
+            if seed_mask is not None:
+                selected = np.array([v for v in selected if v in seed_mask])
+            if len(selected) > 0:
                 all_matched_names.append([name]*len(selected))
                 all_matched_vix.append(selected)
                 all_matched_desc_dist.append(diff[selected])
