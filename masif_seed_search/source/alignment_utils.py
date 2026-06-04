@@ -15,6 +15,7 @@ from tensorflow import keras
 import os
 
 from search_output import append_hit_row, build_hit_row
+from neosurf_anchor import SEED_SKIP_WARNING, find_ligand_anchor, log_ligand_anchor
 
 def rand_rotation_matrix(deflection=1.0, randnums=None):
     """
@@ -299,16 +300,42 @@ def test_alignments(transformation, source_structure, target_pcd_tree, interface
     return rmsd
 
 
+def _get_seed_ligand_anchor(pdb_chain_id, params):
+    """Resolve and cache per-seed ligand anchor when --seed-auto-neosurf is enabled."""
+    cache = params.setdefault('seed_anchor_cache', {})
+    if pdb_chain_id in cache:
+        return cache[pdb_chain_id]
+
+    pdb_path = os.path.join(params['seed_pdb_dir'], f'{pdb_chain_id}.pdb')
+    try:
+        anchor = find_ligand_anchor(pdb_path)
+    except Exception as e:
+        print(f"Warning: could not parse seed PDB for {pdb_chain_id}: {e}")
+        anchor = None
+
+    if anchor is not None:
+        log_ligand_anchor(pdb_chain_id, anchor, pdb_path)
+    cache[pdb_chain_id] = anchor
+    return anchor
+
+
 def _seed_candidate_mask(pdb_chain_id, params):
     """Vertex indices on seed mesh within seed_site_cutoff of seed anchor residue.
 
-    Returns None if seed anchor trio is unset.
+    Returns None if seed spatial filtering is disabled.
     """
-    if params.get('seed_chain') is None:
+    if params.get('seed_auto_neosurf'):
+        anchor = _get_seed_ligand_anchor(pdb_chain_id, params)
+        if anchor is None:
+            print(SEED_SKIP_WARNING.format(protein_id=pdb_chain_id))
+            return set()
+        chain = anchor.chain
+        seed_resid = anchor.resid
+    elif params.get('seed_chain') is None:
         return None
-
-    chain = params['seed_chain']
-    seed_resid = params['seed_resid']
+    else:
+        chain = params['seed_chain']
+        seed_resid = params['seed_resid']
 
     ply_path = os.path.join(params['seed_surf_dir'], f'{pdb_chain_id}.ply')
     pdb_path = os.path.join(params['seed_pdb_dir'], f'{pdb_chain_id}.pdb')

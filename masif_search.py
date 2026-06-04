@@ -16,8 +16,9 @@ masif_neosurf_dir = Path(__file__).resolve().parent
 sys.path.append(str(Path(masif_neosurf_dir, 'masif', 'source').resolve()))
 sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resolve()))
 from masif.source.default_config.masif_opts import masif_opts
-from masif_seed_search.source.alignment_evaluation_nn import AlignmentEvaluationNN
-from masif_seed_search.source.alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
+from alignment_evaluation_nn import AlignmentEvaluationNN
+from alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
+from neosurf_anchor import find_ligand_anchor, log_ligand_anchor
 
 
 def _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor):
@@ -100,6 +101,112 @@ def _select_target_vertices(mymesh, target_struct, target_ply_fn, params):
 
     print(f"Selected {len(target_vertices)} target site(s).")
     return target_vertices
+
+
+def _load_seed_subset_lines(subset_path):
+    with open(subset_path, "r") as f:
+        return [line.strip() for line in f if line.strip()]
+
+
+def _filter_seeds_for_auto_neosurf(seed_ids, seed_pdb_dir):
+    kept = []
+    anchor_cache = {}
+    for protein_id in seed_ids:
+        pdb_path = os.path.join(seed_pdb_dir, f"{protein_id}.pdb")
+        anchor = find_ligand_anchor(pdb_path)
+        if anchor is None:
+            print(
+                f"WARNING: skipped {protein_id} with no HETATOM record. "
+                "If no ligand is expected, remove --seed-auto-neosurf flag."
+            )
+            continue
+        log_ligand_anchor(protein_id, anchor, pdb_path)
+        kept.append(protein_id)
+        anchor_cache[protein_id] = anchor
+    return kept, anchor_cache
+
+
+def _resolve_target_auto_neosurf(args):
+    pdb_path = os.path.join(args.target_pdb_dir, f"{args.target_name}.pdb")
+    anchor = find_ligand_anchor(pdb_path)
+    if anchor is None:
+        raise SystemExit(
+            f"ERROR: no hetero (HET) residue found in target PDB {pdb_path} "
+            f"with --target-auto-neosurf."
+        )
+    log_ligand_anchor(args.target_name, anchor, pdb_path)
+    args.target_chain = anchor.chain
+    args.target_resid = anchor.resid
+    args.target_residue = {'resid': anchor.resid, 'chain': anchor.chain}
+
+
+def _validate_and_configure_cli(args, parser):
+    has_vix = args.target_site_vix is not None or args.target_site_vix_file is not None
+    has_residue = args.target_chain is not None and args.target_resid is not None
+    has_point = args.target_coord is not None
+    has_partial_residue = (args.target_chain is None) != (args.target_resid is None)
+
+    if args.target_auto_neosurf:
+        if has_residue or args.target_atom_id is not None:
+            parser.error("--target-auto-neosurf cannot be combined with manual --target_chain/--target_resid/--target_atom_id")
+        if has_vix:
+            parser.error("--target-auto-neosurf cannot be combined with --target_site_vix/--target_site_vix_file")
+        if has_point:
+            parser.error("--target-auto-neosurf cannot be combined with --target_coord")
+        if args.target_site_cutoff is None:
+            parser.error("--target_site_cutoff is required with --target-auto-neosurf")
+
+    if args.seed_auto_neosurf and args.seed_atom_id is not None:
+        parser.error("--seed-auto-neosurf cannot be combined with --seed_atom_id")
+
+    if has_partial_residue:
+        parser.error("--target_chain and --target_resid must be used together")
+    if not has_vix and not has_residue and not has_point and not args.target_auto_neosurf:
+        parser.error(
+            "Provide --target_site_vix / --target_site_vix_file, "
+            "--target_chain + --target_resid, --target_coord, or --target-auto-neosurf"
+        )
+    if has_point and (has_residue or args.target_auto_neosurf):
+        parser.error("--target_coord is mutually exclusive with residue-based target anchors")
+
+    if has_residue and args.target_site_cutoff is None:
+        parser.error("--target_site_cutoff is required when using --target_chain and --target_resid")
+
+    has_manual_seed_anchor = args.seed_chain is not None and args.seed_resid is not None
+    has_partial_seed_anchor = (args.seed_chain is None) != (args.seed_resid is None)
+    if has_partial_seed_anchor:
+        parser.error("--seed_chain and --seed_resid must be used together")
+    if args.seed_auto_neosurf and (has_manual_seed_anchor or has_partial_seed_anchor):
+        parser.error("--seed-auto-neosurf cannot be combined with --seed_chain/--seed_resid")
+    if has_manual_seed_anchor and args.seed_site_cutoff is None:
+        parser.error("--seed_site_cutoff is required with --seed_chain and --seed_resid")
+    if args.seed_auto_neosurf and args.seed_site_cutoff is None:
+        parser.error("--seed_site_cutoff is required with --seed-auto-neosurf")
+    if args.seed_site_cutoff is not None and not args.seed_auto_neosurf and not has_manual_seed_anchor:
+        parser.error(
+            "Provide --seed_site_cutoff together with --seed-auto-neosurf "
+            "or with --seed_chain and --seed_resid"
+        )
+    if args.seed_score_binder and (has_manual_seed_anchor or args.seed_auto_neosurf):
+        parser.error(
+            "--seed_score_binder cannot be combined with seed anchor options "
+            "(--seed-auto-neosurf or --seed_chain/--seed_resid)"
+        )
+
+    if not (0 < args.target_site_sample_ratio <= 1.0):
+        parser.error("--target_site_sample_ratio must be in (0, 1]")
+
+    if args.target_coord is not None:
+        args.target_point = {'coord': args.target_coord}
+    elif has_residue:
+        args.target_residue = {'resid': args.target_resid, 'chain': args.target_chain}
+        if args.target_atom_id is not None:
+            args.target_atom = {'atom_id': args.target_atom_id}
+
+    if args.target_site_vix_file is not None and args.target_site_vix is None:
+        args.target_site_vix = [
+            int(line) for line in args.target_site_vix_file.read_text().strip().split('\n') if line.strip()
+        ]
 
 
 def score_complex(
@@ -307,12 +414,6 @@ def masif_search(params):
         if len(matched_dict.keys())==0:
             continue
 
-        # for (matched_name, _), matched_inds in matched_dict.items():
-        #     matched_outdir = os.path.join(site_outdir, matched_name)
-        #     os.makedirs(matched_outdir, exist_ok=True)
-        #     with open(matched_outdir + '/first_stage_matches.txt', 'w') as f:
-        #         f.write(' '.join(map(str, matched_inds)))
-
         print(" ")
         print("Second stage of MaSIF seed search: each matched descriptor is aligned and scored; this may take a while..")
         count_matched_fragments = 0
@@ -349,11 +450,13 @@ if __name__ == "__main__":
     parser.add_argument("--target_dir", dest="masif_target_root", type=Path, required=True)
     parser.add_argument("--out_dir", type=Path, default=None)
 
+    parser.add_argument("--target-auto-neosurf", action="store_true",
+                        help="Use largest hetero residue in target PDB as anchor.")
     parser.add_argument("--target_chain", type=str, default=None)
     parser.add_argument("--target_resid", type=int, default=None)
     parser.add_argument("--target_atom_id", type=str, default=None)
     parser.add_argument("--target_coord", type=float, nargs="+", default=None)
-    parser.add_argument("--target_site_cutoff", type=float, default=10.0)
+    parser.add_argument("--target_site_cutoff", type=float, default=None)
     parser.add_argument("--target_site_sample_ratio", type=float, default=1.0)
     parser.add_argument("--target_site_max", type=int, default=None)
     parser.add_argument("--target_site_vix", type=int, nargs='+', default=None)
@@ -361,6 +464,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--seed_dir", dest="top_seed_dir", type=Path, required=True)
     parser.add_argument("--seed_subset", dest="database_subset", type=Path, default=None)
+    parser.add_argument("--seed-auto-neosurf", action="store_true",
+                        help="Use largest hetero residue per seed PDB as anchor for spatial filtering.")
     parser.add_argument("--seed_chain", type=str, default=None)
     parser.add_argument("--seed_resid", type=int, default=None)
     parser.add_argument("--seed_atom_id", type=str, default=None)
@@ -384,50 +489,13 @@ if __name__ == "__main__":
     parser.add_argument("--random_seed", type=int, default=42)
     args = parser.parse_args()
 
-    has_vix = args.target_site_vix is not None or args.target_site_vix_file is not None
-    has_residue = args.target_chain is not None and args.target_resid is not None
-    has_point = args.target_coord is not None
-    has_partial_residue = (args.target_chain is None) != (args.target_resid is None)
-
-    if has_partial_residue:
-        parser.error("--target_chain and --target_resid must be used together")
-    if not has_vix and not has_residue and not has_point:
-        parser.error(
-            "Provide --target_site_vix / --target_site_vix_file, "
-            "or --target_chain + --target_resid, or --target_coord"
-        )
-    if has_point and has_residue:
-        parser.error("--target_coord and --target_chain/--target_resid are mutually exclusive")
-
-    seed_trio = [args.seed_chain, args.seed_resid, args.seed_site_cutoff]
-    if any(x is not None for x in seed_trio) and not all(x is not None for x in seed_trio):
-        parser.error("--seed_chain, --seed_resid, and --seed_site_cutoff must all be set together")
-    if args.seed_score_binder and any(x is not None for x in seed_trio):
-        parser.error(
-            "--seed_score_binder cannot be combined with "
-            "--seed_chain/--seed_resid/--seed_site_cutoff"
-        )
-
-    if not (0 < args.target_site_sample_ratio <= 1.0):
-        parser.error("--target_site_sample_ratio must be in (0, 1]")
+    _validate_and_configure_cli(args, parser)
 
     np.random.seed(args.random_seed)
     if version.parse('0.14.1') <= version.parse(o3d.__version__) <= version.parse('0.15.2'):
         args.maybe_seed = {"seed": args.random_seed}
     else:
         args.maybe_seed = {}
-
-    if args.target_coord is not None:
-        args.target_point = {'coord': args.target_coord}
-    elif has_residue:
-        args.target_residue = {'resid': args.target_resid, 'chain': args.target_chain}
-        if args.target_atom_id is not None:
-            args.target_atom = {'atom_id': args.target_atom_id}
-
-    if args.target_site_vix_file is not None and args.target_site_vix is None:
-        args.target_site_vix = [
-            int(line) for line in args.target_site_vix_file.read_text().strip().split('\n') if line.strip()
-        ]
 
     # Keys consumed by masif_search() and alignment_utils (legacy names)
     args.desc_dist_cutoff = args.seed_desc_dist_cutoff
@@ -442,19 +510,7 @@ if __name__ == "__main__":
     args.seed_pdb_dir = os.path.join(args.top_seed_dir, masif_opts['pdb_chain_dir'])
     args.seed_desc_dir = os.path.join(args.top_seed_dir, masif_opts['ppi_search']['desc_dir'])
 
-    # 9 A
-    # args.seed_precomp_dir = os.path.join(args.top_seed_dir,masif_opts['site']['masif_precomputation_dir'])
-    # 12 A
     args.seed_precomp_dir = os.path.join(args.top_seed_dir, masif_opts['ppi_search']['masif_precomputation_dir'])
-
-    # Database subset
-    if args.database_subset is None:
-        # use all available protein IDs in the database
-        args.seed_ppi_pair_ids = np.array(os.listdir(args.seed_desc_dir))
-    else:
-        # use a predefined subset of protein IDs
-        with open(args.database_subset, "r") as f:
-            args.seed_ppi_pair_ids = [x.rstrip() for x in f.readlines() if x.strip()]
 
     # Target locations
     args.top_target_dir = os.path.join(args.masif_target_root)
@@ -463,24 +519,44 @@ if __name__ == "__main__":
     args.target_ply_iface_dir = os.path.join(args.masif_target_root, masif_opts['site']['out_surf_dir'])
     args.target_pdb_dir = os.path.join(args.top_target_dir, masif_opts['pdb_chain_dir'])
     args.target_desc_dir = os.path.join(args.top_target_dir, masif_opts['ppi_search']['desc_dir'])
-    args.target_desc_dir = os.path.join(args.top_target_dir, masif_opts['ppi_search']['desc_dir'])
 
-    # 9 A
-    # args.target_precomp_dir = os.path.join(args.top_target_dir,masif_opts['site']['masif_precomputation_dir'])
-    # 12 A
     args.target_precomp_dir = os.path.join(args.top_target_dir, masif_opts['ppi_search']['masif_precomputation_dir'])
 
+    if args.target_auto_neosurf:
+        _resolve_target_auto_neosurf(args)
+
+    # Database subset
+    subset_lines = None
+    if args.database_subset is not None:
+        if not args.database_subset.is_file():
+            parser.error(f"--seed_subset not found: {args.database_subset}")
+        subset_lines = _load_seed_subset_lines(args.database_subset)
+        if len(subset_lines) == 0:
+            print(f"NOTE: empty seed subset file {args.database_subset}; nothing to search.")
+            sys.exit(0)
+        if args.seed_auto_neosurf:
+            args.seed_ppi_pair_ids, args.seed_anchor_cache = _filter_seeds_for_auto_neosurf(
+                subset_lines, args.seed_pdb_dir)
+            if len(args.seed_ppi_pair_ids) == 0:
+                raise SystemExit(
+                    f"ERROR: all {len(subset_lines)} seed(s) in {args.database_subset} "
+                    "were skipped (no hetero residue)."
+                )
+        else:
+            args.seed_ppi_pair_ids = subset_lines
+    elif args.seed_auto_neosurf:
+        args.seed_ppi_pair_ids = np.array(os.listdir(args.seed_desc_dir))
+        args.seed_anchor_cache = {}
+    else:
+        args.seed_ppi_pair_ids = np.array(os.listdir(args.seed_desc_dir))
+
     # Some hard-coded parameters
-    # Neural network scores.
     args.nn_score_atomic_fn = os.path.join(masif_neosurf_dir, "masif_seed_search/data/scoring_nn/models_std/weights_12A_0129")
     args.max_npoints = 200
 
-    # Ransac parameters
     if version.parse(o3d.__version__) > version.parse('0.11.0'):
         args.ransac_convergence_kwargs = {'confidence': 0.999}
-    # Ransac radius - should not be changed.
     args.ransac_radius = 1.5
-    # How much to expand the surface for alignment.
     args.surface_outward_shift = 0.25
 
     masif_search(vars(args))

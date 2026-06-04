@@ -51,4 +51,4 @@ done
 echo "Array task ${SLURM_ARRAY_TASK_ID} (CSV row ${CSV_ROW}): TARGET=${TARGET}"
 
 bash scripts/bash/preprocess.sh \
-    "$PDB_PATH" "$TARGET" "$LIGAND" "$LIGAND_PATH" "$DATABASE_ROOT"
+    "$PDB_PATH" "$TARGET" "$LIGAND" "$LIGAND_PATH" "$TARGET_PREPROCESS_ROOT"
