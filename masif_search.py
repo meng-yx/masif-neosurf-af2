@@ -271,11 +271,17 @@ def masif_search(params):
             out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
 
 
+    params['target_name'] = target_ppi_pair_id
+    params['_hit_csv_initialized'] = set()
+
     # Go through every selected site
     for site_ix, site_vix in enumerate(target_vertices):
         site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
         if not os.path.exists(site_outdir):
             os.makedirs(site_outdir, exist_ok=True)
+
+        params['target_site'] = 'site_{}'.format(site_ix)
+        params['target_vix'] = int(site_vix)
 
         # Get the geodesic patch and descriptor patch for each target patch
         target_patch, target_patch_descs, target_patch_idx = get_patch_geo(

@@ -14,6 +14,8 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 
+from search_output import append_hit_row, build_hit_row
+
 def rand_rotation_matrix(deflection=1.0, randnums=None):
     """
     Creates a random rotation matrix. used to randomize initial pose. 
@@ -674,47 +676,37 @@ def align_protein(
 
     
     if len(top_scorers) > 0:
-        source_outdir = os.path.join(site_outdir, '{}'.format(ppi_pair_id))
-
-        # Load source structure 
+        # Load source structure for clash counting (aligned PDBs are not written).
         source_struct = parser.get_structure('{}_{}'.format(pdb,chain), os.path.join(params['seed_pdb_dir'],'{}_{}.pdb'.format(pdb,chain)))
-        # Use the preexisting random rotation matrix that was applied to the patch.
         random_rotate_source_struct(source_struct, random_transformation)
 
-        # Perform the transformation on the atoms
         for j in top_scorers:
             res = all_results[j]
-
             source_structure_cp = copy.deepcopy(source_struct)
-            
-            # Count clashes and if threshold passes, align the pdb.
+
             clashing_ca, clashing_total = count_clashes(res.transformation, np.asarray(all_source_patch[j].points), source_structure_cp, \
                 target_ca_pcd_tree, target_pcd_tree, clashing_ca_thresh=params['allowed_CA_clashes'], clashing_thresh=params['allowed_heavy_atom_clashes'])
 
-            # Check if the number of clashes exceeds the number allowed. 
             if clashing_ca <= params['allowed_CA_clashes'] and clashing_total <= params['allowed_heavy_atom_clashes']:
+                full_transform = res.transformation @ random_transformation
+                print('Selected fragment: {} fragment_id: {} score: {:.4f} desc_dist_score: {:.4f} clashes(CA): {} clashes(total):{}\n'.format(
+                    j, ppi_pair_id, scores[j][0], scores[j][1], clashing_ca, clashing_total))
 
-                if not os.path.exists(source_outdir):
-                    os.makedirs(source_outdir)
-
-                # Align and save the pdb + patch 
-                out_fn = source_outdir+'/{}_{}_{}'.format(pdb, chain, j)
-                align_and_save(out_fn, all_source_patch[j], source_structure_cp, \
-                                            point_importance=all_point_importance[j])
-
-                # Recompute the score with clashes.
-                print('Selected fragment: {} fragment_id: {} score: {:.4f} desc_dist_score: {:.4f} clashes(CA): {} clashes(total):{}\n'.format(j , ppi_pair_id, scores[j][0], scores[j][1], clashing_ca, clashing_total))
-
-                # Output the score for convenience. 
-                extra_info = '' if first_stage_scores is None else ', desc_dist: {}, iface_score: {}'.format(first_stage_scores['desc_dist'][j], first_stage_scores['iface_score'][j])
-                out_score = open(out_fn+'.score', 'w+')
-                out_score.write('name: {}, point id: {}, score: {:.4f}, clashing_ca: {}, clashing_heavy: {}, desc_dist_score: {}, mean_desc_dist_score: {}, match_vix: {}{}\n'.format(ppi_pair_id, j, scores[j][0], clashing_ca,clashing_total, scores[j][1], scores[j][2], source_vix[j], extra_info))
-                out_score.close()
-
-                # Output the rigid transformation
-                np.save(out_fn + '_transform.npy', res.transformation @ random_transformation)
-                
-                print ('Surface alignment is deactivated - aligning only pdbs. ')
+                row = build_hit_row(
+                    params=params,
+                    matched_protein=ppi_pair_id,
+                    matched_patch_id=j,
+                    score=scores[j][0],
+                    desc_dist_score=scores[j][1],
+                    mean_desc_dist_score=scores[j][2],
+                    clashing_ca=clashing_ca,
+                    clashing_heavy=clashing_total,
+                    matched_vix=source_vix[j],
+                    transformation=full_transform,
+                    first_stage_scores=first_stage_scores,
+                    patch_index=j,
+                )
+                append_hit_row(site_outdir, ppi_pair_id, row, params)
                 continue
 
                 # Align and save the ply file for convenience.     
