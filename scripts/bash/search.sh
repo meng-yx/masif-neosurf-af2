@@ -36,6 +36,10 @@ if [[ "${TARGET_AUTO_NEOSURF:-0}" == "1" ]]; then
 fi
 if [[ "${SEED_AUTO_NEOSURF:-0}" == "1" ]]; then
     AUTO_FLAGS+=(--seed-auto-neosurf)
+    AUTO_FLAGS+=(--seed_site_cutoff "${CUTOFF}")
+fi
+if [[ "${RESUME:-0}" == "1" ]]; then
+    AUTO_FLAGS+=(--resume)
 fi
 
 echo "Search ${QUERY_TARGET} seeds from ${SEED_SUBSET}"
@@ -49,7 +53,6 @@ srun apptainer exec -B "${BIND_MOUNTS}" "${IMAGE}" \
         --target_site_sample_ratio "${TARGET_SAMPLING_RATIO}" \
         --seed_dir "${DATABASE_ROOT}" \
         --seed_subset "${SEED_SUBSET}" \
-        --seed_site_cutoff "${CUTOFF}" \
         --seed_iface_cutoff "${IFACE_CUTOFF}" \
         --seed_desc_dist_cutoff "${DESC_DIST_CUTOFF}" \
         --seed_nn_score_cutoff "${NN_SCORE_CUTOFF}" \

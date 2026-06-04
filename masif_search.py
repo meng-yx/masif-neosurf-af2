@@ -18,6 +18,8 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resol
 from masif.source.default_config.masif_opts import masif_opts
 from alignment_evaluation_nn import AlignmentEvaluationNN
 from alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
+from search_output import filter_seeds_for_resume, write_site_seed_hits
+from structural_cluster import cluster_search_hits_for_subset
 from neosurf_anchor import find_ligand_anchor, log_ligand_anchor
 
 
@@ -379,7 +381,6 @@ def masif_search(params):
 
 
     params['target_name'] = target_ppi_pair_id
-    params['_hit_csv_initialized'] = set()
 
     # Go through every selected site
     for site_ix, site_vix in enumerate(target_vertices):
@@ -407,11 +408,24 @@ def masif_search(params):
         with open(site_outdir + '/target_info.txt', 'w') as out_info:
             out_info.write(f'name: {target_ppi_pair_id}, site: {site_ix}, vix: {site_vix}')
 
-        # Match the top descriptors in the database based on descriptor distance.
-        print('Starting to match target descriptor to descriptors from {} proteins; this may take a while.'.format(len(seed_ppi_pair_ids)))
-        matched_dict, scores_dict = match_descriptors(seed_ppi_pair_ids, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
+        seeds_this_site = filter_seeds_for_resume(
+            site_outdir, list(seed_ppi_pair_ids), params.get('resume', False))
+        if len(seeds_this_site) == 0:
+            print(f"Resume: all seeds already completed for {params['target_site']}, skipping site.")
+            continue
 
-        if len(matched_dict.keys())==0:
+        # Match the top descriptors in the database based on descriptor distance.
+        print('Starting to match target descriptor to descriptors from {} proteins; this may take a while.'.format(len(seeds_this_site)))
+        matched_dict, scores_dict = match_descriptors(seeds_this_site, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
+
+        matched_protein_ids = {name[0] for name in matched_dict.keys()}
+        for seed_id in seeds_this_site:
+            if seed_id not in matched_protein_ids:
+                write_site_seed_hits(site_outdir, seed_id, [])
+                print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
+                      f"wrote header-only {seed_id}.csv")
+
+        if len(matched_dict.keys()) == 0:
             continue
 
         print(" ")
@@ -486,6 +500,8 @@ if __name__ == "__main__":
     parser.add_argument("--ransac_iter", type=int, default=100000)
     parser.add_argument("--n_retry_alignment", type=int, default=1)
     parser.add_argument("--similarity_mode", action="store_true")
+    parser.add_argument("--resume", action="store_true",
+                        help="Skip (site, seed) pairs that already have a completed CSV output.")
     parser.add_argument("--random_seed", type=int, default=42)
     args = parser.parse_args()
 
@@ -559,4 +575,10 @@ if __name__ == "__main__":
     args.ransac_radius = 1.5
     args.surface_outward_shift = 0.25
 
-    masif_search(vars(args))
+    # Run main search function
+    search_params = vars(args)
+    masif_search(search_params)
+
+    # Cluster search hits upon completion of search
+    if search_params.get("seed_score_binder") is None:
+        cluster_search_hits_for_subset(search_params)

@@ -18,6 +18,7 @@ TARGET_SAMPLING_RATIO=0.2
 # Neosurf-Neosurf settings (automatically set anchor residue to the largest HETAOM residue)
 TARGET_AUTO_NEOSURF=1
 SEED_AUTO_NEOSURF=1
+RESUME=0
 
 # Utility
 PIP_PACKAGES="pandas tqdm"
@@ -33,6 +34,7 @@ BIND_MOUNTS="/work:/work,/scratch:/scratch"
 
 # Seed database root
 DATABASE_ROOT=data/preprocess
+#DATABASE_ROOT=/work/lpdi/users/diazrovi/domaindome/20260221-AFDBv6_domaindome_DPAM_masif/data/dpam_domaindome_masif_db/
 # Target database root
 TARGET_PREPROCESS_ROOT=data/preprocess
 

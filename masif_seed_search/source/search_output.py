@@ -30,6 +30,24 @@ def hit_csv_path(site_outdir, matched_protein):
     return os.path.join(site_outdir, f"{matched_protein}.csv")
 
 
+def is_site_seed_complete(site_outdir, matched_protein):
+    """A CSV on disk means align_protein finished for this (site, seed)."""
+    return os.path.isfile(hit_csv_path(site_outdir, matched_protein))
+
+
+def filter_seeds_for_resume(site_outdir, seed_ids, resume):
+    if not resume:
+        return list(seed_ids)
+    pending = []
+    for seed_id in seed_ids:
+        if is_site_seed_complete(site_outdir, seed_id):
+            print(f"Resume: skipping {seed_id} at {os.path.basename(site_outdir)} "
+                  f"(found {hit_csv_path(site_outdir, seed_id)})")
+            continue
+        pending.append(seed_id)
+    return pending
+
+
 def build_hit_row(
     params,
     matched_protein,
@@ -68,24 +86,20 @@ def build_hit_row(
     return row
 
 
-def append_hit_row(site_outdir, matched_protein, row, params):
+def write_site_seed_hits(site_outdir, matched_protein, rows):
     """
-    Append one hit row to site_outdir/{matched_protein}.csv.
-    First write to that file in this process overwrites (header + row); later writes append.
+    Write all hits for one (site, seed) in a single atomic CSV update.
+    Header-only file means the search completed with zero passing hits.
     """
-    initialized = params.setdefault("_hit_csv_initialized", set())
-    csv_path = hit_csv_path(site_outdir, matched_protein)
-    key = str(csv_path)
-    write_header = key not in initialized
-    if write_header:
-        initialized.add(key)
-
     os.makedirs(site_outdir, exist_ok=True)
-    with open(csv_path, "a" if not write_header else "w", newline="") as f:
+    csv_path = hit_csv_path(site_outdir, matched_protein)
+    tmp_path = f"{csv_path}.tmp"
+    with open(tmp_path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=HIT_CSV_COLUMNS, extrasaction="ignore")
-        if write_header:
-            writer.writeheader()
-        writer.writerow({col: row.get(col, "") for col in HIT_CSV_COLUMNS})
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({col: row.get(col, "") for col in HIT_CSV_COLUMNS})
+    os.replace(tmp_path, csv_path)
 
 
 def gather_search_results(results_root, query_target):
@@ -98,6 +112,21 @@ def gather_search_results(results_root, query_target):
     for site_dir in sorted(target_dir.glob("site_*")):
         for csv_path in sorted(site_dir.glob("*.csv")):
             frames.append(pd.read_csv(csv_path))
+
+    if not frames:
+        return pd.DataFrame(columns=HIT_CSV_COLUMNS)
+    return pd.concat(frames, ignore_index=True)
+
+
+def gather_clustered_results(results_root, query_target):
+    """Concatenate per-seed clustered CSVs under results_root/query_target/clustered_matches/."""
+    clustered_dir = Path(results_root) / query_target / "clustered_matches"
+    if not clustered_dir.is_dir():
+        raise FileNotFoundError(f"No clustered output directory: {clustered_dir}")
+
+    frames = []
+    for csv_path in sorted(clustered_dir.glob("*.csv")):
+        frames.append(pd.read_csv(csv_path))
 
     if not frames:
         return pd.DataFrame(columns=HIT_CSV_COLUMNS)

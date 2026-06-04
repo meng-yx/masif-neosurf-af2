@@ -14,7 +14,7 @@ import tensorflow as tf
 from tensorflow import keras
 import os
 
-from search_output import append_hit_row, build_hit_row
+from search_output import build_hit_row, write_site_seed_hits
 from neosurf_anchor import SEED_SKIP_WARNING, find_ligand_anchor, log_ligand_anchor
 
 def rand_rotation_matrix(deflection=1.0, randnums=None):
@@ -702,6 +702,7 @@ def align_protein(
         top_scorers = np.intersect1d(top_scorers, top_scorers_dds)
 
     
+    hit_rows = []
     if len(top_scorers) > 0:
         # Load source structure for clash counting (aligned PDBs are not written).
         source_struct = parser.get_structure('{}_{}'.format(pdb,chain), os.path.join(params['seed_pdb_dir'],'{}_{}.pdb'.format(pdb,chain)))
@@ -719,7 +720,7 @@ def align_protein(
                 print('Selected fragment: {} fragment_id: {} score: {:.4f} desc_dist_score: {:.4f} clashes(CA): {} clashes(total):{}\n'.format(
                     j, ppi_pair_id, scores[j][0], scores[j][1], clashing_ca, clashing_total))
 
-                row = build_hit_row(
+                hit_rows.append(build_hit_row(
                     params=params,
                     matched_protein=ppi_pair_id,
                     matched_patch_id=j,
@@ -732,25 +733,8 @@ def align_protein(
                     transformation=full_transform,
                     first_stage_scores=first_stage_scores,
                     patch_index=j,
-                )
-                append_hit_row(site_outdir, ppi_pair_id, row, params)
-                continue
+                ))
 
-                # Align and save the ply file for convenience.     
-                mesh = Simple_mesh()
-                mesh.load_mesh(os.path.join(params['seed_surf_dir'],'{}.ply'.format(pdb+'_'+chain)))
-                
-                source_pcd_copy = copy.deepcopy(source_pcd)
-                source_pcd_copy.transform(res.transformation)
-                out_vertices = np.asarray(source_pcd_copy.points)
-                out_normals = np.asarray(source_pcd_copy.normals)
-                mesh.set_attribute('vertex_x', out_vertices[:,0])
-                mesh.set_attribute('vertex_y', out_vertices[:,1])
-                mesh.set_attribute('vertex_z', out_vertices[:,2])
-                mesh.set_attribute('vertex_nx', out_normals[:,0])
-                mesh.set_attribute('vertex_ny', out_normals[:,1])
-                mesh.set_attribute('vertex_nz', out_normals[:,2])
-                mesh.vertices = out_vertices
-                mesh.set_attribute('vertex_iface', source_iface) 
-                mesh.save_mesh(out_fn+'.ply')
-                #save_ply(out_fn+'.ply', out_vertices, mesh.faces, out_normals, charges=mesh.get_attribute('vertex_charge'))
+    write_site_seed_hits(site_outdir, ppi_pair_id, hit_rows)
+    print(f"Wrote {len(hit_rows)} hit(s) for {ppi_pair_id} at {params['target_site']} -> "
+          f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")
