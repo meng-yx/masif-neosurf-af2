@@ -330,6 +330,14 @@ def predict_binding_sites(ppi_pair_ids, output_root):
             print(f"Successfully saved file {out_surf_file}")
 
 
+def descriptor_outputs_exist(output_root, name_chain):
+    out_desc_dir = Path(output_root, masif_opts["ppi_search"]["desc_dir"], name_chain)
+    return (
+        (out_desc_dir / "p1_desc_straight.npy").is_file()
+        and (out_desc_dir / "p1_desc_flipped.npy").is_file()
+    )
+
+
 def compute_descriptors(ppi_list, output_root):
     params = masif_opts["ppi_search"]
 
@@ -427,7 +435,18 @@ if __name__ == "__main__":
                         help="Directory where temporary files will be saved. Provide a path if you would like to inspect these files for debugging.")
     parser.add_argument("--infer_reduce_het_dict", action="store_true", 
                         help="Automatically create het dictionary used by reduce to add hydrogens. Particularly useful in combination with --sdf for ligands that aren't in the PDB.")
+    parser.add_argument("--overwrite", action="store_true",
+                        help="Re-run preprocessing even if descriptor files already exist.")
     args = parser.parse_args()
+
+    if (
+        not args.overwrite
+        and args.outdir is not None
+        and descriptor_outputs_exist(args.outdir, args.name_chain)
+    ):
+        out_desc_dir = Path(args.outdir, masif_opts["ppi_search"]["desc_dir"], args.name_chain)
+        print(f"Skipping {args.name_chain}: descriptors already exist in {out_desc_dir}")
+        sys.exit(0)
 
     if args.tmp_dir is not None:
         args.tmp_dir.mkdir(exist_ok=True, parents=True)
