@@ -5,14 +5,14 @@ prepare_input.py — CLI for preparing MaSIF input structures.
 For each row in --input_csv (columns: pdb_id, protein_chain, ligand_chain,
 ligand_code), this script:
 
-  1. Downloads the full structure (PDB or mmCIF) from RCSB and the ligand SDF
-     from models.rcsb.org.
+  1. Downloads the full structure (PDB or mmCIF) from files.rcsb.org and the
+     ligand SDF from models.rcsb.org (with connectivity/bond orders).
   2. Trims to the target protein chain (standard amino acids) plus one ligand
      residue on the ligand chain.
   3. Runs EvoEF2 RepairStructure on the protein-only PDB.
-  4. Extracts ligand coordinates from the structure into an SDF, then merges
-     those coordinates onto the repaired protein as HETATM records using a
-     3-letter ligand code (ligand_code truncated to 3 characters).
+  4. Merges ligand coordinates from the downloaded SDF onto the repaired protein
+     as HETATM records using a 3-letter ligand code (ligand_code truncated to
+     3 characters).
   5. Appends four manifest columns to every input row:
        pdb_path, target, ligand, ligand_path
      Manifest ligand/ligand_path use the 3-letter code; the input ligand_code
@@ -31,6 +31,7 @@ Exit code is non-zero when at least one row failed.
 """
 
 import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -38,15 +39,14 @@ import sys
 import tempfile
 import warnings
 from pathlib import Path
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import urlopen
 
 import pandas as pd
 from Bio.PDB import PDBIO, PDBParser, Select
 from Bio.PDB.MMCIFParser import MMCIFParser
 from rdkit import Chem
-from rdkit.Chem import SDWriter
-from rdkit.Geometry import Point3D
 from tqdm import tqdm
 
 # ---------------------------------------------------------------------------
@@ -157,6 +157,15 @@ def expected_output_paths(pdb_id, protein_chain, ligand_chain, ligand_code, outd
 # ---------------------------------------------------------------------------
 
 
+RCSB_DATA_API = "https://data.rcsb.org/rest/v1/core"
+RCSB_MODEL_SERVER_API = "https://models.rcsb.org/v1"
+
+
+def _fetch_json(url):
+    with urlopen(url) as response:
+        return json.load(response)
+
+
 def _try_download_url(url, dest_path):
     dest_path = Path(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -164,8 +173,95 @@ def _try_download_url(url, dest_path):
         with urlopen(url) as response:
             dest_path.write_bytes(response.read())
         return True
-    except HTTPError:
+    except (HTTPError, URLError):
         return False
+
+
+def resolve_ligand_model_server_ids(pdb_id, auth_asym_id, ligand_code):
+    """
+    Map author chain/residue name to model-server query parameters.
+
+    Input chain IDs are author-assigned (auth_asym_id). The model server expects
+    label_asym_id plus auth_seq_id from the deposited mmCIF/PDBx tables.
+    """
+    pdb_id = pdb_id.strip().upper()
+    auth_asym_id = str(auth_asym_id).strip()
+    ligand_code = ligand_code.strip().upper()
+    ligand_tla = ligand_code_tla(ligand_code)
+
+    entry = _fetch_json(f"{RCSB_DATA_API}/entry/{pdb_id}")
+    entity_ids = entry.get("rcsb_entry_container_identifiers", {}).get(
+        "non_polymer_entity_ids", []
+    )
+    if not entity_ids:
+        raise ValueError(f"No non-polymer entities found for {pdb_id}")
+
+    label_asym_id = None
+    for entity_id in entity_ids:
+        entity = _fetch_json(f"{RCSB_DATA_API}/nonpolymer_entity/{pdb_id}/{entity_id}")
+        identifiers = entity.get("rcsb_nonpolymer_entity_container_identifiers", {})
+        comp_id = identifiers.get("nonpolymer_comp_id", "").strip().upper()
+        if comp_id not in {ligand_code, ligand_tla}:
+            continue
+
+        asym_ids = identifiers.get("asym_ids", [])
+        auth_asym_ids = identifiers.get("auth_asym_ids", [])
+        for label_id, auth_id in zip(asym_ids, auth_asym_ids):
+            if str(auth_id).strip() == auth_asym_id:
+                label_asym_id = str(label_id).strip()
+                break
+        if label_asym_id is not None:
+            break
+
+    if label_asym_id is None:
+        raise ValueError(
+            f"No non-polymer entity for {pdb_id} with comp_id={ligand_code} "
+            f"on auth chain {auth_asym_id}"
+        )
+
+    instance = _fetch_json(
+        f"{RCSB_DATA_API}/nonpolymer_entity_instance/{pdb_id}/{label_asym_id}"
+    )
+    instance_ids = instance.get("rcsb_nonpolymer_entity_instance_container_identifiers", {})
+    auth_seq_id = str(instance_ids.get("auth_seq_id", "")).strip()
+    if not auth_seq_id:
+        raise ValueError(
+            f"Could not resolve auth_seq_id for {pdb_id} ligand {ligand_code} "
+            f"(label_asym_id={label_asym_id})"
+        )
+
+    return label_asym_id, auth_seq_id
+
+
+def build_ligand_sdf_url(pdb_id, auth_asym_id, ligand_code):
+    """Build models.rcsb.org ligand SDF download URL."""
+    pdb_id_lower = pdb_id.strip().lower()
+    ligand_tla = ligand_code_tla(ligand_code)
+    label_asym_id, auth_seq_id = resolve_ligand_model_server_ids(
+        pdb_id, auth_asym_id, ligand_code
+    )
+    filename = f"{pdb_id_lower}_{label_asym_id}_{ligand_tla}.sdf"
+    query = urlencode(
+        {
+            "auth_seq_id": auth_seq_id,
+            "label_asym_id": label_asym_id,
+            "encoding": "sdf",
+            "filename": filename,
+        }
+    )
+    return f"{RCSB_MODEL_SERVER_API}/{pdb_id_lower}/ligand?{query}"
+
+
+def download_ligand_sdf(pdb_id, auth_asym_id, ligand_code, dest_path):
+    """Download ligand SDF with connectivity from models.rcsb.org."""
+    dest_path = Path(dest_path)
+    url = build_ligand_sdf_url(pdb_id, auth_asym_id, ligand_code)
+    if not _try_download_url(url, dest_path):
+        raise ValueError(f"Could not download ligand SDF from {url}")
+    mol = Chem.SDMolSupplier(str(dest_path), sanitize=False, removeHs=False)[0]
+    if mol is None:
+        dest_path.unlink(missing_ok=True)
+        raise ValueError(f"Downloaded ligand SDF is unreadable: {url}")
 
 
 def download_structure(pdb_id, dest_dir):
@@ -199,58 +295,6 @@ def _load_structure(pdb_id, structure_path):
     else:
         parser = PDBParser(QUIET=True)
     return parser.get_structure(pdb_id, str(structure_path))
-
-
-def _find_ligand_residue(structure, ligand_chain, ligand_code):
-    for chain in structure[0]:
-        if chain.id != ligand_chain:
-            continue
-        for residue in chain:
-            if residue.get_resname().strip() == ligand_code.strip():
-                return residue
-    return None
-
-
-def _element_symbol(atom):
-    """Return an element symbol RDKit accepts (e.g. Cl, Br), not PDB format (CL, BR)."""
-    element = (atom.element or "").strip()
-    if element:
-        element = element.upper()
-        if len(element) == 2:
-            return element[0] + element[1].lower()
-        return element
-    name = atom.name.strip()
-    if len(name) >= 2 and name[0].isalpha() and name[1].isalpha():
-        return name[:2].title()
-    return name[0].upper()
-
-
-def _residue_to_rdkit_mol(residue, mol_name):
-    mol = Chem.RWMol()
-    conf = Chem.Conformer()
-    for atom in residue:
-        rd_atom = Chem.Atom(_element_symbol(atom))
-        idx = mol.AddAtom(rd_atom)
-        x, y, z = atom.coord
-        conf.SetAtomPosition(idx, Point3D(float(x), float(y), float(z)))
-    mol.AddConformer(conf)
-    mol.SetProp("_Name", mol_name)
-    return mol.GetMol()
-
-
-def write_ligand_sdf_from_structure(structure, ligand_chain, ligand_code, dest_path):
-    """Write ligand coordinates from the deposited structure to an SDF file."""
-    residue = _find_ligand_residue(structure, ligand_chain, ligand_code)
-    if residue is None:
-        raise ValueError(
-            f"No ligand residue resname={ligand_code} chain={ligand_chain} in structure"
-        )
-    dest_path = Path(dest_path)
-    dest_path.parent.mkdir(parents=True, exist_ok=True)
-    mol = _residue_to_rdkit_mol(residue, ligand_code_tla(ligand_code))
-    writer = SDWriter(str(dest_path))
-    writer.write(mol)
-    writer.close()
 
 
 def _format_hetatm_line(serial, atom_name, resname, chain_id, resseq, x, y, z, element):
@@ -368,10 +412,8 @@ def prepare_input_structures(
         if structure_path is None:
             return None
 
+        download_ligand_sdf(pdb_id, ligand_chain, ligand_code, ligand_path)
         structure = _load_structure(pdb_id, structure_path)
-        write_ligand_sdf_from_structure(
-            structure, ligand_chain, ligand_code, ligand_path
-        )
 
         pdb_protein_chain, pdb_ligand_chain = _pdb_chain_ids(protein_chain, ligand_chain)
         chain_map = {}
