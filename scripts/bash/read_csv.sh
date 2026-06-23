@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Read one row from a CSV (header row 1) and set shell variables named after columns.
 # Usage: source scripts/bash/read_csv.sh <csv_file> <row_number>
-# Row 2 is the first data row. For SLURM arrays: row=$((SLURM_ARRAY_TASK_ID + 1)).
+# Row 2 is the first data row. SLURM preprocess_array uses rows k+1, k+1+N, ... for task k.
 
 csv_file=$1
 row=$2
