@@ -33,17 +33,61 @@ def hit_csv_path(site_outdir, matched_protein):
     return os.path.join(site_outdir, f"{matched_protein}.csv")
 
 
-def is_site_seed_complete(site_outdir, matched_protein):
-    """A CSV on disk means align_protein finished for this (site, seed)."""
-    return os.path.isfile(hit_csv_path(site_outdir, matched_protein))
+# ---------------------------------------------------------------------------
+# Progress-manifest helpers (zero-hit resume without header-only CSVs)
+# ---------------------------------------------------------------------------
+
+def progress_file_path(site_outdir, progress_id):
+    """Return the path to the per-task progress file inside a site directory."""
+    return os.path.join(site_outdir, ".progress", f"{progress_id}.txt")
 
 
-def filter_seeds_for_resume(site_outdir, seed_ids, resume):
+def load_completed_seeds(site_outdir, progress_id):
+    """
+    Return the set of seed IDs recorded as complete in the progress manifest.
+    Missing file is treated as empty (no seeds done yet).
+    """
+    p = progress_file_path(site_outdir, progress_id)
+    if not os.path.isfile(p):
+        return set()
+    with open(p) as f:
+        return {line.strip() for line in f if line.strip()}
+
+
+def mark_site_seed_complete(site_outdir, progress_id, seed_id):
+    """
+    Append seed_id to the per-task progress file.  Uses flush+fsync so the
+    entry survives an abrupt SLURM job timeout.
+    """
+    prog_dir = os.path.join(site_outdir, ".progress")
+    os.makedirs(prog_dir, exist_ok=True)
+    with open(os.path.join(prog_dir, f"{progress_id}.txt"), "a") as f:
+        f.write(f"{seed_id}\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def filter_seeds_for_resume(site_outdir, seed_ids, resume, progress_id=None):
+    """
+    Return the subset of seed_ids that still need to be processed.
+
+    In resume mode a seed is considered complete when:
+    - its hit CSV exists on disk (new hits, or legacy header-only CSV), OR
+    - its ID appears in the per-task progress manifest (zero-hit, new scheme).
+    """
     if not resume:
         return list(seed_ids)
+
+    # Load progress manifest once for all seeds at this site.
+    completed = load_completed_seeds(site_outdir, progress_id) if progress_id else set()
+
     pending = []
     for seed_id in seed_ids:
-        if is_site_seed_complete(site_outdir, seed_id):
+        if seed_id in completed:
+            print(f"Resume: skipping {seed_id} at {os.path.basename(site_outdir)} "
+                  f"(found in progress manifest)")
+            continue
+        if os.path.isfile(hit_csv_path(site_outdir, seed_id)):
             print(f"Resume: skipping {seed_id} at {os.path.basename(site_outdir)} "
                   f"(found {hit_csv_path(site_outdir, seed_id)})")
             continue
@@ -89,20 +133,35 @@ def build_hit_row(
     return row
 
 
-def write_site_seed_hits(site_outdir, matched_protein, rows):
+def write_site_seed_hits(site_outdir, matched_protein, rows, progress_id=None):
     """
     Write all hits for one (site, seed) in a single atomic CSV update.
-    Header-only file means the search completed with zero passing hits.
+
+    When rows is non-empty the hit CSV is written as before.  When rows is
+    empty, no CSV is written; instead the seed is recorded in the per-task
+    progress manifest (requires progress_id).  Legacy callers that omit
+    progress_id still get a header-only CSV for backward compatibility.
     """
     os.makedirs(site_outdir, exist_ok=True)
-    csv_path = hit_csv_path(site_outdir, matched_protein)
-    tmp_path = f"{csv_path}.tmp"
-    with open(tmp_path, "w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=HIT_CSV_COLUMNS, extrasaction="ignore")
-        writer.writeheader()
-        for row in rows:
-            writer.writerow({col: row.get(col, "") for col in HIT_CSV_COLUMNS})
-    os.replace(tmp_path, csv_path)
+    if rows:
+        csv_path = hit_csv_path(site_outdir, matched_protein)
+        tmp_path = f"{csv_path}.tmp"
+        with open(tmp_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=HIT_CSV_COLUMNS, extrasaction="ignore")
+            writer.writeheader()
+            for row in rows:
+                writer.writerow({col: row.get(col, "") for col in HIT_CSV_COLUMNS})
+        os.replace(tmp_path, csv_path)
+    elif progress_id is not None:
+        mark_site_seed_complete(site_outdir, progress_id, matched_protein)
+    else:
+        # Legacy fallback: header-only CSV keeps old resume logic working.
+        csv_path = hit_csv_path(site_outdir, matched_protein)
+        tmp_path = f"{csv_path}.tmp"
+        with open(tmp_path, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=HIT_CSV_COLUMNS, extrasaction="ignore")
+            writer.writeheader()
+        os.replace(tmp_path, csv_path)
 
 
 def gather_search_results(results_root, query_target):
@@ -114,7 +173,9 @@ def gather_search_results(results_root, query_target):
     frames = []
     for site_dir in sorted(target_dir.glob("site_*")):
         for csv_path in sorted(site_dir.glob("*.csv")):
-            frames.append(pd.read_csv(csv_path))
+            part = pd.read_csv(csv_path)
+            if len(part) > 0:
+                frames.append(part)
 
     if not frames:
         return pd.DataFrame(columns=HIT_CSV_COLUMNS)

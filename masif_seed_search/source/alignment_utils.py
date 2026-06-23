@@ -735,6 +735,13 @@ def align_protein(
                     patch_index=j,
                 ))
 
-    write_site_seed_hits(site_outdir, ppi_pair_id, hit_rows)
-    print(f"Wrote {len(hit_rows)} hit(s) for {ppi_pair_id} at {params['target_site']} -> "
-          f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")
+    progress_id = params.get('progress_id')
+    write_site_seed_hits(site_outdir, ppi_pair_id, hit_rows, progress_id=progress_id)
+    if hit_rows:
+        print(f"Wrote {len(hit_rows)} hit(s) for {ppi_pair_id} at {params['target_site']} -> "
+              f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")
+    elif progress_id is not None:
+        print(f"No hits for {ppi_pair_id} at {params['target_site']}; marked complete in progress manifest")
+    else:
+        print(f"Wrote 0 hit(s) for {ppi_pair_id} at {params['target_site']} -> "
+              f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")

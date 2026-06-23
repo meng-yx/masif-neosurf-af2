@@ -18,7 +18,7 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resol
 from masif.source.default_config.masif_opts import masif_opts
 from alignment_evaluation_nn import AlignmentEvaluationNN
 from alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
-from search_output import filter_seeds_for_resume, write_site_seed_hits
+from search_output import filter_seeds_for_resume, write_site_seed_hits, mark_site_seed_complete
 from structural_cluster import cluster_search_hits_for_subset
 from neosurf_anchor import find_ligand_anchor, log_ligand_anchor
 
@@ -409,7 +409,8 @@ def masif_search(params):
             out_info.write(f'name: {target_ppi_pair_id}, site: {site_ix}, vix: {site_vix}')
 
         seeds_this_site = filter_seeds_for_resume(
-            site_outdir, list(seed_ppi_pair_ids), params.get('resume', False))
+            site_outdir, list(seed_ppi_pair_ids), params.get('resume', False),
+            progress_id=params.get('progress_id'))
         if len(seeds_this_site) == 0:
             print(f"Resume: all seeds already completed for {params['target_site']}, skipping site.")
             continue
@@ -419,11 +420,17 @@ def masif_search(params):
         matched_dict, scores_dict = match_descriptors(seeds_this_site, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
 
         matched_protein_ids = {name[0] for name in matched_dict.keys()}
+        progress_id = params.get('progress_id')
         for seed_id in seeds_this_site:
             if seed_id not in matched_protein_ids:
-                write_site_seed_hits(site_outdir, seed_id, [])
-                print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
-                      f"wrote header-only {seed_id}.csv")
+                if progress_id is not None:
+                    mark_site_seed_complete(site_outdir, progress_id, seed_id)
+                    print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
+                          f"marked complete in progress manifest")
+                else:
+                    write_site_seed_hits(site_outdir, seed_id, [])
+                    print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
+                          f"wrote header-only {seed_id}.csv")
 
         if len(matched_dict.keys()) == 0:
             continue
@@ -565,6 +572,13 @@ if __name__ == "__main__":
         args.seed_anchor_cache = {}
     else:
         args.seed_ppi_pair_ids = np.array(os.listdir(args.seed_desc_dir))
+
+    # Derive progress_id from the subset filename (e.g. "3" from subsets/3).
+    # Each SLURM array task writes to its own progress file, so no locking needed.
+    if args.database_subset is not None:
+        args.progress_id = Path(args.database_subset).name
+    else:
+        args.progress_id = None
 
     # Some hard-coded parameters
     args.nn_score_atomic_fn = os.path.join(masif_neosurf_dir, "masif_seed_search/data/scoring_nn/models_std/weights_12A_0129")
