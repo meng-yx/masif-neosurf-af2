@@ -25,6 +25,9 @@ HIT_CSV_COLUMNS = [
     "flattened_transform",
 ]
 
+CLUSTER_COLUMNS = ["cluster_id", "cluster_size", "cluster_mean_rmsd"]
+CLUSTERED_HIT_CSV_COLUMNS = HIT_CSV_COLUMNS + CLUSTER_COLUMNS
+
 
 def hit_csv_path(site_outdir, matched_protein):
     return os.path.join(site_outdir, f"{matched_protein}.csv")
@@ -122,12 +125,14 @@ def gather_clustered_results(results_root, query_target):
     """Concatenate per-seed clustered CSVs under results_root/query_target/clustered_matches/."""
     clustered_dir = Path(results_root) / query_target / "clustered_matches"
     if not clustered_dir.is_dir():
-        raise FileNotFoundError(f"No clustered output directory: {clustered_dir}")
+        return pd.DataFrame(columns=CLUSTERED_HIT_CSV_COLUMNS)
 
     frames = []
     for csv_path in sorted(clustered_dir.glob("*.csv")):
-        frames.append(pd.read_csv(csv_path))
+        part = pd.read_csv(csv_path)
+        if len(part) > 0:
+            frames.append(part)
 
     if not frames:
-        return pd.DataFrame(columns=HIT_CSV_COLUMNS)
+        return pd.DataFrame(columns=CLUSTERED_HIT_CSV_COLUMNS)
     return pd.concat(frames, ignore_index=True)
