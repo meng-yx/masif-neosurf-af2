@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=preprocess
 #SBATCH --output=logs/preprocess-%A/slurm-%A_%a.out
-#SBATCH --time=02:00:00
+#SBATCH --time=04:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=2
-#SBATCH --mem=14000
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=28000
 
 : '
 # Submit from masif-neosurf repo root after writing numbered subset CSVs:
