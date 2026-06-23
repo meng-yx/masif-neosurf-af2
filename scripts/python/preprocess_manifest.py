@@ -3,7 +3,8 @@
 preprocess_manifest.py — run MaSIF preprocessing for each row in an input CSV subset.
 
 Reads pdb_path, target, ligand, ligand_path; preserves all input columns and appends
-status (success | skipped | error) and error_message.
+status (success | skipped | error) and error_message. Each row is appended to the
+output CSV immediately after processing.
 
 Usage:
     python scripts/python/preprocess_manifest.py \
@@ -142,9 +143,14 @@ def main():
 
     df[STATUS_COL] = None
     df[ERROR_COL] = None
+    output_columns = list(df.columns)
+
+    out_csv = Path(args.out_csv)
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(columns=output_columns).to_csv(out_csv, index=False)
 
     n_failed = 0
-    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Preprocessing"):
+    for _, row in tqdm(df.iterrows(), total=len(df), desc="Preprocessing"):
         target = str(row.target)
         try:
             status, error_message = run_preprocess_row(
@@ -159,15 +165,16 @@ def main():
         except Exception as exc:
             status, error_message = "error", str(exc)[:500]
 
-        df.at[idx, STATUS_COL] = status
-        df.at[idx, ERROR_COL] = error_message
         if status == "error":
             n_failed += 1
             tqdm.write(f"Error processing {target}: {error_message}", file=sys.stderr)
 
-    out_csv = Path(args.out_csv)
-    out_csv.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out_csv, index=False)
+        row_out = row.to_dict()
+        row_out[STATUS_COL] = status
+        row_out[ERROR_COL] = error_message
+        pd.DataFrame([row_out], columns=output_columns).to_csv(
+            out_csv, mode="a", header=False, index=False
+        )
 
     n_ok = len(df) - n_failed
     print(f"Wrote {out_csv}  ({n_ok}/{len(df)} rows succeeded or skipped)")
