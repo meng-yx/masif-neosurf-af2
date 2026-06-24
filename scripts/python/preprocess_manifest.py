@@ -16,13 +16,11 @@ Usage:
 
 import argparse
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
 
 import pandas as pd
-from tqdm import tqdm
 
 REQUIRED_COLUMNS = {"pdb_path", "target", "ligand", "ligand_path"}
 DESC_SUBDIR = "descriptors/sc05/all_feat"
@@ -36,34 +34,6 @@ def descriptor_outputs_exist(output_root, target):
         (out_desc_dir / "p1_desc_straight.npy").is_file()
         and (out_desc_dir / "p1_desc_flipped.npy").is_file()
     )
-
-
-def _extract_error_message(stderr, stdout):
-    combined = f"{stderr or ''}\n{stdout or ''}"
-    lines = [line.strip() for line in combined.splitlines() if line.strip()]
-    error_prefixes = (
-        "AssertionError",
-        "ValueError",
-        "RuntimeError",
-        "KeyError",
-        "FileNotFoundError",
-        "Boost.Python.ArgumentError",
-    )
-    for line in reversed(lines):
-        if line.startswith(error_prefixes):
-            return line[:500]
-        match = re.search(
-            r"\b(?:Assertion|Value|Runtime|Key|FileNotFound|Type|Index)Error:.*",
-            line,
-        )
-        if match:
-            return match.group(0)[:500]
-        if "ArgumentError" in line:
-            return line[:500]
-    for line in reversed(lines):
-        if "error" in line.lower() or "Traceback" in line:
-            return line[:500]
-    return (lines[-1][:500] if lines else "non-zero exit code")
 
 
 def run_preprocess_row(
@@ -87,16 +57,10 @@ def run_preprocess_row(
         str(ligand_path),
         str(output_root),
     ]
-    result = subprocess.run(
-        cmd,
-        cwd=repo_root,
-        env=env,
-        capture_output=True,
-        text=True,
-    )
+    result = subprocess.run(cmd, cwd=repo_root, env=env)
     if result.returncode == 0:
         return "success", ""
-    return "error", _extract_error_message(result.stderr, result.stdout)
+    return "error", f"exit code {result.returncode}"
 
 
 def main():
@@ -150,8 +114,10 @@ def main():
     pd.DataFrame(columns=output_columns).to_csv(out_csv, index=False)
 
     n_failed = 0
-    for _, row in tqdm(df.iterrows(), total=len(df), desc="Preprocessing"):
+    n_rows = len(df)
+    for row_num, (_, row) in enumerate(df.iterrows(), start=1):
         target = str(row.target)
+        print(f"[{row_num}/{n_rows}] Processing {target}...", flush=True)
         try:
             status, error_message = run_preprocess_row(
                 pdb_path=row.pdb_path,
@@ -167,7 +133,11 @@ def main():
 
         if status == "error":
             n_failed += 1
-            tqdm.write(f"Error processing {target}: {error_message}", file=sys.stderr)
+            print(f"Error processing {target}: {error_message}", file=sys.stderr, flush=True)
+        elif status == "skipped":
+            print(f"Skipped {target} (descriptors already exist)", flush=True)
+        else:
+            print(f"Finished {target}", flush=True)
 
         row_out = row.to_dict()
         row_out[STATUS_COL] = status
