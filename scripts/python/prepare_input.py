@@ -10,9 +10,9 @@ ligand_code), this script:
   2. Trims to the target protein chain (standard amino acids) plus one ligand
      residue on the ligand chain.
   3. Runs EvoEF2 RepairStructure on the protein-only PDB.
-  4. Merges ligand HETATM records extracted directly from the downloaded PDB
-     onto the repaired protein, preserving the original chain ID and residue
-     number from the PDB entry.
+  4. Merges the ligand onto the EvoEF2-repaired protein: atom coordinates come
+     from the downloaded SDF, while chain ID, residue number, residue name, and
+     atom names come from the matching ligand in the downloaded structure.
   5. Appends four manifest columns to every input row:
        pdb_path, target, ligand, ligand_path
      target = {pdb_id}-{ligand_code}_{chain_suffix}, e.g. 6Y7F-OFN_A.
@@ -298,69 +298,43 @@ def _load_structure(pdb_id, structure_path):
     return parser.get_structure(pdb_id, str(structure_path))
 
 
-def _format_hetatm_line(serial, atom_name, resname, chain_id, resseq, x, y, z, element):
-    return (
-        f"HETATM{serial:5d} {atom_name:>4s} {resname:>3s} {chain_id:1s}{resseq:4d}    "
-        f"{x:8.3f}{y:8.3f}{z:8.3f}{1.00:6.2f}{0.00:6.2f}          {element:>2s}  \n"
-    )
+def _resname_matches(resname, ligand_code):
+    """Return True when a PDB residue name matches the requested ligand code."""
+    resname = resname.strip().upper()
+    ligand_code = ligand_code.strip().upper()
+    return resname == ligand_code or resname == ligand_code_tla(ligand_code)
 
 
-def _sdf_to_hetatm_lines(sdf_path, resname, chain_id, resseq=1):
-    mol = Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)[0]
-    if mol is None:
-        raise ValueError(f"Could not read ligand SDF: {sdf_path}")
-    conf = mol.GetConformer()
-    element_counts = {}
-    lines = []
-    for i, atom in enumerate(mol.GetAtoms()):
-        element = atom.GetSymbol()
-        element_counts[element] = element_counts.get(element, 0) + 1
-        atom_name = f"{element}{element_counts[element]:02d}"[:4]
-        pos = conf.GetAtomPosition(i)
-        lines.append(
-            _format_hetatm_line(
-                i + 1,
-                atom_name,
-                resname,
-                chain_id,
-                resseq,
-                pos.x,
-                pos.y,
-                pos.z,
-                element,
-            )
-        )
-    if not lines:
-        raise ValueError(f"No atoms found in ligand SDF: {sdf_path}")
-    return lines
+def _format_pdb_atom_name(element, index_within_element):
+    """Return a 4-character PDB atom name with correct element alignment."""
+    element = element.strip().upper()
+    if len(element) == 2 and element.isalpha():
+        stem = f"{element}{index_within_element}"
+        return f"{stem:<4}"[:4]
+    stem = f"{element}{index_within_element}"
+    return f" {stem:<3}"[:4]
 
 
-def _merge_repaired_protein_with_ligand_sdf(
-    repaired_pdb, ligand_sdf, ligand_chain, ligand_tla, output_pdb, resseq=1
-):
-    ligand_lines = _sdf_to_hetatm_lines(ligand_sdf, ligand_tla, ligand_chain, resseq)
-    out_lines = []
-    with open(repaired_pdb) as handle:
-        for line in handle:
-            if line.startswith("END"):
-                break
-            if line.strip():
-                out_lines.append(line)
-    out_lines.extend(ligand_lines)
-    out_lines.append("END\n")
-    Path(output_pdb).write_text("".join(out_lines))
+def _normalize_pdb_atom_name(atom_name, element):
+    """Normalize an atom name to the 4-character PDB format."""
+    name = atom_name.strip()
+    if len(name) == 4:
+        return name
+    if len(name) == 3:
+        return f" {name}"
+    if len(name) == 2:
+        return f" {name} "
+    if len(name) == 1:
+        return f" {name}  "
+    return _format_pdb_atom_name(element, 1)
 
 
-def _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code):
+def _get_ligand_placement(structure, pdb_ligand_chain, ligand_code):
     """
-    Extract HETATM lines for the specified ligand from a BioPython structure.
+    Read chain ID, residue number, and atom metadata for the target ligand.
 
-    Selects residues in pdb_ligand_chain whose resname matches ligand_code and
-    whose residue id[0] flag indicates a HETATM record (non-blank hetflag).
-    If multiple residue sequence numbers match (duplicate ligand instances),
-    takes the first one and emits a warning.
-
-    Returns a list of formatted HETATM record strings.
+    Returns a placement dict with chain_id, residue_id, resname, and atoms
+    (name/element/occupancy/bfactor) from the downloaded structure.
     """
     ligand_code = ligand_code.strip().upper()
     matching_residues = []
@@ -370,12 +344,12 @@ def _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code):
                 continue
             for residue in chain:
                 hetflag, resseq, icode = residue.id
-                if hetflag.strip() and residue.resname.strip().upper() == ligand_code:
+                if hetflag.strip() and _resname_matches(residue.resname, ligand_code):
                     matching_residues.append(residue)
 
     if not matching_residues:
         raise ValueError(
-            f"No HETATM residue with resname={ligand_code!r} found on chain "
+            f"No HETATM residue matching ligand_code={ligand_code!r} found on chain "
             f"{pdb_ligand_chain!r} in the downloaded structure."
         )
 
@@ -390,47 +364,149 @@ def _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code):
 
     first_resseq = matching_residues[0].id[1]
     selected = [r for r in matching_residues if r.id[1] == first_resseq]
+    template_residue = selected[0]
+    atoms = []
+    for atom in template_residue.get_atoms():
+        element = atom.element.strip() if atom.element else atom.get_id().strip()[:1]
+        atoms.append(
+            {
+                "name": _normalize_pdb_atom_name(atom.get_name(), element),
+                "element": element,
+                "occupancy": atom.get_occupancy(),
+                "bfactor": atom.get_bfactor(),
+            }
+        )
 
-    lines = []
-    serial = 1
-    for residue in selected:
-        resseq = residue.id[1]
-        resname = residue.resname.strip()
-        for atom in residue.get_atoms():
-            element = atom.element.strip() if atom.element else atom.get_name().strip()[:1]
-            x, y, z = atom.get_vector()
-            lines.append(
-                _format_hetatm_line(
-                    serial,
-                    atom.get_name().strip(),
-                    resname,
-                    pdb_ligand_chain,
-                    resseq,
-                    x, y, z,
-                    element,
-                )
-            )
-            serial += 1
-
-    if not lines:
+    if not atoms:
         raise ValueError(
             f"Ligand residue {ligand_code} on chain {pdb_ligand_chain} has no atoms."
         )
+
+    return {
+        "chain_id": pdb_ligand_chain,
+        "residue_id": template_residue.id,
+        "resname": template_residue.resname.strip(),
+        "atoms": atoms,
+    }
+
+
+def _format_hetatm_line(
+    serial, atom_name, resname, chain_id, resseq, x, y, z, occupancy, bfactor, element
+):
+    """Write an 80-column HETATM record with the element symbol in columns 77-78."""
+    return (
+        f"HETATM{serial:5d} {atom_name:>4s} {resname:>3s} {chain_id:1s}{resseq:4d}    "
+        f"{x:8.3f}{y:8.3f}{z:8.3f}{occupancy:6.2f}{bfactor:6.2f}          {element:>2s}  \n"
+    )
+
+
+def _last_pdb_serial(pdb_path):
+    last_serial = 0
+    with open(pdb_path) as handle:
+        for line in handle:
+            if line.startswith(("ATOM  ", "HETATM")):
+                last_serial = int(line[6:11])
+    return last_serial
+
+
+def _ligand_hetatm_lines_from_sdf(sdf_path, placement, start_serial):
+    """Return formatted HETATM lines for a ligand using SDF coordinates."""
+    mol = Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)[0]
+    if mol is None:
+        raise ValueError(f"Could not read ligand SDF: {sdf_path}")
+
+    conf = mol.GetConformer()
+    sdf_atoms = list(mol.GetAtoms())
+    pdb_atoms = placement["atoms"]
+    if len(sdf_atoms) != len(pdb_atoms):
+        warnings.warn(
+            f"SDF atom count ({len(sdf_atoms)}) differs from downloaded PDB ligand "
+            f"({len(pdb_atoms)}); using SDF order with generated atom names where needed.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    hetflag, resseq, icode = placement["residue_id"]
+    if icode and icode != " ":
+        raise ValueError(
+            f"Ligand insertion codes are not supported (got {icode!r} for resseq {resseq})."
+        )
+
+    chain_id = placement["chain_id"]
+    resname = placement["resname"]
+    lines = []
+    element_counts = {}
+    serial = start_serial
+
+    for index, sdf_atom in enumerate(sdf_atoms):
+        element = sdf_atom.GetSymbol()
+        pos = conf.GetAtomPosition(index)
+        if index < len(pdb_atoms):
+            atom_name = pdb_atoms[index]["name"].strip()
+            element = pdb_atoms[index]["element"] or element
+            occupancy = pdb_atoms[index]["occupancy"]
+            bfactor = pdb_atoms[index]["bfactor"]
+        else:
+            element_counts[element] = element_counts.get(element, 0) + 1
+            atom_name = _format_pdb_atom_name(element, element_counts[element]).strip()
+            occupancy = 1.0
+            bfactor = 0.0
+
+        serial += 1
+        lines.append(
+            _format_hetatm_line(
+                serial,
+                atom_name,
+                resname,
+                chain_id,
+                resseq,
+                pos.x,
+                pos.y,
+                pos.z,
+                occupancy,
+                bfactor,
+                element,
+            )
+        )
+
     return lines
 
 
-def _merge_repaired_protein_with_hetatm_lines(repaired_pdb, hetatm_lines, output_pdb):
-    """Concatenate repaired protein ATOM records with pre-formatted HETATM lines."""
+def _merge_repaired_protein_with_ligand(
+    pdb_id,
+    repaired_pdb,
+    source_structure,
+    ligand_sdf,
+    pdb_ligand_chain,
+    ligand_code,
+    output_pdb,
+):
+    """
+    Merge EvoEF2-repaired protein with SDF-based ligand HETATM records.
+
+    Ligand coordinates come from the SDF; chain ID, residue number, residue
+    name, and atom names are inherited from the downloaded structure. Ligand
+    records are written with explicit 80-column formatting so downstream
+    prody/RDKit parsing sees the element symbol in columns 77-78.
+    """
+    placement = _get_ligand_placement(source_structure, pdb_ligand_chain, ligand_code)
+    repaired_pdb = Path(repaired_pdb)
+    start_serial = _last_pdb_serial(repaired_pdb)
+    hetatm_lines = _ligand_hetatm_lines_from_sdf(ligand_sdf, placement, start_serial)
+
     out_lines = []
     with open(repaired_pdb) as handle:
         for line in handle:
             if line.startswith("END"):
                 break
             if line.strip():
-                out_lines.append(line)
+                out_lines.append(line if line.endswith("\n") else f"{line}\n")
     out_lines.extend(hetatm_lines)
     out_lines.append("END\n")
-    Path(output_pdb).write_text("".join(out_lines))
+
+    output_pdb = Path(output_pdb)
+    output_pdb.parent.mkdir(parents=True, exist_ok=True)
+    output_pdb.write_text("".join(out_lines))
 
 
 def evoef2_repair_structure(input_pdb, output_pdb, evoef2_bin):
@@ -514,8 +590,15 @@ def prepare_input_structures(
 
         repaired_protein_pdb = tmp / "repaired_protein.pdb"
         evoef2_repair_structure(protein_only_pdb, repaired_protein_pdb, evoef2_bin)
-        hetatm_lines = _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code)
-        _merge_repaired_protein_with_hetatm_lines(repaired_protein_pdb, hetatm_lines, pdb_path)
+        _merge_repaired_protein_with_ligand(
+            pdb_id,
+            repaired_protein_pdb,
+            structure,
+            ligand_path,
+            pdb_ligand_chain,
+            ligand_code,
+            pdb_path,
+        )
 
     return paths
 
