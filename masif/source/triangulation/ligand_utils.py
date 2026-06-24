@@ -124,6 +124,16 @@ def extract_ligand(pdb_file, ligand_name, ligand_chain, mol2_outfile, template_l
     amide_to_single_bond(mol2_outfile)
 
     rdmol = neutralize_atoms(rdmol)
+    if rdmol.GetNumHeavyAtoms() == rdmol.GetNumAtoms():
+        print("[INFO] Ligand has no hydrogens in PDB; adding with RDKit AddHs.")
+        rdmol = Chem.AddHs(rdmol, addCoords=True)
+    h_num = 1
+    for atom in rdmol.GetAtoms():
+        if atom.GetSymbol() == "H" and atom.GetPDBResidueInfo() is None:
+            monomer_info = Chem.AtomPDBResidueInfo()
+            monomer_info.SetName(f"H{h_num}")
+            atom.SetMonomerInfo(monomer_info)
+            h_num += 1
     assert rdmol.GetNumHeavyAtoms() < rdmol.GetNumAtoms(), \
         print("The molecule must be protonated!")
     
