@@ -13,19 +13,42 @@ ligand_code), this script:
   4. Merges the ligand onto the EvoEF2-repaired protein: atom coordinates come
      from the downloaded SDF, while chain ID, residue number, residue name, and
      atom names come from the matching ligand in the downloaded structure.
-  5. Appends four manifest columns to every input row:
+  5. Appends seven manifest columns to every input row:
+       pdb_protein_chain, pdb_ligand_chain, ligand_resname,
        pdb_path, target, ligand, ligand_path
-     target = {pdb_id}-{ligand_code}_{chain_suffix}, e.g. 6Y7F-OFN_A.
-     Manifest ligand/ligand_path use the 3-letter code; the input ligand_code
-     column is preserved unchanged.
      (empty when a row fails) and writes the result to --out_csv.
 
+Identifier scheme
+-----------------
+Author-assigned identifiers from the seed CSV (protein_chain, ligand_chain,
+ligand_code) are preserved unchanged in the output CSV as an audit trail. All
+downstream pipeline fields use PDB-normalized identifiers:
+
+  pdb_protein_chain / pdb_ligand_chain
+      Single-character chain IDs as written in the output PDB. Multi-letter
+      author chains (e.g. "AAA") are remapped to the shortest available letter.
+
+  ligand_resname
+      The ≤3-character residue name written in HETATM records, taken from the
+      deposited structure. Long ligand_codes (e.g. "A1H3Q") are stored here as
+      their deposited abbreviation (e.g. "A1H").
+
+  target = {pdb_id}-{ligand_code}_{pdb_chain_suffix}
+      The MaSIF ppi_pair_id / seed_id. Uses the full author ligand_code for
+      unambiguous identification, and PDB-normalized chain IDs in the suffix.
+      Example: author chains AAA/AAA, ligand M0B → target "6SYP-M0B_A".
+
+  ligand = {ligand_resname}_{pdb_ligand_chain}
+      Passed to preprocess as the -l argument; matches PDB HETATM content.
+
+  ligand_path = {outdir}/{pdb_id}_{pdb_protein_chain}_{ligand_resname}.sdf
+
 Usage:
-    python scripts/python/prepare_input.py \
-        --input_csv data/processing/1_prep_input/input_subsets/input_1.csv \
-        --outdir    data/input \
-        --out_csv   data/processing/1_prep_input/input_1_manifest.csv \
-        --evoef2_bin EvoEF2/EvoEF2 \
+    python scripts/python/prepare_input.py \\
+        --input_csv data/processing/1_prep_input/input_subsets/input_1.csv \\
+        --outdir    data/input \\
+        --out_csv   data/processing/1_prep_input/input_1_manifest.csv \\
+        --evoef2_bin EvoEF2/EvoEF2 \\
         [--overwrite]
 
 Exit code is non-zero when at least one row failed.
@@ -83,20 +106,31 @@ class _ProteinOnlySelect(Select):
 
 
 # ---------------------------------------------------------------------------
-# Path helpers
+# Path / identifier helpers
 # ---------------------------------------------------------------------------
 
 
+def ligand_code_tla(ligand_code):
+    """Return the first 3 characters of a ligand code (for RCSB API and resname matching)."""
+    return ligand_code.strip()[:3]
+
+
 def chain_suffix(protein_chain, ligand_chain):
-    """Return deduplicated chain suffix: C+A -> CA, A+A -> A."""
+    """Return deduplicated chain suffix from author chain IDs: C+A -> CA, A+A -> A.
+
+    Kept for backward compatibility. Manifest construction uses pdb_chain_suffix()
+    with PDB-normalized single-character chain IDs instead.
+    """
     if protein_chain == ligand_chain:
         return protein_chain
     return protein_chain + ligand_chain
 
 
-def ligand_code_tla(ligand_code):
-    """Return 3-letter ligand code for PDB/SDF filenames and manifest columns."""
-    return ligand_code.strip()[:3]
+def pdb_chain_suffix(pdb_protein_chain, pdb_ligand_chain):
+    """Return deduplicated chain suffix from PDB-normalized single-char chain IDs."""
+    if pdb_protein_chain == pdb_ligand_chain:
+        return pdb_protein_chain
+    return pdb_protein_chain + pdb_ligand_chain
 
 
 def _pdb_chain_ids(protein_chain, ligand_chain):
@@ -136,21 +170,47 @@ def _remap_structure_chains(structure, chain_map):
                 chain.id = new_id
 
 
-def expected_output_paths(pdb_id, protein_chain, ligand_chain, ligand_code, outdir):
-    """Return the manifest dict without touching the filesystem."""
+def build_manifest_paths(
+    pdb_id, ligand_code, ligand_resname, pdb_protein_chain, pdb_ligand_chain, outdir
+):
+    """Return the canonical manifest dict using PDB-normalized identifiers.
+
+    All downstream pipeline steps should use these fields rather than re-deriving
+    identifiers from the author seed columns.
+    """
     outdir = Path(outdir)
-    ligand_tla = ligand_code_tla(ligand_code)
-    chains = chain_suffix(protein_chain, ligand_chain)
+    chains = pdb_chain_suffix(pdb_protein_chain, pdb_ligand_chain)
     target = f"{pdb_id}-{ligand_code}_{chains}"
-    ligand_name = f"{ligand_tla}_{ligand_chain}"
+    ligand = f"{ligand_resname}_{pdb_ligand_chain}"
     pdb_path = outdir / f"{target}.pdb"
-    ligand_path = outdir / f"{pdb_id}_{protein_chain}_{ligand_tla}.sdf"
+    ligand_path = outdir / f"{pdb_id}_{pdb_protein_chain}_{ligand_resname}.sdf"
     return {
+        "pdb_protein_chain": pdb_protein_chain,
+        "pdb_ligand_chain": pdb_ligand_chain,
+        "ligand_resname": ligand_resname,
         "pdb_path": str(pdb_path.resolve()),
         "target": target,
-        "ligand": ligand_name,
+        "ligand": ligand,
         "ligand_path": str(ligand_path.resolve()),
     }
+
+
+def _read_ligand_resname_from_pdb(pdb_path, pdb_ligand_chain):
+    """Read the residue name of the first HETATM on pdb_ligand_chain in an existing PDB.
+
+    Used to reconstruct ligand_resname for the skip-if-exists check without
+    downloading the structure again.  Returns None if the file is absent or
+    contains no matching HETATM record.
+    """
+    pdb_path = Path(pdb_path)
+    if not pdb_path.is_file():
+        return None
+    with open(pdb_path) as handle:
+        for line in handle:
+            if line.startswith("HETATM") and len(line) >= 26:
+                if line[21] == pdb_ligand_chain:
+                    return line[17:20].strip() or None
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -473,23 +533,19 @@ def _ligand_hetatm_lines_from_sdf(sdf_path, placement, start_serial):
 
 
 def _merge_repaired_protein_with_ligand(
-    pdb_id,
     repaired_pdb,
-    source_structure,
+    placement,
     ligand_sdf,
-    pdb_ligand_chain,
-    ligand_code,
     output_pdb,
 ):
     """
     Merge EvoEF2-repaired protein with SDF-based ligand HETATM records.
 
     Ligand coordinates come from the SDF; chain ID, residue number, residue
-    name, and atom names are inherited from the downloaded structure. Ligand
-    records are written with explicit 80-column formatting so downstream
+    name, and atom names are inherited from the pre-computed placement dict.
+    Ligand records are written with explicit 80-column formatting so downstream
     prody/RDKit parsing sees the element symbol in columns 77-78.
     """
-    placement = _get_ligand_placement(source_structure, pdb_ligand_chain, ligand_code)
     repaired_pdb = Path(repaired_pdb)
     start_serial = _last_pdb_serial(repaired_pdb)
     hetatm_lines = _ligand_hetatm_lines_from_sdf(ligand_sdf, placement, start_serial)
@@ -548,22 +604,33 @@ def prepare_input_structures(
     """
     Download, trim, EvoEF2-repair, and merge ligand for one complex.
 
-    Returns a manifest dict on success, or None on failure.
-    When overwrite=False and both output files already exist, returns the
-    expected dict immediately without downloading or reprocessing.
+    Returns a manifest dict on success, or None on failure.  The dict includes
+    the seven manifest columns (pdb_protein_chain, pdb_ligand_chain,
+    ligand_resname, pdb_path, target, ligand, ligand_path).
+
+    When overwrite=False and both output files already exist, ligand_resname is
+    read from the first HETATM in the existing PDB and the manifest is returned
+    immediately without re-downloading or reprocessing.
     """
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    ligand_tla = ligand_code_tla(ligand_code)
-    _, pdb_ligand_chain = _pdb_chain_ids(protein_chain, ligand_chain)
-    paths = expected_output_paths(pdb_id, protein_chain, ligand_chain, ligand_code, outdir)
-    paths["ligand"] = f"{ligand_tla}_{pdb_ligand_chain}"
-    pdb_path = Path(paths["pdb_path"])
-    ligand_path = Path(paths["ligand_path"])
+    pdb_protein_chain, pdb_ligand_chain = _pdb_chain_ids(protein_chain, ligand_chain)
 
-    if not overwrite and pdb_path.is_file() and ligand_path.is_file():
-        return paths
+    # The PDB output path is deterministic (no ligand_resname needed).
+    chains = pdb_chain_suffix(pdb_protein_chain, pdb_ligand_chain)
+    target_base = f"{pdb_id}-{ligand_code}_{chains}"
+    candidate_pdb_path = outdir / f"{target_base}.pdb"
+
+    if not overwrite and candidate_pdb_path.is_file():
+        ligand_resname = _read_ligand_resname_from_pdb(candidate_pdb_path, pdb_ligand_chain)
+        if ligand_resname is not None:
+            paths = build_manifest_paths(
+                pdb_id, ligand_code, ligand_resname,
+                pdb_protein_chain, pdb_ligand_chain, outdir,
+            )
+            if Path(paths["ligand_path"]).is_file():
+                return paths
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
@@ -571,10 +638,8 @@ def prepare_input_structures(
         if structure_path is None:
             return None
 
-        download_ligand_sdf(pdb_id, ligand_chain, ligand_code, ligand_path)
         structure = _load_structure(pdb_id, structure_path)
 
-        pdb_protein_chain, pdb_ligand_chain = _pdb_chain_ids(protein_chain, ligand_chain)
         chain_map = {}
         if protein_chain != pdb_protein_chain:
             chain_map[protein_chain] = pdb_protein_chain
@@ -582,6 +647,19 @@ def prepare_input_structures(
             chain_map[ligand_chain] = pdb_ligand_chain
         if chain_map:
             _remap_structure_chains(structure, chain_map)
+
+        # Resolve ligand_resname from the deposited structure (≤3-char HETATM resname).
+        placement = _get_ligand_placement(structure, pdb_ligand_chain, ligand_code)
+        ligand_resname = placement["resname"]
+
+        paths = build_manifest_paths(
+            pdb_id, ligand_code, ligand_resname,
+            pdb_protein_chain, pdb_ligand_chain, outdir,
+        )
+        pdb_path = Path(paths["pdb_path"])
+        ligand_path = Path(paths["ligand_path"])
+
+        download_ligand_sdf(pdb_id, ligand_chain, ligand_code, ligand_path)
 
         protein_only_pdb = tmp / "protein_only.pdb"
         pdb_io = PDBIO()
@@ -591,12 +669,9 @@ def prepare_input_structures(
         repaired_protein_pdb = tmp / "repaired_protein.pdb"
         evoef2_repair_structure(protein_only_pdb, repaired_protein_pdb, evoef2_bin)
         _merge_repaired_protein_with_ligand(
-            pdb_id,
             repaired_protein_pdb,
-            structure,
+            placement,
             ligand_path,
-            pdb_ligand_chain,
-            ligand_code,
             pdb_path,
         )
 
@@ -646,7 +721,10 @@ def main():
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
 
-    manifest_cols = ["pdb_path", "target", "ligand", "ligand_path"]
+    manifest_cols = [
+        "pdb_protein_chain", "pdb_ligand_chain", "ligand_resname",
+        "pdb_path", "target", "ligand", "ligand_path",
+    ]
     for col in manifest_cols:
         df[col] = None
 
