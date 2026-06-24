@@ -10,11 +10,12 @@ ligand_code), this script:
   2. Trims to the target protein chain (standard amino acids) plus one ligand
      residue on the ligand chain.
   3. Runs EvoEF2 RepairStructure on the protein-only PDB.
-  4. Merges ligand coordinates from the downloaded SDF onto the repaired protein
-     as HETATM records using a 3-letter ligand code (ligand_code truncated to
-     3 characters).
+  4. Merges ligand HETATM records extracted directly from the downloaded PDB
+     onto the repaired protein, preserving the original chain ID and residue
+     number from the PDB entry.
   5. Appends four manifest columns to every input row:
        pdb_path, target, ligand, ligand_path
+     target = {pdb_id}-{ligand_code}_{chain_suffix}, e.g. 6Y7F-OFN_A.
      Manifest ligand/ligand_path use the 3-letter code; the input ligand_code
      column is preserved unchanged.
      (empty when a row fails) and writes the result to --out_csv.
@@ -140,7 +141,7 @@ def expected_output_paths(pdb_id, protein_chain, ligand_chain, ligand_code, outd
     outdir = Path(outdir)
     ligand_tla = ligand_code_tla(ligand_code)
     chains = chain_suffix(protein_chain, ligand_chain)
-    target = f"{pdb_id}_{chains}"
+    target = f"{pdb_id}-{ligand_code}_{chains}"
     ligand_name = f"{ligand_tla}_{ligand_chain}"
     pdb_path = outdir / f"{target}.pdb"
     ligand_path = outdir / f"{pdb_id}_{protein_chain}_{ligand_tla}.sdf"
@@ -350,6 +351,88 @@ def _merge_repaired_protein_with_ligand_sdf(
     Path(output_pdb).write_text("".join(out_lines))
 
 
+def _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code):
+    """
+    Extract HETATM lines for the specified ligand from a BioPython structure.
+
+    Selects residues in pdb_ligand_chain whose resname matches ligand_code and
+    whose residue id[0] flag indicates a HETATM record (non-blank hetflag).
+    If multiple residue sequence numbers match (duplicate ligand instances),
+    takes the first one and emits a warning.
+
+    Returns a list of formatted HETATM record strings.
+    """
+    ligand_code = ligand_code.strip().upper()
+    matching_residues = []
+    for model in structure:
+        for chain in model:
+            if chain.id != pdb_ligand_chain:
+                continue
+            for residue in chain:
+                hetflag, resseq, icode = residue.id
+                if hetflag.strip() and residue.resname.strip().upper() == ligand_code:
+                    matching_residues.append(residue)
+
+    if not matching_residues:
+        raise ValueError(
+            f"No HETATM residue with resname={ligand_code!r} found on chain "
+            f"{pdb_ligand_chain!r} in the downloaded structure."
+        )
+
+    unique_resnums = {r.id[1] for r in matching_residues}
+    if len(unique_resnums) > 1:
+        warnings.warn(
+            f"Multiple instances of ligand {ligand_code} on chain {pdb_ligand_chain} "
+            f"(resseq: {sorted(unique_resnums)}); using the first instance.",
+            UserWarning,
+            stacklevel=2,
+        )
+
+    first_resseq = matching_residues[0].id[1]
+    selected = [r for r in matching_residues if r.id[1] == first_resseq]
+
+    lines = []
+    serial = 1
+    for residue in selected:
+        resseq = residue.id[1]
+        resname = residue.resname.strip()
+        for atom in residue.get_atoms():
+            element = atom.element.strip() if atom.element else atom.get_name().strip()[:1]
+            x, y, z = atom.get_vector()
+            lines.append(
+                _format_hetatm_line(
+                    serial,
+                    atom.get_name().strip(),
+                    resname,
+                    pdb_ligand_chain,
+                    resseq,
+                    x, y, z,
+                    element,
+                )
+            )
+            serial += 1
+
+    if not lines:
+        raise ValueError(
+            f"Ligand residue {ligand_code} on chain {pdb_ligand_chain} has no atoms."
+        )
+    return lines
+
+
+def _merge_repaired_protein_with_hetatm_lines(repaired_pdb, hetatm_lines, output_pdb):
+    """Concatenate repaired protein ATOM records with pre-formatted HETATM lines."""
+    out_lines = []
+    with open(repaired_pdb) as handle:
+        for line in handle:
+            if line.startswith("END"):
+                break
+            if line.strip():
+                out_lines.append(line)
+    out_lines.extend(hetatm_lines)
+    out_lines.append("END\n")
+    Path(output_pdb).write_text("".join(out_lines))
+
+
 def evoef2_repair_structure(input_pdb, output_pdb, evoef2_bin):
     """Run EvoEF2 RepairStructure; intermediate {stem}_Repair.pdb lives in a temp dir."""
     evoef2_bin = str(evoef2_bin)
@@ -431,9 +514,8 @@ def prepare_input_structures(
 
         repaired_protein_pdb = tmp / "repaired_protein.pdb"
         evoef2_repair_structure(protein_only_pdb, repaired_protein_pdb, evoef2_bin)
-        _merge_repaired_protein_with_ligand_sdf(
-            repaired_protein_pdb, ligand_path, pdb_ligand_chain, ligand_tla, pdb_path
-        )
+        hetatm_lines = _extract_ligand_hetatm_lines(structure, pdb_ligand_chain, ligand_code)
+        _merge_repaired_protein_with_hetatm_lines(repaired_protein_pdb, hetatm_lines, pdb_path)
 
     return paths
 
