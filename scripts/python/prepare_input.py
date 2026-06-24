@@ -115,6 +115,11 @@ def ligand_code_tla(ligand_code):
     return ligand_code.strip()[:3]
 
 
+def pdb_resname(resname):
+    """Normalize a residue name to the 3-character PDB HETATM field (columns 18-20)."""
+    return str(resname).strip().upper()[:3]
+
+
 def chain_suffix(protein_chain, ligand_chain):
     """Return deduplicated chain suffix from author chain IDs: C+A -> CA, A+A -> A.
 
@@ -442,10 +447,20 @@ def _get_ligand_placement(structure, pdb_ligand_chain, ligand_code):
             f"Ligand residue {ligand_code} on chain {pdb_ligand_chain} has no atoms."
         )
 
+    raw_resname = template_residue.resname.strip()
+    resname = pdb_resname(raw_resname)
+    if len(raw_resname) > 3:
+        warnings.warn(
+            f"Deposited ligand resname {raw_resname!r} exceeds PDB 3-character limit; "
+            f"using {resname!r} in HETATM records.",
+            UserWarning,
+            stacklevel=2,
+        )
+
     return {
         "chain_id": pdb_ligand_chain,
         "residue_id": template_residue.id,
-        "resname": template_residue.resname.strip(),
+        "resname": resname,
         "atoms": atoms,
     }
 
@@ -454,6 +469,7 @@ def _format_hetatm_line(
     serial, atom_name, resname, chain_id, resseq, x, y, z, occupancy, bfactor, element
 ):
     """Write an 80-column HETATM record with the element symbol in columns 77-78."""
+    resname = pdb_resname(resname)
     return (
         f"HETATM{serial:5d} {atom_name:>4s} {resname:>3s} {chain_id:1s}{resseq:4d}    "
         f"{x:8.3f}{y:8.3f}{z:8.3f}{occupancy:6.2f}{bfactor:6.2f}          {element:>2s}  \n"
