@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH --job-name=masif_search
 #SBATCH --output=logs/search-%A/slurm-%A_%a.out
-#SBATCH --time=48:00:00
+#SBATCH --time=24:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=6G
+#SBATCH --mem=7000
 
 : '
 # Submit from masif-neosurf repo root after writing numbered files under SEED_SUBSET_DIR.
@@ -14,7 +14,7 @@
 #   sbatch --array=1-N scripts/slurm/search_array.sh <query_target> <out_dir> <seed_subset_dir>
 #
 # Example (single-target):
-#   sbatch --array=1-5 scripts/slurm/search_array.sh 8VLB_A data/masif_search/8VLB_A data/masif_search/8VLB_A/subset
+#   sbatch --array=1-5 scripts/slurm/search_array.sh 8VLB_A data/masif_search data/masif_search/subset
 #
 # Multi-target mode (pass a .txt manifest as the first argument):
 #   sbatch --array=1-N scripts/slurm/search_array.sh <query_targets.txt> <masif_search_out_dir> <seed_subset_dir>
@@ -57,9 +57,8 @@ if [[ -f "${QUERY_TARGET}" && "${QUERY_TARGET}" == *.txt ]]; then
     # Multi-target mode: loop over every target in the manifest file
     while IFS= read -r target || [[ -n "${target}" ]]; do
         [[ -z "${target}" || "${target}" =~ ^# ]] && continue
-        target_out_dir="${OUT_DIR}/${target}"
         echo "Array task ${SLURM_ARRAY_TASK_ID}: ${target} subset ${SEED_SUBSET}"
-        if ! bash scripts/bash/search.sh "${target}" "${target_out_dir}" "${SEED_SUBSET}"; then
+        if ! bash scripts/bash/search.sh "${target}" "${OUT_DIR}" "${SEED_SUBSET}"; then
             echo "Error: search failed for ${target}" >&2
         fi
     done < "${QUERY_TARGET}"
