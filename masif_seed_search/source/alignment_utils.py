@@ -314,7 +314,7 @@ def _get_seed_ligand_anchor(pdb_chain_id, params):
         anchor = None
 
     if anchor is not None:
-        log_ligand_anchor(pdb_chain_id, anchor, pdb_path)
+        log_ligand_anchor(pdb_chain_id, anchor, pdb_path, verbose=False)
     cache[pdb_chain_id] = anchor
     return anchor
 
@@ -717,9 +717,6 @@ def align_protein(
 
             if clashing_ca <= params['allowed_CA_clashes'] and clashing_total <= params['allowed_heavy_atom_clashes']:
                 full_transform = res.transformation @ random_transformation
-                print('Selected fragment: {} fragment_id: {} score: {:.4f} desc_dist_score: {:.4f} clashes(CA): {} clashes(total):{}\n'.format(
-                    j, ppi_pair_id, scores[j][0], scores[j][1], clashing_ca, clashing_total))
-
                 hit_rows.append(build_hit_row(
                     params=params,
                     matched_protein=ppi_pair_id,
@@ -739,9 +736,4 @@ def align_protein(
     write_site_seed_hits(site_outdir, ppi_pair_id, hit_rows, progress_id=progress_id)
     if hit_rows:
         print(f"Wrote {len(hit_rows)} hit(s) for {ppi_pair_id} at {params['target_site']} -> "
-              f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")
-    elif progress_id is not None:
-        print(f"No hits for {ppi_pair_id} at {params['target_site']}; marked complete in progress manifest")
-    else:
-        print(f"Wrote 0 hit(s) for {ppi_pair_id} at {params['target_site']} -> "
               f"{os.path.join(site_outdir, ppi_pair_id + '.csv')}")

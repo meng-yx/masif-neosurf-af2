@@ -61,7 +61,9 @@ def find_ligand_anchor(pdb_path):
     return LigandAnchor(chain=chain, resid=int(resid), resname=resname, n_heavy_atoms=best_count)
 
 
-def log_ligand_anchor(protein_id, anchor, pdb_path=None):
+def log_ligand_anchor(protein_id, anchor, pdb_path=None, verbose=True):
+    if not verbose:
+        return
     suffix = f" ({pdb_path})" if pdb_path else ""
     print(
         f"INFO: {protein_id} HET anchor chain={anchor.chain} resid={anchor.resid} "

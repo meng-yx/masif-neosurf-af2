@@ -1,6 +1,7 @@
 import os
 import sys
 import shutil
+import fcntl
 from pathlib import Path
 from argparse import ArgumentParser
 from packaging import version
@@ -18,12 +19,12 @@ sys.path.append(str(Path(masif_neosurf_dir, 'masif_seed_search', 'source').resol
 from masif.source.default_config.masif_opts import masif_opts
 from alignment_evaluation_nn import AlignmentEvaluationNN
 from alignment_utils import get_patch_coords, load_protein_pcd, get_patch_geo, match_descriptors, align_protein, compute_nn_score
-from search_output import filter_seeds_for_resume, write_site_seed_hits, mark_site_seed_complete
+from search_output import write_site_seed_hits, is_site_completed, mark_site_completed
 from structural_cluster import cluster_search_hits_for_subset
 from neosurf_anchor import find_ligand_anchor, log_ligand_anchor
 
 
-def _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor):
+def _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor, maybe_seed=None):
     """Poisson-disk subsample on full mesh; return n_keep centers closest to anchor (search_grid.py)."""
     mesh_coords = np.asarray(o3d_mesh.vertices)
     n_mesh = len(mesh_coords)
@@ -31,7 +32,8 @@ def _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor):
     if n_keep >= len(candidates):
         return candidates
     n_poisson = int(n_keep * n_mesh / len(candidates))
-    sampled_points = o3d_mesh.sample_points_poisson_disk(n_poisson)
+    poisson_kwargs = maybe_seed or {}
+    sampled_points = o3d_mesh.sample_points_poisson_disk(n_poisson, **poisson_kwargs)
     squared_dists = np.sum(
         np.square(
             np.asarray(sampled_points.points).reshape(-1, 1, 3) - mesh_coords.reshape(1, -1, 3)
@@ -93,7 +95,10 @@ def _select_target_vertices(mymesh, target_struct, target_ply_fn, params):
         o3d_mesh = o3d.io.read_triangle_mesh(target_ply_fn)
         if not o3d_mesh.has_vertex_normals():
             o3d_mesh.compute_vertex_normals()
-        target_vertices = _grid_subsample_vertices(o3d_mesh, candidates, n_keep, dists_to_anchor)
+        target_vertices = _grid_subsample_vertices(
+            o3d_mesh, candidates, n_keep, dists_to_anchor,
+            maybe_seed=params.get('maybe_seed'),
+        )
     else:
         target_vertices = candidates
 
@@ -103,6 +108,159 @@ def _select_target_vertices(mymesh, target_struct, target_ply_fn, params):
 
     print(f"Selected {len(target_vertices)} target site(s).")
     return target_vertices
+
+
+def _target_sites_ready_marker(outdir):
+    return os.path.join(outdir, '.target_sites_ready')
+
+
+def _target_sites_setup_lock_path(outdir):
+    return os.path.join(outdir, '.target_sites_setup.lock')
+
+
+def _parse_target_info_vix(info_path):
+    with open(info_path) as f:
+        for part in f.read().split(','):
+            part = part.strip()
+            if part.startswith('vix:'):
+                return int(part.split(':', 1)[1].strip())
+    raise ValueError(f"No vix field found in {info_path}")
+
+
+def _load_target_vertices_from_disk(outdir):
+    """Load target vertex indices from existing site_*/target_info.txt files."""
+    site_dirs = sorted(
+        Path(outdir).glob('site_*'),
+        key=lambda p: int(p.name.split('_', 1)[1]),
+    )
+    if not site_dirs:
+        raise RuntimeError(
+            f"Target sites marker exists but no site_* directories found in {outdir}"
+        )
+    return np.asarray(
+        [_parse_target_info_vix(site_dir / 'target_info.txt') for site_dir in site_dirs],
+        dtype=int,
+    )
+
+
+def _write_target_site_setup(
+    outdir,
+    target_ppi_pair_id,
+    target_pdb_path,
+    target_ply_fn,
+    target_vertices,
+    target_pcd,
+    target_coord,
+    target_desc,
+    params,
+    flip_target_normals,
+):
+    """Write target PDB/PLY copies and per-site metadata (once per target)."""
+    dst_pdb = os.path.join(outdir, os.path.basename(target_pdb_path))
+    dst_ply = os.path.join(outdir, os.path.basename(target_ply_fn))
+    if not os.path.isfile(dst_pdb):
+        shutil.copy(target_pdb_path, dst_pdb)
+    if not os.path.isfile(dst_ply):
+        shutil.copy(target_ply_fn, dst_ply)
+
+    with open(os.path.join(outdir, 'selected_sites.vert'), 'w') as out_patch:
+        for site_vix in target_vertices:
+            point = target_pcd.points[site_vix]
+            out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
+
+    for site_ix, site_vix in enumerate(target_vertices):
+        site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
+        os.makedirs(site_outdir, exist_ok=True)
+
+        target_patch, _, _ = get_patch_geo(
+            target_pcd, target_coord, site_vix, target_desc,
+            flip_normals=flip_target_normals,
+            outward_shift=params['surface_outward_shift'],
+        )
+
+        with open(os.path.join(site_outdir, 'target.vert'), 'w') as out_patch:
+            for point in target_patch.points:
+                out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
+
+        with open(os.path.join(site_outdir, 'target_info.txt'), 'w') as out_info:
+            out_info.write(f'name: {target_ppi_pair_id}, site: {site_ix}, vix: {site_vix}')
+
+
+def _has_existing_target_site_setup(outdir):
+    """True when a prior run wrote site metadata but not the readiness marker."""
+    return any(Path(outdir).glob('site_*/target_info.txt'))
+
+
+def _acquire_target_sites_setup_lock(outdir):
+    os.makedirs(outdir, exist_ok=True)
+    lock_f = open(_target_sites_setup_lock_path(outdir), 'w')
+    fcntl.flock(lock_f.fileno(), fcntl.LOCK_EX)
+    return lock_f
+
+
+def _release_target_sites_setup_lock(lock_f):
+    fcntl.flock(lock_f.fileno(), fcntl.LOCK_UN)
+    lock_f.close()
+
+
+def _get_or_create_target_vertices(
+    outdir,
+    target_ppi_pair_id,
+    target_pdb_path,
+    target_ply_fn,
+    mymesh,
+    target_struct,
+    target_pcd,
+    target_coord,
+    target_desc,
+    params,
+    flip_target_normals,
+):
+    """
+    Return target vertex indices, creating on-disk site setup only once.
+
+    Concurrent array tasks share outdir; the first task to acquire the setup
+    lock writes selected_sites.vert and site_*/target_* files, then touches
+    .target_sites_ready.  All other tasks reuse the existing setup.
+    """
+    marker = _target_sites_ready_marker(outdir)
+    if os.path.isfile(marker):
+        target_vertices = _load_target_vertices_from_disk(outdir)
+        print(f"Reusing {len(target_vertices)} existing target site(s) from {outdir}.")
+        return target_vertices
+
+    if _has_existing_target_site_setup(outdir):
+        lock_f = _acquire_target_sites_setup_lock(outdir)
+        try:
+            if not os.path.isfile(marker):
+                with open(marker, 'w') as f:
+                    f.write('done\n')
+                print(f"Adopted existing target site setup in {outdir}.")
+            target_vertices = _load_target_vertices_from_disk(outdir)
+            print(f"Reusing {len(target_vertices)} existing target site(s) from {outdir}.")
+            return target_vertices
+        finally:
+            _release_target_sites_setup_lock(lock_f)
+
+    lock_f = _acquire_target_sites_setup_lock(outdir)
+    try:
+        if os.path.isfile(marker):
+            target_vertices = _load_target_vertices_from_disk(outdir)
+            print(f"Reusing {len(target_vertices)} existing target site(s) from {outdir}.")
+            return target_vertices
+
+        target_vertices = _select_target_vertices(mymesh, target_struct, target_ply_fn, params)
+        _write_target_site_setup(
+            outdir, target_ppi_pair_id, target_pdb_path, target_ply_fn,
+            target_vertices, target_pcd, target_coord, target_desc,
+            params, flip_target_normals,
+        )
+        with open(marker, 'w') as f:
+            f.write('done\n')
+        print(f"Wrote target site setup ({len(target_vertices)} site(s)) to {outdir}.")
+        return target_vertices
+    finally:
+        _release_target_sites_setup_lock(lock_f)
 
 
 def _load_seed_subset_lines(subset_path):
@@ -122,7 +280,7 @@ def _filter_seeds_for_auto_neosurf(seed_ids, seed_pdb_dir):
                 "If no ligand is expected, remove --seed-auto-neosurf flag."
             )
             continue
-        log_ligand_anchor(protein_id, anchor, pdb_path)
+        log_ligand_anchor(protein_id, anchor, pdb_path, verbose=False)
         kept.append(protein_id)
         anchor_cache[protein_id] = anchor
     return kept, anchor_cache
@@ -346,9 +504,8 @@ def masif_search(params):
     # target_ca_coords = [atom.get_coord() for atom in target_struct.get_atoms() if atom.get_id() == 'CA']
     target_ca_pcd_tree = None # cKDTree(np.array(target_ca_coords))
 
-    target_vertices = _select_target_vertices(mymesh, target_struct, target_ply_fn, params)
-
     if params.get('seed_score_binder', None) is not None:
+        target_vertices = _select_target_vertices(mymesh, target_struct, target_ply_fn, params)
         score_complex(
             target_name=target_ppi_pair_id,
             target_vertices=target_vertices,
@@ -366,30 +523,44 @@ def masif_search(params):
         return  # descriptor matching and alignment are not necessary for scoring
 
     outdir = os.path.join(params['out_dir'], params['target_name'])
-    if not os.path.exists(outdir):
-        os.makedirs(outdir, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
 
-    # Copy the pdb structure and the ply file of the target
-    shutil.copy(target_pdb_path, outdir)
-    shutil.copy(target_ply_fn, outdir)
-
-    # Write out the targeted patches
-    with open(os.path.join(outdir, 'selected_sites.vert'), 'w+') as out_patch:
-        for site_vix in target_vertices:
-            point = target_pcd.points[site_vix]
-            out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
-
+    target_vertices = _get_or_create_target_vertices(
+        outdir=outdir,
+        target_ppi_pair_id=target_ppi_pair_id,
+        target_pdb_path=target_pdb_path,
+        target_ply_fn=target_ply_fn,
+        mymesh=mymesh,
+        target_struct=target_struct,
+        target_pcd=target_pcd,
+        target_coord=target_coord,
+        target_desc=target_desc,
+        params=params,
+        flip_target_normals=flip_target_normals,
+    )
 
     params['target_name'] = target_ppi_pair_id
+
+    progress_id = params.get('progress_id')
+
+    try:
+        from tqdm import tqdm as _tqdm
+        _tqdm_available = True
+    except ImportError:
+        _tqdm_available = False
 
     # Go through every selected site
     for site_ix, site_vix in enumerate(target_vertices):
         site_outdir = os.path.join(outdir, 'site_{}'.format(site_ix))
-        if not os.path.exists(site_outdir):
-            os.makedirs(site_outdir, exist_ok=True)
+        os.makedirs(site_outdir, exist_ok=True)
 
         params['target_site'] = 'site_{}'.format(site_ix)
         params['target_vix'] = int(site_vix)
+
+        # Check site-level completion flag before any computation
+        if params.get('resume', False) and is_site_completed(site_outdir, progress_id):
+            print(f"Resume: skipping {params['target_site']} for task {progress_id} (COMPLETED)")
+            continue
 
         # Get the geodesic patch and descriptor patch for each target patch
         target_patch, target_patch_descs, target_patch_idx = get_patch_geo(
@@ -400,45 +571,20 @@ def masif_search(params):
         # Make a ckdtree with the target vertices.
         target_ckdtree = cKDTree(target_patch.points)
 
-        # Write out the patch itself.
-        with open(site_outdir + '/target.vert', 'w+') as out_patch:
-            for point in target_patch.points:
-                out_patch.write('{}, {}, {}\n'.format(point[0], point[1], point[2]))
+        # Descriptor matching
+        print(f"{params['target_site']}: {len(seed_ppi_pair_ids)} seeds")
+        matched_dict, scores_dict = match_descriptors(seed_ppi_pair_ids, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
 
-        with open(site_outdir + '/target_info.txt', 'w') as out_info:
-            out_info.write(f'name: {target_ppi_pair_id}, site: {site_ix}, vix: {site_vix}')
-
-        seeds_this_site = filter_seeds_for_resume(
-            site_outdir, list(seed_ppi_pair_ids), params.get('resume', False),
-            progress_id=params.get('progress_id'))
-        if len(seeds_this_site) == 0:
-            print(f"Resume: all seeds already completed for {params['target_site']}, skipping site.")
+        if len(matched_dict) == 0:
+            mark_site_completed(site_outdir, progress_id)
             continue
 
-        # Match the top descriptors in the database based on descriptor distance.
-        print('Starting to match target descriptor to descriptors from {} proteins; this may take a while.'.format(len(seeds_this_site)))
-        matched_dict, scores_dict = match_descriptors(seeds_this_site, ['p1', 'p2'], target_desc[0][site_vix], params, return_scores=True)
+        align_iter = (
+            _tqdm(matched_dict.keys(), desc=f"  align {params['target_site']}", unit="patch", leave=True)
+            if _tqdm_available else matched_dict.keys()
+        )
 
-        matched_protein_ids = {name[0] for name in matched_dict.keys()}
-        progress_id = params.get('progress_id')
-        for seed_id in seeds_this_site:
-            if seed_id not in matched_protein_ids:
-                if progress_id is not None:
-                    mark_site_seed_complete(site_outdir, progress_id, seed_id)
-                    print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
-                          f"marked complete in progress manifest")
-                else:
-                    write_site_seed_hits(site_outdir, seed_id, [])
-                    print(f"No stage-1 match for {seed_id} at {params['target_site']}; "
-                          f"wrote header-only {seed_id}.csv")
-
-        if len(matched_dict.keys()) == 0:
-            continue
-
-        print(" ")
-        print("Second stage of MaSIF seed search: each matched descriptor is aligned and scored; this may take a while..")
-        count_matched_fragments = 0
-        for ix, name in enumerate(matched_dict.keys()):
+        for name in align_iter:
             try:
                 align_protein(
                     name, \
@@ -457,9 +603,8 @@ def masif_search(params):
                 )
             except Exception as e:
                 print(f"Error '{e}' while trying to align {name}.")
-            if (ix + 1) % 1000 == 0:
-                print('So far, MaSIF has aligned {} fragments from {} proteins.'.format(count_matched_fragments, ix + 1))
-            count_matched_fragments += len(matched_dict[name])
+
+        mark_site_completed(site_outdir, progress_id)
 
     print("Done!")
 
