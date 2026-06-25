@@ -265,6 +265,7 @@ def resolve_ligand_model_server_ids(pdb_id, auth_asym_id, ligand_code):
         raise ValueError(f"No non-polymer entities found for {pdb_id}")
 
     label_asym_id = None
+    auth_seq_id = None
     for entity_id in entity_ids:
         entity = _fetch_json(f"{RCSB_DATA_API}/nonpolymer_entity/{pdb_id}/{entity_id}")
         identifiers = entity.get("rcsb_nonpolymer_entity_container_identifiers", {})
@@ -272,12 +273,21 @@ def resolve_ligand_model_server_ids(pdb_id, auth_asym_id, ligand_code):
         if comp_id not in {ligand_code, ligand_tla}:
             continue
 
-        asym_ids = identifiers.get("asym_ids", [])
-        auth_asym_ids = identifiers.get("auth_asym_ids", [])
-        for label_id, auth_id in zip(asym_ids, auth_asym_ids):
-            if str(auth_id).strip() == auth_asym_id:
-                label_asym_id = str(label_id).strip()
-                break
+        # asym_ids and auth_asym_ids are independently sorted on the entity
+        # endpoint, so zip() does not pair label/instance chains correctly.
+        for label_id in identifiers.get("asym_ids", []):
+            instance = _fetch_json(
+                f"{RCSB_DATA_API}/nonpolymer_entity_instance/{pdb_id}/{label_id}"
+            )
+            instance_ids = instance.get(
+                "rcsb_nonpolymer_entity_instance_container_identifiers", {}
+            )
+            inst_auth_asym_id = str(instance_ids.get("auth_asym_id", "")).strip()
+            if inst_auth_asym_id != auth_asym_id:
+                continue
+            label_asym_id = str(label_id).strip()
+            auth_seq_id = str(instance_ids.get("auth_seq_id", "")).strip()
+            break
         if label_asym_id is not None:
             break
 
@@ -287,11 +297,6 @@ def resolve_ligand_model_server_ids(pdb_id, auth_asym_id, ligand_code):
             f"on auth chain {auth_asym_id}"
         )
 
-    instance = _fetch_json(
-        f"{RCSB_DATA_API}/nonpolymer_entity_instance/{pdb_id}/{label_asym_id}"
-    )
-    instance_ids = instance.get("rcsb_nonpolymer_entity_instance_container_identifiers", {})
-    auth_seq_id = str(instance_ids.get("auth_seq_id", "")).strip()
     if not auth_seq_id:
         raise ValueError(
             f"Could not resolve auth_seq_id for {pdb_id} ligand {ligand_code} "
