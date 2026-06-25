@@ -34,7 +34,7 @@ BIND_MOUNTS="/work:/work,/scratch:/scratch"
 
 # Seed database root
 DATABASE_ROOT=data/preprocess
-#DATABASE_ROOT=/work/lpdi/users/diazrovi/domaindome/20260221-AFDBv6_domaindome_DPAM_masif/data/dpam_domaindome_masif_db/
+
 # Target database root
 TARGET_PREPROCESS_ROOT=data/preprocess
 
