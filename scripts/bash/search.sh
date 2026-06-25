@@ -44,7 +44,7 @@ fi
 
 echo "Search ${QUERY_TARGET} seeds from ${SEED_SUBSET}"
 
-srun apptainer exec -B "${BIND_MOUNTS}" "${IMAGE}" \
+apptainer exec -B "${BIND_MOUNTS}" "${IMAGE}" \
     python -W ignore masif_search.py \
         --target "${QUERY_TARGET}" \
         --target_dir "${TARGET_PREPROCESS_ROOT}" \
