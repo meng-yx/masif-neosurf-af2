@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=preprocess
 #SBATCH --output=logs/preprocess-%A/slurm-%A_%a.out
-#SBATCH --time=04:00:00
+#SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
@@ -60,4 +60,5 @@ PREPROCESS_ARGS=(
     --repo_root "$(pwd)"
 )
 
-python scripts/python/preprocess_manifest.py "${PREPROCESS_ARGS[@]}"
+export PYTHONUNBUFFERED=1
+python -u scripts/python/preprocess_manifest.py "${PREPROCESS_ARGS[@]}"

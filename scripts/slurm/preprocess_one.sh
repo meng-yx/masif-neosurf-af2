@@ -14,10 +14,10 @@
 # LIGAND_PATH=$4
 # OUTPUT_DIR=$5
 
-PDB_PATH=/scratch/ymeng/Neosurf_Neosurf/data/input/8VLB-3JF_A.pdb
-TARGET=8VLB-3JF_A
-LIGAND=3JF_A
-LIGAND_PATH=/scratch/ymeng/Neosurf_Neosurf/data/input/8VLB_A_3JF.sdf
+PDB_PATH=/scratch/ymeng/Neosurf_Neosurf/data/input/9CUO-A1A0J_C.pdb
+TARGET=9CUO-A1A0J_C
+LIGAND=A1A_C
+LIGAND_PATH=/scratch/ymeng/Neosurf_Neosurf/data/input/9CUO_C_A1A.sdf
 OUTPUT_DIR=/scratch/ymeng/Neosurf_Neosurf/data/preprocess
 
 bash scripts/bash/preprocess.sh $PDB_PATH $TARGET $LIGAND $LIGAND_PATH $OUTPUT_DIR
