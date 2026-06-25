@@ -11,8 +11,10 @@ ligand_code), this script:
      residue on the ligand chain.
   3. Runs EvoEF2 RepairStructure on the protein-only PDB.
   4. Merges the ligand onto the EvoEF2-repaired protein: atom coordinates come
-     from the downloaded SDF, while chain ID, residue number, residue name, and
-     atom names come from the matching ligand in the downloaded structure.
+     from the downloaded SDF; chain ID, residue number, and residue name come
+     from the matching ligand in the downloaded structure. Atom names are
+     generated from element symbols (C01, N01, ...) to avoid clashes with
+     standard amino-acid nomenclature in downstream preprocessing.
   5. Appends seven manifest columns to every input row:
        pdb_protein_chain, pdb_ligand_chain, ligand_resname,
        pdb_path, target, ligand, ligand_path
@@ -486,7 +488,13 @@ def _last_pdb_serial(pdb_path):
 
 
 def _ligand_hetatm_lines_from_sdf(sdf_path, placement, start_serial):
-    """Return formatted HETATM lines for a ligand using SDF coordinates."""
+    """Return formatted HETATM lines for a ligand using SDF coordinates.
+
+    Atom names are generated from element symbols (C01, N01, ...) rather than
+    copied from the deposited structure, because ligands such as 3JF use atom
+    names (CA, CB, CG, ...) that overlap with standard amino-acid nomenclature
+    and break OpenBabel/PDB2PQR during MaSIF preprocessing.
+    """
     mol = Chem.SDMolSupplier(str(sdf_path), sanitize=False, removeHs=False)[0]
     if mol is None:
         raise ValueError(f"Could not read ligand SDF: {sdf_path}")
@@ -497,7 +505,7 @@ def _ligand_hetatm_lines_from_sdf(sdf_path, placement, start_serial):
     if len(sdf_atoms) != len(pdb_atoms):
         warnings.warn(
             f"SDF atom count ({len(sdf_atoms)}) differs from downloaded PDB ligand "
-            f"({len(pdb_atoms)}); using SDF order with generated atom names where needed.",
+            f"({len(pdb_atoms)}); using SDF atom order and generated atom names.",
             UserWarning,
             stacklevel=2,
         )
@@ -517,14 +525,12 @@ def _ligand_hetatm_lines_from_sdf(sdf_path, placement, start_serial):
     for index, sdf_atom in enumerate(sdf_atoms):
         element = sdf_atom.GetSymbol()
         pos = conf.GetAtomPosition(index)
+        element_counts[element] = element_counts.get(element, 0) + 1
+        atom_name = f"{element}{element_counts[element]:02d}"[:4]
         if index < len(pdb_atoms):
-            atom_name = pdb_atoms[index]["name"].strip()
-            element = pdb_atoms[index]["element"] or element
             occupancy = pdb_atoms[index]["occupancy"]
             bfactor = pdb_atoms[index]["bfactor"]
         else:
-            element_counts[element] = element_counts.get(element, 0) + 1
-            atom_name = _format_pdb_atom_name(element, element_counts[element]).strip()
             occupancy = 1.0
             bfactor = 0.0
 
@@ -557,10 +563,11 @@ def _merge_repaired_protein_with_ligand(
     """
     Merge EvoEF2-repaired protein with SDF-based ligand HETATM records.
 
-    Ligand coordinates come from the SDF; chain ID, residue number, residue
-    name, and atom names are inherited from the pre-computed placement dict.
-    Ligand records are written with explicit 80-column formatting so downstream
-    prody/RDKit parsing sees the element symbol in columns 77-78.
+    Ligand coordinates come from the SDF; chain ID, residue number, and residue
+    name are inherited from the pre-computed placement dict. Atom names are
+    generated from element symbols. Ligand records are written with explicit
+    80-column formatting so downstream prody/RDKit parsing sees the element
+    symbol in columns 77-78.
     """
     repaired_pdb = Path(repaired_pdb)
     start_serial = _last_pdb_serial(repaired_pdb)
