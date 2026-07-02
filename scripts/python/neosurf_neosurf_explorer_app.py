@@ -10,26 +10,38 @@ queries *many* ligand-bound "target" complexes against a large library of
 ligand-bound "seed" complexes, so every predicted interaction row has a
 different target AND a different seed, each carrying its own ligand.
 
-Two tables drive the app:
-  * ``df_preprocess_ok.csv``  -> per-structure metadata (uniprot/gene/name,
-    pdb_path, ligand identity), keyed by the unique ``target`` id. This is the
-    source of metadata for BOTH targets and seeds.
-  * ``df_results_dedup.csv``  -> one row per (target, matched_protein, cluster_id)
-    predicted interaction, with metrics and the superposition transform.
+Data sources
+  * ``df_preprocess_ok.csv`` -> per-structure metadata (uniprot/gene/name,
+    pdb_path, ligand identity), keyed by the unique ``target`` id. Source of
+    metadata for BOTH targets and seeds.
+  * ``df_results_dedup.csv`` -> PRIMARY source. One enriched row per
+    (target, matched_protein, cluster_id) cluster; drives the tree and the
+    colored scatter points.
+  * ``df_results_all.csv``   -> every individual pose (unique target_vix +
+    matched_patch_id within a cluster). Loaded once into memory and indexed by
+    cluster key. Poses are populated reactively: only when the user expands a
+    cluster in the tree. Poses inherit all metadata from their cluster; only the
+    superposition transform / patch identity / score differ per pose.
 
 Panels
-  * Left sidebar: a lazily-rendered, re-orderable collapsible tree that lets you
-    drill target-protein -> target-id -> matched-protein -> matched-seed ->
-    cluster. Selecting a node plots only that branch (so Plotly never chokes).
-  * Plotly scatter of any two metrics for the selected branch.
-  * py3Dmol viewer showing target + transform-superposed seed, with BOTH
-    ligands rendered as sticks.
+  * Left sidebar: a lazily-rendered, re-orderable collapsible tree
+    (target-protein -> target-id -> matched-protein -> matched-seed -> cluster
+    -> pose). Clusters are expandable to reveal individual poses.
+  * Plotly scatter. The plotted set is fixed by the TOP level only (target
+    protein) -- only a top-level click changes which points are plotted.
+    Selecting anything deeper keeps the same set but greys-out non-selected
+    points; when a cluster is pinned, that cluster's individual poses are
+    overlaid as grey crosses so they can be clicked and visualized.
+  * py3Dmol viewer showing target + transform-superposed seed, both ligands as
+    sticks.
   * UniProt entry iframe for the matched (or target) protein.
 
 The legacy app is intentionally left untouched.
 """
 
+import copy
 import json
+import uuid
 
 import numpy as np
 import pandas as pd
@@ -45,18 +57,21 @@ from dash.exceptions import PreventUpdate
 # --------------------------------------------------------------------------- #
 PREPROCESS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/2_masif_preprocess/df_preprocess_ok.csv"
 RESULTS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/3_masif_search/df_results_dedup.csv"
+RESULTS_ALL_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/3_masif_search/df_results_all.csv"
 
-# Max rows a selected branch may contain before we refuse to plot (guardrail so
-# Plotly is never handed tens of thousands of interactive points).
+# Max rows a selected branch's scope may contain before we refuse to plot
+# (guardrail so Plotly is never handed tens of thousands of interactive points).
 PLOT_ROW_CAP = 4000
 
 # --------------------------------------------------------------------------- #
 # Grouping levels for the tree
 # --------------------------------------------------------------------------- #
-# Non-leaf levels can be re-ordered by the user; ``cluster_id`` is always the
-# leaf (a single df_results_dedup row).
-LEAF_LEVEL = "cluster_id"
+# The four "protein/id" levels are user-reorderable. ``cluster_id`` always
+# follows them and is expandable; ``pose`` is the final leaf, sourced lazily
+# from df_results_all.
 NONLEAF_LEVELS = ["target_protein", "target_id", "matched_protein", "matched_seed_id"]
+CLUSTER_LEVEL = "cluster_id"
+POSE_LEVEL = "pose"
 
 LEVEL_LABEL = {
     "target_protein": "Target protein",
@@ -64,9 +79,11 @@ LEVEL_LABEL = {
     "matched_protein": "Matched protein",
     "matched_seed_id": "Matched seed (id)",
     "cluster_id": "Cluster",
+    "pose": "Pose",
 }
 
-# Grouping column backing each level (string columns built at load time).
+# Grouping column backing each df-level (string columns built at load time).
+# ``pose`` has no df grouping column; it is resolved against df_all by cluster key.
 GROUP_COL = {
     "target_protein": "g_target_protein",
     "target_id": "g_target_id",
@@ -74,8 +91,9 @@ GROUP_COL = {
     "matched_seed_id": "g_matched_seed_id",
     "cluster_id": "g_cluster_id",
 }
+DF_LEVELS = set(GROUP_COL)
 
-DEFAULT_ORDER = ["target_protein", "target_id", "matched_protein", "matched_seed_id", LEAF_LEVEL]
+DEFAULT_ORDER = ["target_protein", "target_id", "matched_protein", "matched_seed_id", CLUSTER_LEVEL, POSE_LEVEL]
 PRESET_A = ["target_protein", "target_id", "matched_protein", "matched_seed_id"]
 PRESET_B = ["target_protein", "matched_protein", "target_id", "matched_seed_id"]
 
@@ -151,53 +169,107 @@ def _s(value):
     return str(value)
 
 
-def load_data():
-    """Load both tables and build the enriched results frame used everywhere."""
-    pre = pd.read_csv(PREPROCESS_CSV)
-    res = pd.read_csv(RESULTS_CSV).reset_index(drop=True)
+def _cluster_id_str(value):
+    if pd.isna(value):
+        return ""
+    return str(int(value)) if float(value).is_integer() else str(value)
 
-    # Manifest lookup keyed by the unique `target` id (never parse id strings).
-    pre_idx = pre.set_index("target")
 
+def _add_structural(frame, pre_idx):
+    """Attach pdb paths + ligand identity for both target and seed sides."""
     def mp(col):
         return pre_idx[col] if col in pre_idx.columns else pd.Series(dtype=object)
 
-    # Target-side metadata (results only carries target_gene_name).
-    res["t_uniprot_id"] = res["target"].map(mp("uniprot_id"))
-    res["t_recommendedName"] = res["target"].map(mp("recommendedName"))
-    res["target_pdb_path"] = res["target"].map(mp("pdb_path"))
-    res["target_ligand_resname"] = res["target"].map(mp("ligand_resname"))
-    res["target_pdb_ligand_chain"] = res["target"].map(mp("pdb_ligand_chain"))
-    res["target_ligand_code"] = res["target"].map(mp("ligand_code"))
+    frame["t_uniprot_id"] = frame["target"].map(mp("uniprot_id"))
+    frame["t_recommendedName"] = frame["target"].map(mp("recommendedName"))
+    frame["target_pdb_id"] = frame["target"].map(mp("pdb_id"))
+    frame["matched_pdb_id"] = frame["matched_protein"].map(mp("pdb_id"))
+    frame["target_pdb_path"] = frame["target"].map(mp("pdb_path"))
+    frame["target_ligand_resname"] = frame["target"].map(mp("ligand_resname"))
+    frame["target_pdb_ligand_chain"] = frame["target"].map(mp("pdb_ligand_chain"))
+    frame["target_ligand_code"] = frame["target"].map(mp("ligand_code"))
 
-    # Matched/seed-side structural metadata (uniprot/gene/name already present).
-    res["matched_pdb_path"] = res["matched_protein"].map(mp("pdb_path"))
-    res["matched_ligand_resname"] = res["matched_protein"].map(mp("ligand_resname"))
-    res["matched_pdb_ligand_chain"] = res["matched_protein"].map(mp("pdb_ligand_chain"))
-    res["matched_ligand_code"] = res["matched_protein"].map(mp("ligand_code"))
+    frame["matched_pdb_path"] = frame["matched_protein"].map(mp("pdb_path"))
+    frame["matched_ligand_resname"] = frame["matched_protein"].map(mp("ligand_resname"))
+    frame["matched_pdb_ligand_chain"] = frame["matched_protein"].map(mp("pdb_ligand_chain"))
+    frame["matched_ligand_code"] = frame["matched_protein"].map(mp("ligand_code"))
+    return frame
 
-    # String grouping columns (NaN-safe, JSON-safe path values).
-    res["g_target_protein"] = res["t_uniprot_id"].fillna("—").astype(str)
-    res["g_target_id"] = res["target"].astype(str)
-    res["g_matched_protein"] = res["matched_uniprot_id"].fillna("—").astype(str)
-    res["g_matched_seed_id"] = res["matched_protein"].astype(str)
-    res["g_cluster_id"] = res["cluster_id"].map(
-        lambda v: "" if pd.isna(v) else (str(int(v)) if float(v).is_integer() else str(v))
-    )
 
-    # Free-text search blob across all human-facing identifiers.
+def _add_grouping_cols(frame):
+    frame["g_target_protein"] = frame["t_uniprot_id"].fillna("—").astype(str)
+    frame["g_target_id"] = frame["target"].astype(str)
+    frame["g_matched_protein"] = frame["matched_uniprot_id"].fillna("—").astype(str)
+    frame["g_matched_seed_id"] = frame["matched_protein"].astype(str)
+    frame["g_cluster_id"] = frame["cluster_id"].map(_cluster_id_str)
+    return frame
+
+
+def load_data():
+    """Load all three tables and build the enriched frames used throughout."""
+    pre = pd.read_csv(PREPROCESS_CSV)
+    pre_idx = pre.set_index("target")
+
+    # ---- Primary (dedup) frame: authoritative, already enriched in the CSV ----
+    df = pd.read_csv(RESULTS_CSV).reset_index(drop=True)
+    df = _add_structural(df, pre_idx)
+    df = _add_grouping_cols(df)
+
     search_cols = [
         "target_gene_name", "t_uniprot_id", "t_recommendedName",
         "matched_gene_name", "matched_uniprot_id", "matched_recommendedName",
         "target", "matched_protein",
     ]
-    search_cols = [c for c in search_cols if c in res.columns]
-    res["search_blob"] = res[search_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
+    search_cols = [c for c in search_cols if c in df.columns]
+    df["search_blob"] = df[search_cols].fillna("").astype(str).agg(" ".join, axis=1).str.lower()
 
-    return pre, res
+    # ---- All-poses frame: raw search output, enriched from the manifest ----
+    df_all = pd.read_csv(RESULTS_ALL_CSV).reset_index(drop=True)
+    df_all = _add_structural(df_all, pre_idx)
+    # Metadata that lived only in the (notebook-processed) dedup CSV -> derive.
+    df_all["target_gene_name"] = df_all["target"].map(
+        pre_idx["gene_name"] if "gene_name" in pre_idx.columns else pd.Series(dtype=object)
+    )
+    df_all["matched_uniprot_id"] = df_all["matched_protein"].map(
+        pre_idx["uniprot_id"] if "uniprot_id" in pre_idx.columns else pd.Series(dtype=object)
+    )
+    df_all["matched_gene_name"] = df_all["matched_protein"].map(
+        pre_idx["gene_name"] if "gene_name" in pre_idx.columns else pd.Series(dtype=object)
+    )
+    df_all["matched_recommendedName"] = df_all["matched_protein"].map(
+        pre_idx["recommendedName"] if "recommendedName" in pre_idx.columns else pd.Series(dtype=object)
+    )
+    df_all["matched_mw"] = df_all["matched_protein"].map(
+        pre_idx["mw"] if "mw" in pre_idx.columns else pd.Series(dtype=object)
+    )
+    # n_match_ligands is a per gene-pair value computed in the notebook; borrow it
+    # from the dedup frame so poses share their cluster's value (grey points only).
+    if "n_match_ligands" in df.columns:
+        nml = (
+            df.dropna(subset=["n_match_ligands"])
+            .drop_duplicates(["target_gene_name", "matched_gene_name"])
+            .set_index(["target_gene_name", "matched_gene_name"])["n_match_ligands"]
+            .to_dict()
+        )
+        df_all["n_match_ligands"] = [
+            nml.get((tg, mg), np.nan) for tg, mg in zip(df_all["target_gene_name"], df_all["matched_gene_name"])
+        ]
+    df_all["g_cluster_id"] = df_all["cluster_id"].map(_cluster_id_str)
+
+    # Mark the representative pose (max score) of each cluster.
+    df_all["is_rep"] = False
+    rep_idx = df_all.groupby(["target", "matched_protein", "g_cluster_id"])["score"].idxmax()
+    df_all.loc[rep_idx, "is_rep"] = True
+
+    return pre, df, df_all
 
 
-pre_df, df = load_data()
+pre_df, df, df_all = load_data()
+
+# Cluster-key -> pose row indices, precomputed once for O(1) lazy expansion.
+POSE_GROUPS = {k: list(v) for k, v in df_all.groupby(["target", "matched_protein", "g_cluster_id"]).groups.items()}
+POSE_COUNTS = {k: len(v) for k, v in POSE_GROUPS.items()}
+
 NUMERIC_COLS = [c for c in CANDIDATE_NUMERIC if c in df.columns and pd.api.types.is_numeric_dtype(df[c])]
 DEFAULT_X = "score" if "score" in NUMERIC_COLS else NUMERIC_COLS[0]
 DEFAULT_Y = "cluster_size" if "cluster_size" in NUMERIC_COLS else NUMERIC_COLS[min(1, len(NUMERIC_COLS) - 1)]
@@ -207,25 +279,39 @@ _parser = PDBParser(QUIET=True)
 
 
 # --------------------------------------------------------------------------- #
-# Tree logic
+# Tree / path logic
 # --------------------------------------------------------------------------- #
 def subframe_by_path(base, path):
-    """Filter ``base`` to rows matching every (level, value) pair in ``path``."""
-    if not path:
-        return base
+    """Filter ``base`` to rows matching every df-level (level, value) pair.
+
+    Any trailing pose level is ignored (poses do not live in the df frames).
+    """
     mask = pd.Series(True, index=base.index)
     for level, value in path:
+        if level not in GROUP_COL:
+            continue
         mask &= base[GROUP_COL[level]] == value
     return base[mask]
 
 
+def strip_pose(path):
+    """Return the path without a trailing pose entry."""
+    return [p for p in path if p[0] != POSE_LEVEL]
+
+
+def cluster_key_from_path(path):
+    """Extract (target, matched_protein, cluster_id_str) from a path prefix."""
+    values = {level: value for level, value in path}
+    return values.get("target_id"), values.get("matched_seed_id"), values.get("cluster_id")
+
+
 def node_label(level, value, rep):
-    """Human label for a node, given a representative row ``rep``."""
+    """Human label for a df-level node, given a representative row ``rep``."""
     if level == "target_protein":
         return f"{_s(rep.get('t_uniprot_id'))}|{_s(rep.get('target_gene_name'))}|{_s(rep.get('t_recommendedName'))}"
     if level == "target_id":
         code = _s(rep.get("target_ligand_code"))
-        return f"{value}" + (f"  [{code}]" if code else "")
+        return f"target: {value}" + (f"  [{code}]" if code else "")
     if level == "matched_protein":
         return (
             f"{_s(rep.get('matched_uniprot_id'))}|{_s(rep.get('matched_gene_name'))}|"
@@ -233,14 +319,25 @@ def node_label(level, value, rep):
         )
     if level == "matched_seed_id":
         code = _s(rep.get("matched_ligand_code"))
-        return f"{value}" + (f"  [{code}]" if code else "")
+        return f"seed: {value}" + (f"  [{code}]" if code else "")
     if level == "cluster_id":
-        size = rep.get("cluster_size")
-        score = rep.get("score")
+        size, score = rep.get("cluster_size"), rep.get("score")
         size_s = f"size={int(size)}" if pd.notna(size) else "size=?"
         score_s = f"score={score:.3f}" if pd.notna(score) else "score=?"
         return f"cluster {value} ({size_s}, {score_s})"
     return str(value)
+
+
+def pose_label(prow):
+    """Human label for a pose (df_all row)."""
+    patch = prow.get("matched_patch_id")
+    vix = prow.get("target_vix")
+    score = prow.get("score")
+    patch_s = int(patch) if pd.notna(patch) else "?"
+    vix_s = int(vix) if pd.notna(vix) else "?"
+    score_s = f"{score:.3f}" if pd.notna(score) else "?"
+    star = "  ★rep" if prow.get("is_rep") else ""
+    return f"pose patch={patch_s} vix={vix_s} (score={score_s}){star}"
 
 
 def _node_style(depth, is_leaf, is_selected):
@@ -262,52 +359,98 @@ def _node_style(depth, is_leaf, is_selected):
     }
 
 
-def build_tree_nodes(path, order, expanded, selected, base, depth=0):
-    """Recursively build tree nodes, descending only into expanded paths."""
+def _pose_nodes(cluster_path, expanded, selected, depth, criteria=None):
+    """Leaf nodes for the individual poses of a cluster (from df_all)."""
+    key = cluster_key_from_path(cluster_path)
+    idxs = POSE_GROUPS.get(key)
+    if not idxs:
+        return [html.Div("(no individual poses in df_results_all)",
+                         style={"marginLeft": f"{depth * 12}px", "fontSize": "11px", "color": "#999"})]
+    sub = df_all.loc[idxs]
+    if criteria:
+        sub = apply_filtering_criteria(sub, criteria)
+    if sub.empty:
+        return [html.Div("(all poses filtered out)",
+                         style={"marginLeft": f"{depth * 12}px", "fontSize": "11px", "color": "#999"})]
+    sub = sub.sort_values("score", ascending=False)
+    nodes = []
+    for all_idx, prow in sub.iterrows():
+        child_path = cluster_path + [[POSE_LEVEL, str(all_idx)]]
+        path_str = json.dumps(child_path)
+        button = html.Button(
+            f"• {pose_label(prow)}",
+            id={"type": "tree-node", "path": path_str},
+            n_clicks=0, title=pose_label(prow),
+            style=_node_style(depth, True, path_str == selected),
+        )
+        nodes.append(html.Div([button]))
+    return nodes
+
+
+def build_tree_nodes(path, order, expanded, selected, base, depth=0, criteria=None):
+    """Recursively build tree nodes, descending only into expanded paths.
+
+    Sibling nodes are ordered by their number of immediate child nodes
+    (descending), with best score as a tie-breaker.
+    """
     level_idx = len(path)
     if level_idx >= len(order):
         return []
     level = order[level_idx]
+
+    # Pose level: children come from df_all, keyed by the parent cluster.
+    if level == POSE_LEVEL:
+        return _pose_nodes(path, expanded, selected, depth, criteria)
+
     col = GROUP_COL[level]
     sub = subframe_by_path(base, path)
     if sub.empty:
         return []
 
-    # One entry per distinct value at this level, with count + best score.
+    next_level = order[level_idx + 1] if level_idx + 1 < len(order) else None
+    next_col = GROUP_COL.get(next_level) if next_level else None
+
+    def child_count(value, ssub):
+        """Number of immediate child nodes this node would expand into."""
+        if level == CLUSTER_LEVEL:  # children are poses, sourced from df_all
+            pidx = POSE_GROUPS.get(cluster_key_from_path(path + [[level, value]]))
+            if not pidx:
+                return 0
+            return len(apply_filtering_criteria(df_all.loc[pidx], criteria)) if criteria else len(pidx)
+        if next_col:
+            return int(ssub[next_col].nunique())
+        return len(ssub)
+
+    # One entry per distinct value at this level, with its child count + best score.
     reps = []
     for value, idx in sub.groupby(col, sort=False).groups.items():
         ssub = sub.loc[idx]
-        best_idx = ssub["score"].idxmax()
-        reps.append((value, len(idx), df.loc[best_idx], float(ssub["score"].max())))
-    reps.sort(key=lambda t: t[3], reverse=True)  # best-scoring siblings first
+        reps.append((value, child_count(value, ssub), base.loc[ssub["score"].idxmax()], float(ssub["score"].max())))
+    reps.sort(key=lambda t: (t[1], t[3]), reverse=True)  # most children first, then best score
 
-    is_leaf_level = level_idx == len(order) - 1
     nodes = []
-    for value, count, rep, best in reps:
+    for value, n_children, rep, best in reps:
         child_path = path + [[level, value]]
         path_str = json.dumps(child_path)
         is_expanded = path_str in expanded
-        marker = "•" if is_leaf_level else ("▾" if is_expanded else "▸")
+        marker = "▾" if is_expanded else "▸"
         label = node_label(level, value, rep)
-        badge = "" if is_leaf_level else f"  ({count})"
+        badge = f"  ({n_children} poses)" if level == CLUSTER_LEVEL else f"  ({n_children})"
         button = html.Button(
             f"{marker} {label}{badge}",
             id={"type": "tree-node", "path": path_str},
-            n_clicks=0,
-            title=label,
-            style=_node_style(depth, is_leaf_level, path_str == selected),
+            n_clicks=0, title=label,
+            style=_node_style(depth, False, path_str == selected),
         )
         block = [button]
-        if is_expanded and not is_leaf_level:
-            block.append(
-                html.Div(build_tree_nodes(child_path, order, expanded, selected, base, depth + 1))
-            )
+        if is_expanded:
+            block.append(html.Div(build_tree_nodes(child_path, order, expanded, selected, base, depth + 1, criteria)))
         nodes.append(html.Div(block))
     return nodes
 
 
 def build_order(vals):
-    """Normalise 4 dropdown values into a valid level permutation + leaf."""
+    """Normalise the 4 dropdown values into a valid permutation + cluster + pose."""
     seen = []
     for v in vals:
         if v and v not in seen:
@@ -315,7 +458,21 @@ def build_order(vals):
     for v in NONLEAF_LEVELS:
         if v not in seen:
             seen.append(v)
-    return seen + [LEAF_LEVEL]
+    return seen + [CLUSTER_LEVEL, POSE_LEVEL]
+
+
+# --------------------------------------------------------------------------- #
+# Row reference resolution (dedup rows and pose rows share a tagged reference)
+# --------------------------------------------------------------------------- #
+def resolve_ref(ref):
+    """Resolve a {"src","idx"} reference to a row Series, or None."""
+    if not isinstance(ref, dict):
+        return None
+    src, idx = ref.get("src"), ref.get("idx")
+    frame = df if src == "dedup" else df_all
+    if idx in frame.index:
+        return frame.loc[idx]
+    return None
 
 
 # --------------------------------------------------------------------------- #
@@ -330,33 +487,52 @@ def _ligand_selection(model, resname, chain):
     return sel
 
 
-def view_pair_html(row):
-    """Return py3Dmol HTML: target + transform-superposed seed, both ligands as sticks."""
+def _add_seed_model(view, seed_struct, model_idx, resname, chain, opacity):
+    """Add one transform-applied seed structure to the view at a given opacity."""
+    view.addModel(structure_to_pdbstr(seed_struct), "pdb")
+    cartoon = {"color": "lightblue"}
+    line = {"colorscheme": "lightblueCarbon"}
+    stick = {"colorscheme": "magentaCarbon", "radius": 0.22}
+    if opacity < 1.0:
+        cartoon["opacity"] = opacity
+        line["opacity"] = opacity
+        stick["opacity"] = opacity
+    view.setStyle({"model": model_idx}, {"cartoon": cartoon, "line": line})
+    seed_lig = _ligand_selection(model_idx, resname, chain)
+    if "resn" in seed_lig:
+        view.setStyle(seed_lig, {"stick": stick})
+    else:
+        for het in find_hetatm_residues(seed_struct):
+            sel = {"model": model_idx, "resn": het["resn"], "resi": het["resi"]}
+            if het["chain"]:
+                sel["chain"] = het["chain"]
+            view.setStyle(sel, {"stick": stick})
+
+
+def build_viewer_html(row, pose_transforms):
+    """Return py3Dmol HTML for the target + one-or-more transform-superposed seed poses.
+
+    ``row`` supplies the target + seed metadata (paths, ligands) shared by every
+    pose of a cluster. ``pose_transforms`` is a list of (transform_str, opacity)
+    for the seed: opacity 1.0 = the solid main entry, < 1.0 = a faded sibling pose.
+    """
     import os
 
     target_path = row.get("target_pdb_path")
     seed_path = row.get("matched_pdb_path")
-    transform = row.get("flattened_transform")
     for label, p in (("target", target_path), ("seed", seed_path)):
         if not isinstance(p, str) or not p.strip():
             raise ValueError(f"Missing {label} pdb_path for selected row.")
         if not os.path.exists(p):
             raise FileNotFoundError(f"{label} PDB not found: {p}")
-    if not isinstance(transform, str) or not transform.strip():
-        raise ValueError("Missing flattened_transform for selected row.")
+    if not pose_transforms:
+        raise ValueError("No pose transforms to render.")
 
     target_struct = _parser.get_structure("target", target_path)
-    seed_struct = _parser.get_structure("seed", seed_path)
-    apply_transform(seed_struct, transform)
-
-    target_pdb = structure_to_pdbstr(target_struct)
-    seed_pdb = structure_to_pdbstr(seed_struct)
 
     view = py3Dmol.view(width=760, height=560)
-    view.addModel(target_pdb, "pdb")  # model 0 = target
-    view.setStyle({"model": 0}, {"cartoon": {"color": "lightgrey"}})
-    view.addModel(seed_pdb, "pdb")  # model 1 = seed
-    view.setStyle({"model": 1}, {"cartoon": {"color": "lightblue"}})
+    view.addModel(structure_to_pdbstr(target_struct), "pdb")  # model 0 = target (solid)
+    view.setStyle({"model": 0}, {"cartoon": {"color": "lightgrey"}, "line": {"colorscheme": "lightgreyCarbon"}})
 
     # Target ligand -> green sticks.
     target_lig = _ligand_selection(0, row.get("target_ligand_resname"), row.get("target_pdb_ligand_chain"))
@@ -369,18 +545,15 @@ def view_pair_html(row):
                 sel["chain"] = het["chain"]
             view.setStyle(sel, {"stick": {"colorscheme": "greenCarbon", "radius": 0.22}})
 
-    # Seed ligand -> magenta sticks.
-    seed_lig = _ligand_selection(1, row.get("matched_ligand_resname"), row.get("matched_pdb_ligand_chain"))
-    if "resn" in seed_lig:
-        view.setStyle(seed_lig, {"stick": {"colorscheme": "magentaCarbon", "radius": 0.22}})
-    else:
-        for het in find_hetatm_residues(seed_struct):
-            sel = {"model": 1, "resn": het["resn"], "resi": het["resi"]}
-            if het["chain"]:
-                sel["chain"] = het["chain"]
-            view.setStyle(sel, {"stick": {"colorscheme": "magentaCarbon", "radius": 0.22}})
+    # Seed poses -> models 1..N (main solid, siblings faded).
+    for i, (transform, opacity) in enumerate(pose_transforms):
+        if not isinstance(transform, str) or not transform.strip():
+            continue
+        seed_struct = _parser.get_structure(f"seed{i}", seed_path)
+        apply_transform(seed_struct, transform)
+        _add_seed_model(view, seed_struct, i + 1, row.get("matched_ligand_resname"),
+                        row.get("matched_pdb_ligand_chain"), opacity)
 
-    # Focus on the ligand-overlap region if we could identify the target ligand.
     if "resn" in target_lig:
         view.zoomTo(target_lig)
     else:
@@ -388,19 +561,51 @@ def view_pair_html(row):
     return view._make_html()
 
 
-def build_uniprot_view(accession, tag):
-    """Return a UniProt iframe block for an accession, or a note if invalid."""
-    if not isinstance(accession, str) or not accession.strip() or accession.strip() == "—":
-        return html.Div(f"No valid {tag} UniProt accession for selected row.")
-    accn = accession.strip()
-    url = f"https://www.uniprot.org/uniprotkb/{accn}/entry"
+def view_pair_html(row):
+    """Single-pose (solid) view for the selected row."""
+    return build_viewer_html(row, [(row.get("flattened_transform"), 1.0)])
+
+
+def cluster_key_from_row(row):
+    """(target, matched_protein, cluster_id_str) key matching POSE_GROUPS."""
+    return (str(row.get("target")), str(row.get("matched_protein")), _cluster_id_str(row.get("cluster_id")))
+
+
+def cluster_pose_transforms(row, selected_ref):
+    """Build (transform, opacity) list for every pose of ``row``'s cluster.
+
+    The main entry (opacity 1.0) is the selected pose if a pose was picked,
+    otherwise the cluster's representative (highest MaSIF score); all other poses
+    render at 0.5 opacity. Returns None if the cluster has no poses in df_all.
+    """
+    pidx = POSE_GROUPS.get(cluster_key_from_row(row))
+    if not pidx:
+        return None
+    poses = df_all.loc[pidx]
+    main_idx = None
+    if selected_ref.get("src") == "pose" and selected_ref.get("idx") in poses.index:
+        main_idx = selected_ref["idx"]
+    else:
+        reps = poses.index[poses["is_rep"]]
+        main_idx = reps[0] if len(reps) else poses["score"].idxmax()
+    others = poses.drop(main_idx)
+    return [(df_all.at[main_idx, "flattened_transform"], 1.0)] + [(t, 0.5) for t in others["flattened_transform"]]
+
+
+def build_pdb_view(pdb_id, tag):
+    """Return an RCSB structure-page iframe block for a PDB id, or a note if invalid."""
+    if not isinstance(pdb_id, str) or not pdb_id.strip():
+        return html.Div(f"No valid {tag} PDB id for selected row.")
+    pid = pdb_id.strip()
+    url = f"https://www.rcsb.org/structure/{pid}"
     return html.Div(
         [
             html.Div(
-                [f"{tag}: ", html.A(url, href=url, target="_blank", rel="noopener noreferrer")],
+                [f"{tag} ({pid}) — open in new tab: ",
+                 html.A(url, href=url, target="_blank", rel="noopener noreferrer")],
                 style={"marginBottom": "6px", "fontSize": "12px"},
             ),
-            html.Iframe(src=url, style={"width": "100%", "height": "560px", "border": "none"}),
+            html.Iframe(src=url, style={"width": "100%", "height": "760px", "border": "none"}),
         ]
     )
 
@@ -416,6 +621,117 @@ def empty_fig(message):
 
 
 # --------------------------------------------------------------------------- #
+# Numeric range filters (restrict plotted rows; e.g. to get a big node under the
+# plot cap). Adapted from the legacy app; no JSON/CSV persistence.
+# --------------------------------------------------------------------------- #
+def apply_filtering_criteria(frame, filtering_criteria):
+    """Apply {column: (min_val, max_val)} range criteria to a frame."""
+    filtered = frame
+    for col, (min_val, max_val) in filtering_criteria.items():
+        if col not in filtered.columns:
+            continue
+        if min_val is not None:
+            filtered = filtered[filtered[col] >= min_val]
+        if max_val is not None:
+            filtered = filtered[filtered[col] <= max_val]
+    return filtered
+
+
+def build_filtering_criteria(filter_rows):
+    """Normalise filter-row store state into a {column: (min, max)} dict."""
+    criteria = {}
+    for row in filter_rows or []:
+        col = row.get("column")
+        if not col:
+            continue
+        criteria[col] = (row.get("min"), row.get("max"))
+    return criteria
+
+
+def parse_cap(value):
+    """Parse the plot-row-cap UI value, falling back to the default."""
+    try:
+        v = int(value)
+        return v if v >= 1 else PLOT_ROW_CAP
+    except (TypeError, ValueError):
+        return PLOT_ROW_CAP
+
+
+def min_cluster_size_for_cap(scope, cap):
+    """Lowest integer cluster_size threshold whose ``>=`` filter fits ``scope`` under ``cap``.
+
+    Returns None when the scope is already within the cap (no filter needed).
+    """
+    sizes = scope["cluster_size"].dropna()
+    n = len(sizes)
+    if n <= cap:
+        return None
+    sizes_int = sizes.astype(int)
+    max_k = int(sizes_int.max())
+    for k in range(1, max_k + 2):  # counts are monotonic-decreasing in k
+        if int((sizes_int >= k).sum()) <= cap:
+            return k
+    return max_k + 1
+
+
+def _filters_equiv(a, b):
+    """Compare two filter-row lists ignoring their ids."""
+    def norm(lst):
+        return [(r.get("column"), r.get("min"), r.get("max")) for r in (lst or [])]
+    return norm(a) == norm(b)
+
+
+def auto_cluster_size_filter(top_path, filter_store, cap):
+    """Return a filter list that auto-applies a cluster_size floor for a top-level scope.
+
+    Existing non-cluster_size filters are preserved; the cluster_size filter is
+    recomputed (or removed) so the plotted count fits under ``cap``.
+    """
+    scope = subframe_by_path(df, top_path)
+    others = [f for f in (filter_store or []) if f.get("column") != "cluster_size"]
+    scope_other = apply_filtering_criteria(scope, build_filtering_criteria(others))
+    k = min_cluster_size_for_cap(scope_other, cap)
+    if k is None:
+        return others
+    return others + [{"id": str(uuid.uuid4()), "column": "cluster_size", "min": k, "max": None}]
+
+
+def build_filter_row(index, row_state=None):
+    """Create a single column/min/max/remove filter control block."""
+    row_state = row_state or {}
+    return html.Div(
+        [
+            dcc.Dropdown(
+                id={"type": "filter-column", "index": index},
+                options=[{"label": c, "value": c} for c in NUMERIC_COLS],
+                value=row_state.get("column"), placeholder="Column", clearable=True,
+                style={"minWidth": "200px", "fontSize": "11px"},
+            ),
+            dcc.Input(id={"type": "filter-min", "index": index}, type="number",
+                      value=row_state.get("min"), placeholder="Min", style={"width": "90px"}),
+            dcc.Input(id={"type": "filter-max", "index": index}, type="number",
+                      value=row_state.get("max"), placeholder="Max", style={"width": "90px"}),
+            html.Button("✕", id={"type": "filter-remove", "index": index}, n_clicks=0,
+                        title="Remove filter", style={"fontSize": "11px"}),
+        ],
+        style={"display": "flex", "gap": "6px", "alignItems": "center", "marginBottom": "6px"},
+    )
+
+
+def _grey_trace(frame_sub, x, y, src, name, size):
+    """Grey-cross trace for non-selected dedup rows or overlaid poses."""
+    if frame_sub.empty:
+        return None
+    custom = [[src, int(i)] for i in frame_sub.index]
+    return go.Scatter(
+        x=frame_sub[x], y=frame_sub[y], mode="markers",
+        marker={"symbol": "x", "size": size, "color": "lightgrey", "line": {"width": 1, "color": "grey"}},
+        customdata=custom, name=name,
+        hovertemplate="%{x}, %{y}<extra>" + name + "</extra>",
+    )
+
+
+# --------------------------------------------------------------------------- #
 # App layout
 # --------------------------------------------------------------------------- #
 app = Dash(__name__)
@@ -424,20 +740,29 @@ app.title = "Neosurf-Neosurf Explorer"
 _order_dropdown = lambda i, default: dcc.Dropdown(
     id=f"order-{i}",
     options=[{"label": LEVEL_LABEL[l], "value": l} for l in NONLEAF_LEVELS],
-    value=default,
-    clearable=False,
-    style={"fontSize": "11px", "marginBottom": "4px"},
+    value=default, clearable=False, style={"fontSize": "11px", "marginBottom": "4px"},
 )
+
+# Resizable (drag the right edge) + retractable sidebar.
+SIDEBAR_STYLE = {
+    "width": "380px", "minWidth": "220px", "maxWidth": "900px", "flex": "0 0 auto",
+    "padding": "10px", "borderRight": "1px solid #ddd",
+    "resize": "horizontal", "overflow": "auto", "boxSizing": "border-box", "maxHeight": "96vh",
+}
 
 sidebar = html.Div(
     [
+        html.Div(
+            html.Button("◀ Hide", id="sidebar-toggle", n_clicks=0, title="Hide sidebar",
+                        style={"fontSize": "11px", "cursor": "pointer"}),
+            style={"textAlign": "right", "marginBottom": "6px"},
+        ),
         html.H4("Nesting order", style={"marginBottom": "6px"}),
         html.Div(
             [
                 html.Button("Preset A: target → seed", id="preset-a", n_clicks=0,
                             style={"fontSize": "10px", "marginRight": "4px"}),
-                html.Button("Preset B: by protein", id="preset-b", n_clicks=0,
-                            style={"fontSize": "10px"}),
+                html.Button("Preset B: by protein", id="preset-b", n_clicks=0, style={"fontSize": "10px"}),
             ],
             style={"marginBottom": "6px"},
         ),
@@ -445,11 +770,10 @@ sidebar = html.Div(
         _order_dropdown(2, PRESET_A[1]),
         _order_dropdown(3, PRESET_A[2]),
         _order_dropdown(4, PRESET_A[3]),
+        html.Div("→ Cluster → Pose (fixed leaves)", style={"fontSize": "10px", "color": "#999", "marginBottom": "6px"}),
         html.Hr(),
-        dcc.Input(
-            id="tree-search", type="text", placeholder="Search gene / uniprot / id...",
-            debounce=True, style={"width": "100%", "marginBottom": "6px"},
-        ),
+        dcc.Input(id="tree-search", type="text", placeholder="Search gene / uniprot / id...",
+                  debounce=True, style={"width": "100%", "marginBottom": "6px"}),
         html.Button("Collapse all", id="collapse-all", n_clicks=0, style={"fontSize": "10px", "marginBottom": "6px"}),
         html.Div(
             id="tree-container",
@@ -457,8 +781,16 @@ sidebar = html.Div(
                    "border": "1px solid #ddd", "borderRadius": "6px", "padding": "6px"},
         ),
     ],
-    style={"width": "360px", "flex": "0 0 360px", "padding": "10px",
-           "borderRight": "1px solid #ddd"},
+    id="sidebar",
+    style=SIDEBAR_STYLE,
+)
+
+# Thin strip shown when the sidebar is hidden; click to bring it back.
+expand_strip = html.Div(
+    html.Button("▶", id="sidebar-expand", n_clicks=0, title="Show sidebar",
+                style={"fontSize": "13px", "cursor": "pointer", "writingMode": "vertical-rl"}),
+    id="sidebar-expand-strip",
+    style={"display": "none", "padding": "6px", "borderRight": "1px solid #ddd"},
 )
 
 axis_dd = lambda id_, default: dcc.Dropdown(
@@ -469,8 +801,8 @@ axis_dd = lambda id_, default: dcc.Dropdown(
 main = html.Div(
     [
         html.H2("MaSIF Neosurf-on-Neosurf Results Explorer", style={"marginTop": "0"}),
-        html.Div(id="breadcrumb", style={"fontFamily": "monospace", "fontSize": "12px",
-                                         "color": "#555", "marginBottom": "8px", "minHeight": "18px"}),
+        html.Div(id="breadcrumb", style={"fontFamily": "monospace", "fontSize": "12px", "color": "#555",
+                                         "marginBottom": "8px", "minHeight": "18px"}),
         html.Div(
             [
                 html.Div([html.Label("X axis", style={"fontSize": "11px"}), axis_dd("x-dd", DEFAULT_X)],
@@ -482,48 +814,85 @@ main = html.Div(
             ],
             style={"display": "flex", "marginBottom": "6px"},
         ),
+        html.Details(
+            [
+                html.Summary("Filters — restrict plotted rows (e.g. to bring a large branch under the cap)",
+                             style={"fontSize": "12px", "cursor": "pointer", "fontWeight": "bold"}),
+                html.Div(
+                    [
+                        html.Button("Add filter", id="add-filter-btn", n_clicks=0, style={"fontSize": "11px"}),
+                        html.Div(id="filter-rows-container", style={"marginTop": "8px"}),
+                    ],
+                    style={"marginTop": "6px"},
+                ),
+            ],
+            style={"marginBottom": "8px", "padding": "6px", "border": "1px solid #eee", "borderRadius": "6px"},
+        ),
+        html.Div(
+            [
+                html.Label("Plot row cap: ", style={"fontSize": "12px", "marginRight": "6px"}),
+                dcc.Input(id="plot-cap-input", type="number", value=PLOT_ROW_CAP, min=1, step=100,
+                          debounce=True, style={"width": "110px"}),
+                html.Span("  (top-level clicks auto-apply a cluster_size floor to fit this cap)",
+                          style={"fontSize": "11px", "color": "#999", "marginLeft": "8px"}),
+            ],
+            style={"marginBottom": "6px"},
+        ),
         html.Div(id="plot-info", style={"fontSize": "12px", "color": "#666", "marginBottom": "4px"}),
-        dcc.Graph(id="scatter", clear_on_unhover=True, style={"height": "560px"},
-                  config={"responsive": True}),
+        # Plot (left half) + 3D viewer (right half) in the same row.
         html.Div(
             [
                 html.Div(
-                    [
-                        html.H4("3D viewer — target + seed (both ligands as sticks)"),
-                        html.Div(
-                            "Target: grey cartoon / green ligand. Seed: blue cartoon / magenta ligand.",
-                            style={"fontSize": "11px", "color": "#777", "marginBottom": "4px"},
-                        ),
-                        html.Div(id="viewer-container", children="Select a cluster (leaf) or plot point."),
-                    ],
-                    style={"flex": "1", "padding": "10px", "border": "1px solid #ddd",
-                           "borderRadius": "6px", "marginRight": "10px", "minWidth": "0"},
+                    dcc.Graph(id="scatter", clear_on_unhover=True, style={"height": "560px"},
+                              config={"responsive": True}),
+                    style={"flex": "1", "minWidth": "0", "padding": "10px", "border": "1px solid #ddd",
+                           "borderRadius": "6px", "marginRight": "10px"},
                 ),
                 html.Div(
                     [
                         html.Div(
                             [
-                                html.H4("UniProt", style={"display": "inline-block", "marginRight": "12px"}),
-                                dcc.RadioItems(
-                                    id="uniprot-side",
-                                    options=[{"label": "Matched", "value": "matched"},
-                                             {"label": "Target", "value": "target"}],
-                                    value="matched", inline=True, style={"display": "inline-block", "fontSize": "12px"},
+                                html.H4("3D viewer — target + seed (both ligands as sticks)",
+                                        style={"display": "inline-block", "marginRight": "12px"}),
+                                dcc.Checklist(
+                                    id="show-cluster-toggle",
+                                    options=[{"label": " Show cluster", "value": "on"}],
+                                    value=[], inline=True,
+                                    style={"display": "inline-block", "fontSize": "12px"},
                                 ),
                             ]
                         ),
-                        html.Div(id="uniprot-container", children="No selection."),
+                        html.Div("Target: grey cartoon / green ligand. Seed: blue cartoon / magenta ligand. "
+                                 "\"Show cluster\" overlays the cluster's other poses at 50% transparency.",
+                                 style={"fontSize": "11px", "color": "#777", "marginBottom": "4px"}),
+                        html.Div(id="viewer-container", children="Select a cluster / pose, or click a plot point."),
                     ],
                     style={"flex": "1", "padding": "10px", "border": "1px solid #ddd",
                            "borderRadius": "6px", "minWidth": "0"},
                 ),
             ],
-            style={"display": "flex", "marginTop": "12px"},
+            style={"display": "flex", "marginTop": "6px"},
         ),
+        # Full-width RCSB PDB structure page.
         html.Div(
-            [html.H4("Selected row"), html.Div(id="row-detail", children="No point selected.")],
+            [
+                html.Div(
+                    [
+                        html.H4("PDB structure (RCSB)", style={"display": "inline-block", "marginRight": "12px"}),
+                        dcc.RadioItems(
+                            id="pdb-side",
+                            options=[{"label": "Matched (seed)", "value": "matched"},
+                                     {"label": "Target", "value": "target"}],
+                            value="matched", inline=True, style={"display": "inline-block", "fontSize": "12px"},
+                        ),
+                    ]
+                ),
+                html.Div(id="pdb-container", children="No selection."),
+            ],
             style={"padding": "10px", "border": "1px solid #ddd", "borderRadius": "6px", "marginTop": "12px"},
         ),
+        html.Div([html.H4("Selected row"), html.Div(id="row-detail", children="No point selected.")],
+                 style={"padding": "10px", "border": "1px solid #ddd", "borderRadius": "6px", "marginTop": "12px"}),
     ],
     style={"flex": "1", "padding": "12px", "minWidth": "0"},
 )
@@ -531,10 +900,11 @@ main = html.Div(
 app.layout = html.Div(
     [
         dcc.Store(id="tree-order-store", data=DEFAULT_ORDER),
+        dcc.Store(id="filter-store", data=[]),
         dcc.Store(id="expanded-store", data=[]),
         dcc.Store(id="selected-branch-store", data=None),
         dcc.Store(id="selected-row-store", data=None),
-        html.Div([sidebar, main], style={"display": "flex", "alignItems": "flex-start"}),
+        html.Div([expand_strip, sidebar, main], style={"display": "flex", "alignItems": "flex-start"}),
     ],
 )
 
@@ -549,9 +919,69 @@ app.layout = html.Div(
     prevent_initial_call=True,
 )
 def apply_preset(a_clicks, b_clicks):
-    trig = callback_context.triggered_id
-    preset = PRESET_B if trig == "preset-b" else PRESET_A
+    preset = PRESET_B if callback_context.triggered_id == "preset-b" else PRESET_A
     return preset[0], preset[1], preset[2], preset[3]
+
+
+@app.callback(
+    Output("sidebar", "style"),
+    Output("sidebar-expand-strip", "style"),
+    Input("sidebar-toggle", "n_clicks"),
+    Input("sidebar-expand", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_sidebar(_hide_clicks, _show_clicks):
+    """Retract / restore the sidebar (width is drag-resizable via CSS resize)."""
+    if callback_context.triggered_id == "sidebar-toggle":
+        return {**SIDEBAR_STYLE, "display": "none"}, {"display": "block", "padding": "6px", "borderRight": "1px solid #ddd"}
+    return SIDEBAR_STYLE, {"display": "none"}
+
+
+@app.callback(
+    Output("filter-store", "data"),
+    Input("add-filter-btn", "n_clicks"),
+    Input({"type": "filter-remove", "index": ALL}, "n_clicks"),
+    Input({"type": "filter-column", "index": ALL}, "value"),
+    Input({"type": "filter-min", "index": ALL}, "value"),
+    Input({"type": "filter-max", "index": ALL}, "value"),
+    State("filter-store", "data"),
+    prevent_initial_call=True,
+)
+def update_filter_store(_add_clicks, _remove_clicks, columns, mins, maxs, filter_store):
+    """Maintain the normalised filter-row state (add / remove / edit)."""
+    store = copy.deepcopy(filter_store or [])
+    ctx = callback_context
+    if not ctx.triggered:
+        return store
+    trigger = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if trigger == "add-filter-btn":
+        store.append({"id": str(uuid.uuid4()), "column": None, "min": None, "max": None})
+        return store
+
+    if trigger.startswith("{"):
+        trigger_id = json.loads(trigger)
+        if trigger_id.get("type") == "filter-remove":
+            target_idx = trigger_id.get("index")
+            return [row for i, row in enumerate(store) if i != target_idx]
+
+    for i, row in enumerate(store):
+        row["column"] = columns[i] if i < len(columns) else row.get("column")
+        row["min"] = mins[i] if i < len(mins) else row.get("min")
+        row["max"] = maxs[i] if i < len(maxs) else row.get("max")
+    return store
+
+
+@app.callback(
+    Output("filter-rows-container", "children"),
+    Input("filter-store", "data"),
+)
+def render_filter_rows(filter_store):
+    rows = filter_store or []
+    if not rows:
+        return html.Div("No filters. Click 'Add filter' to restrict which rows are plotted.",
+                        style={"fontSize": "11px", "color": "#999"})
+    return [build_filter_row(i, row_state=row) for i, row in enumerate(rows)]
 
 
 @app.callback(
@@ -581,14 +1011,19 @@ def collapse_all(_n):
     Input("expanded-store", "data"),
     Input("selected-branch-store", "data"),
     Input("tree-search", "value"),
+    Input("filter-store", "data"),
 )
-def render_tree(order, expanded, selected, search):
+def render_tree(order, expanded, selected, search, filter_store):
     base = df
     if search and search.strip():
-        base = df[df["search_blob"].str.contains(search.strip().lower(), regex=False)]
-        if base.empty:
-            return html.Div("No matches.", style={"fontSize": "12px", "color": "#999"})
-    nodes = build_tree_nodes([], order, expanded or [], selected, base)
+        base = base[base["search_blob"].str.contains(search.strip().lower(), regex=False)]
+    criteria = build_filtering_criteria(filter_store)
+    if criteria:
+        base = apply_filtering_criteria(base, criteria)
+    if base.empty:
+        return html.Div("No entries match the current search / filters.",
+                        style={"fontSize": "12px", "color": "#999"})
+    nodes = build_tree_nodes([], order, expanded or [], selected, base, criteria=criteria)
     return nodes or html.Div("No data.", style={"fontSize": "12px", "color": "#999"})
 
 
@@ -596,16 +1031,18 @@ def render_tree(order, expanded, selected, search):
     Output("expanded-store", "data", allow_duplicate=True),
     Output("selected-branch-store", "data", allow_duplicate=True),
     Output("selected-row-store", "data", allow_duplicate=True),
+    Output("filter-store", "data", allow_duplicate=True),
     Input({"type": "tree-node", "path": ALL}, "n_clicks"),
     State("expanded-store", "data"),
     State("tree-order-store", "data"),
+    State("filter-store", "data"),
+    State("plot-cap-input", "value"),
     prevent_initial_call=True,
 )
-def on_tree_click(_all_clicks, expanded, order):
+def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
     ctx = callback_context
     if not ctx.triggered or not ctx.triggered[0]["value"]:
-        # Fired because the node set changed (re-render), not a real click.
-        raise PreventUpdate
+        raise PreventUpdate  # fired due to node set changing (re-render), not a click
     trig = ctx.triggered_id
     if not isinstance(trig, dict):
         raise PreventUpdate
@@ -613,18 +1050,32 @@ def on_tree_click(_all_clicks, expanded, order):
     path_str = trig["path"]
     path = json.loads(path_str)
     expanded = list(expanded or [])
-    is_leaf = len(path) >= len(order)
+    level = path[-1][0]
 
-    row_out = no_update
-    if is_leaf:
-        sub = subframe_by_path(df, path)
-        row_out = int(sub.index[0]) if len(sub) else no_update
+    if level == POSE_LEVEL:
+        # Leaf: select this exact pose.
+        return expanded, path_str, {"src": "pose", "idx": int(path[-1][1])}, no_update
+
+    # Any df level -> toggle expansion + set as selected branch.
+    if path_str in expanded:
+        expanded.remove(path_str)
     else:
-        if path_str in expanded:
-            expanded.remove(path_str)
-        else:
-            expanded.append(path_str)
-    return expanded, path_str, row_out
+        expanded.append(path_str)
+
+    # A top-level (target protein) click changes the plotted set: auto-apply a
+    # cluster_size floor if the scope would exceed the plot cap.
+    filt_out = no_update
+    if len(path) == 1:
+        new_filters = auto_cluster_size_filter(path, filter_store, parse_cap(cap_value))
+        if not _filters_equiv(new_filters, filter_store):
+            filt_out = new_filters
+
+    if level == CLUSTER_LEVEL:
+        # Auto-select the cluster's representative (dedup) row for the viewer.
+        sub = subframe_by_path(df, path)
+        row_out = {"src": "dedup", "idx": int(sub.index[0])} if len(sub) else no_update
+        return expanded, path_str, row_out, filt_out
+    return expanded, path_str, no_update, filt_out
 
 
 @app.callback(
@@ -633,40 +1084,78 @@ def on_tree_click(_all_clicks, expanded, order):
     Input("selected-branch-store", "data"),
     Input("x-dd", "value"), Input("y-dd", "value"), Input("color-dd", "value"),
     Input("selected-row-store", "data"),
+    Input("filter-store", "data"),
+    Input("plot-cap-input", "value"),
 )
-def update_plot(branch_str, x, y, color, selected_row):
+def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value):
     if not branch_str:
         return empty_fig("Select a node in the tree to plot its predictions."), ""
-    path = json.loads(branch_str)
-    sub = subframe_by_path(df, path)
-    n = len(sub)
+
+    cap = parse_cap(cap_value)
+    path_df = strip_pose(json.loads(branch_str))
+    # The plotted set is fixed by the TOP level only (target protein). Selecting
+    # anything deeper does NOT change which points are plotted; it only re-styles
+    # them: the selected sub-branch keeps colour/shape, everything else in the
+    # top-level set becomes grey crosses.
+    scope_path = path_df[:1]
+
+    criteria = build_filtering_criteria(filter_store)
+    scope = apply_filtering_criteria(subframe_by_path(df, scope_path), criteria)
+    n = len(scope)
+    n_unfiltered = len(subframe_by_path(df, scope_path))
+    filt_note = f" (filtered from {n_unfiltered:,})" if criteria and n != n_unfiltered else ""
     if n == 0:
-        return empty_fig("No rows in this branch."), "0 rows"
-    if n > PLOT_ROW_CAP:
+        return empty_fig("No rows in this branch after filtering."), f"0 rows{filt_note}"
+    if n > cap:
         return (
-            empty_fig(f"{n:,} rows in this branch — too many to plot.\nDrill deeper into the tree."),
-            f"{n:,} rows (exceeds cap of {PLOT_ROW_CAP:,})",
+            empty_fig(
+                f"{n:,} rows in this branch — too many to plot.\n"
+                f"Drill deeper, or add filters above to bring it under {cap:,}."
+            ),
+            f"{n:,} rows{filt_note} (exceeds cap of {cap:,})",
         )
 
-    sub = sub.copy()
-    sub["_row_idx"] = sub.index
-    hover = [c for c in ["matched_gene_name", "matched_recommendedName", "cluster_id", "cluster_size"] if c in sub.columns]
+    # Selected sub-branch (colored) vs the rest of the scope (grey crosses).
+    selected_rows = apply_filtering_criteria(subframe_by_path(df, path_df), criteria)
+    sel_plot = selected_rows.copy()
+    sel_plot["_src"] = "dedup"
+    sel_plot["_idx"] = sel_plot.index
+    hover = [c for c in ["matched_gene_name", "matched_recommendedName", "cluster_id", "cluster_size"] if c in sel_plot.columns]
     fig = px.scatter(
-        sub, x=x, y=y, color=color, custom_data=["_row_idx"],
+        sel_plot, x=x, y=y, color=color, custom_data=["_src", "_idx"],
         hover_data=hover or None, color_continuous_scale="viridis", height=560,
     )
-    fig.update_layout(margin={"l": 40, "r": 20, "t": 30, "b": 40})
+    fig.update_traces(marker={"size": 9})
+    fig.update_layout(margin={"l": 40, "r": 20, "t": 30, "b": 40}, legend={"orientation": "h", "y": -0.18})
 
-    if selected_row is not None and selected_row in sub.index:
-        r = sub.loc[selected_row]
-        fig.add_trace(
-            go.Scatter(
-                x=[r[x]], y=[r[y]], mode="markers",
-                marker={"symbol": "x", "size": 16, "color": "red", "line": {"width": 2, "color": "red"}},
-                name="Selected", hoverinfo="skip", showlegend=False,
-            )
-        )
-    return fig, f"{n:,} predictions in selected branch"
+    non_selected = scope.drop(selected_rows.index, errors="ignore")
+    grey = _grey_trace(non_selected, x, y, "dedup", "Other clusters in scope", 5)
+    if grey is not None:
+        fig.add_trace(grey)
+
+    # If a specific cluster is pinned, overlay its individual poses.
+    info_extra = ""
+    if len(path_df) >= 5:  # all four levels + cluster present
+        key = cluster_key_from_path(path_df)
+        pose_idxs = POSE_GROUPS.get(key)
+        if pose_idxs:
+            poses = apply_filtering_criteria(df_all.loc[pose_idxs], criteria)
+            pose_trace = _grey_trace(poses, x, y, "pose", "Poses in selected cluster", 5)
+            if pose_trace is not None:
+                pose_trace.marker.update({"color": "dimgrey", "line": {"width": 1, "color": "black"}})
+                fig.add_trace(pose_trace)
+            info_extra = f" | {len(poses)} poses overlaid"
+
+    # Red X for the specific selected row (dedup rep or a pose).
+    sel_row = resolve_ref(selected_ref)
+    if sel_row is not None and x in sel_row and y in sel_row and pd.notna(sel_row[x]) and pd.notna(sel_row[y]):
+        fig.add_trace(go.Scatter(
+            x=[sel_row[x]], y=[sel_row[y]], mode="markers",
+            marker={"symbol": "x", "size": 18, "color": "red", "line": {"width": 3, "color": "red"}},
+            name="Selected", hoverinfo="skip", showlegend=False,
+        ))
+
+    return fig, f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{info_extra}"
 
 
 @app.callback(
@@ -678,9 +1167,11 @@ def on_point_click(click_data):
     if not click_data or not click_data.get("points"):
         raise PreventUpdate
     custom = click_data["points"][0].get("customdata")
-    idx = custom[0] if isinstance(custom, (list, tuple)) and custom else custom
+    if not isinstance(custom, (list, tuple)) or len(custom) < 2:
+        raise PreventUpdate
+    src, idx = custom[0], custom[1]
     try:
-        return int(idx)
+        return {"src": src, "idx": int(idx)}
     except (TypeError, ValueError):
         raise PreventUpdate
 
@@ -695,54 +1186,63 @@ def update_breadcrumb(branch_str):
     path = json.loads(branch_str)
     labels = []
     for i in range(1, len(path) + 1):
-        prefix = path[:i]
-        sub = subframe_by_path(df, prefix)
+        level, value = path[i - 1]
+        if level == POSE_LEVEL:
+            prow = resolve_ref({"src": "pose", "idx": int(value)})
+            labels.append(pose_label(prow) if prow is not None else "pose")
+            continue
+        sub = subframe_by_path(df, path[:i])
         if sub.empty:
             break
         rep = df.loc[sub["score"].idxmax()]
-        labels.append(node_label(prefix[-1][0], prefix[-1][1], rep))
+        labels.append(node_label(level, value, rep))
     return " › ".join(labels)
 
 
 @app.callback(
     Output("viewer-container", "children"),
     Output("row-detail", "children"),
-    Output("uniprot-container", "children"),
+    Output("pdb-container", "children"),
     Input("selected-row-store", "data"),
-    Input("uniprot-side", "value"),
+    Input("pdb-side", "value"),
+    Input("show-cluster-toggle", "value"),
 )
-def update_selection(row_idx, uniprot_side):
-    if row_idx is None or row_idx not in df.index:
-        return "Select a cluster (leaf) or plot point.", "No point selected.", "No selection."
-    row = df.loc[row_idx]
+def update_selection(selected_ref, pdb_side, show_cluster):
+    row = resolve_ref(selected_ref)
+    if row is None:
+        return "Select a cluster / pose, or click a plot point.", "No point selected.", "No selection."
 
-    # 3D viewer
+    src = selected_ref.get("src")
     try:
-        viewer_html = view_pair_html(row)
+        pose_transforms = None
+        if show_cluster:
+            pose_transforms = cluster_pose_transforms(row, selected_ref)
+        if pose_transforms is None:
+            pose_transforms = [(row.get("flattened_transform"), 1.0)]
+        viewer_html = build_viewer_html(row, pose_transforms)
         viewer = html.Iframe(srcDoc=viewer_html, style={"width": "100%", "height": "560px", "border": "none"})
     except Exception as exc:  # noqa: BLE001
         viewer = html.Pre(f"Unable to render structure: {exc}", style={"whiteSpace": "pre-wrap"})
 
-    # Row detail table
     detail_cols = [
-        "target", "t_uniprot_id", "target_gene_name", "t_recommendedName", "target_ligand_code",
-        "matched_protein", "matched_uniprot_id", "matched_gene_name", "matched_recommendedName", "matched_ligand_code",
-        "cluster_id", "cluster_size", "cluster_mean_rmsd",
+        "target", "target_pdb_id", "t_uniprot_id", "target_gene_name", "t_recommendedName", "target_ligand_code",
+        "matched_protein", "matched_pdb_id", "matched_uniprot_id", "matched_gene_name", "matched_recommendedName", "matched_ligand_code",
+        "cluster_id", "cluster_size", "cluster_mean_rmsd", "target_vix", "matched_patch_id", "is_rep",
         "score", "desc_dist_score", "iface_score", "mean_desc_dist_score",
         "clashing_ca", "clashing_heavy", "n_match_ligands", "matched_mw",
     ]
-    detail_cols = [c for c in detail_cols if c in df.columns]
-    rows_html = [html.Tr([html.Th("index"), html.Td(str(row_idx))])]
+    detail_cols = [c for c in detail_cols if c in row.index]
+    header = f"src={src} | idx={selected_ref.get('idx')}"
+    rows_html = [html.Tr([html.Th("row"), html.Td(header)])]
     rows_html += [html.Tr([html.Th(c), html.Td(str(row[c]))]) for c in detail_cols]
     detail = html.Table(rows_html, style={"width": "100%", "borderCollapse": "collapse", "fontSize": "12px"})
 
-    # UniProt
-    if uniprot_side == "target":
-        uniprot = build_uniprot_view(row.get("t_uniprot_id"), "Target")
+    if pdb_side == "target":
+        pdb = build_pdb_view(row.get("target_pdb_id"), "Target")
     else:
-        uniprot = build_uniprot_view(row.get("matched_uniprot_id"), "Matched")
+        pdb = build_pdb_view(row.get("matched_pdb_id"), "Matched (seed)")
 
-    return viewer, detail, uniprot
+    return viewer, detail, pdb
 
 
 if __name__ == "__main__":
