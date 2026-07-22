@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs><style type="text/css">
+      .title { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 40px; fill: #0F2A3A; }
+      .subtitle { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 20px; fill: #5A6A75; }
+      .h { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 22px; fill: #0F2A3A; }
+      .body { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 16px; fill: #3D4F5A; }
+      .chip { font-family: 'DejaVu Sans Mono', Menlo, monospace; font-weight: 600; font-size: 14px; }
+      .caption { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 500; font-size: 15px; fill: #5A6A75; }
+      .big { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 18px; fill: #FFFFFF; }
+</style></defs>
+  <rect width="1920" height="1080" fill="#F7F4EC"/>
+  <rect x="0" y="0" width="1920" height="8" fill="#0B6E6E"/>
+
+  <text x="80" y="72" class="title">Goal: ligands that can bind near each other</text>
+  <text x="80" y="108" class="subtitle">Use MaSIF Neosurf to match ligand-anchored surfaces between a ligase and a candidate protein</text>
+
+  <rect x="80" y="160" width="560" height="720" rx="12" fill="#FFFFFF" stroke="#C9D4DA"/>
+  <text x="110" y="210" class="h">1. Observed separately</text>
+  <text x="110" y="240" class="body">Each protein is co-crystallized</text>
+  <text x="110" y="262" class="body">with its own ligand</text>
+
+  <ellipse cx="250" cy="420" rx="100" ry="75" fill="#D6EEEE" stroke="#0B6E6E" stroke-width="3"/>
+  <text x="250" y="410" text-anchor="middle" class="chip" fill="#0B6E6E">ligase</text>
+  <rect x="300" y="430" width="40" height="26" rx="5" fill="#0B6E6E"/>
+  <text x="320" y="448" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-weight="700" fill="#FFF">L1</text>
+
+  <ellipse cx="470" cy="560" rx="100" ry="75" fill="#F5E4C4" stroke="#C47A12" stroke-width="3"/>
+  <text x="470" y="550" text-anchor="middle" class="chip" fill="#C47A12">protein</text>
+  <rect x="400" y="570" width="40" height="26" rx="5" fill="#C47A12"/>
+  <text x="420" y="588" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-weight="700" fill="#FFF">L2</text>
+
+  <text x="110" y="700" class="caption">No information yet about whether</text>
+  <text x="110" y="722" class="caption">L1 and L2 can approach in 3D</text>
+
+  <path d="M670 520 L740 520" stroke="#0B6E6E" stroke-width="4" fill="none"/>
+  <polygon points="740,512 760,520 740,528" fill="#0B6E6E"/>
+
+  <rect x="780" y="160" width="560" height="720" rx="12" fill="#FFFFFF" stroke="#C9D4DA"/>
+  <text x="810" y="210" class="h">2. Neosurf-Neosurf match</text>
+  <text x="810" y="240" class="body">Align ligand-anchored MaSIF</text>
+  <text x="810" y="262" class="body">patches from both complexes</text>
+
+  <ellipse cx="970" cy="480" rx="115" ry="90" fill="#D6EEEE" stroke="#0B6E6E" stroke-width="3"/>
+  <text x="940" y="450" text-anchor="middle" class="chip" fill="#0B6E6E">ligase</text>
+  <rect x="1010" y="475" width="40" height="26" rx="5" fill="#0B6E6E"/>
+  <text x="1030" y="493" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-weight="700" fill="#FFF">L1</text>
+
+  <ellipse cx="1180" cy="500" rx="115" ry="90" fill="#F5E4C4" stroke="#C47A12" stroke-width="3"/>
+  <text x="1210" y="470" text-anchor="middle" class="chip" fill="#C47A12">seed</text>
+  <rect x="1105" y="495" width="40" height="26" rx="5" fill="#C47A12"/>
+  <text x="1125" y="513" text-anchor="middle" font-family="DejaVu Sans" font-size="12" font-weight="700" fill="#FFF">L2</text>
+
+  <path d="M1052 488 L1103 508" stroke="#8B3A3A" stroke-width="3" stroke-dasharray="5 4" fill="none"/>
+  <text x="1078" y="470" text-anchor="middle" font-family="DejaVu Sans" font-size="13" font-weight="600" fill="#8B3A3A">near</text>
+
+  <text x="810" y="700" class="caption">Surface complementarity + ligand</text>
+  <text x="810" y="722" class="caption">geometry scored together</text>
+
+  <path d="M1370 520 L1440 520" stroke="#0B6E6E" stroke-width="4" fill="none"/>
+  <polygon points="1440,512 1460,520 1440,528" fill="#0B6E6E"/>
+
+  <rect x="1480" y="160" width="360" height="720" rx="12" fill="#0F2A3A"/>
+  <text x="1510" y="210" class="big" font-size="22">3. Hit meaning</text>
+  <text x="1510" y="255" class="body" fill="#C8D8E0">A high-scoring pair suggests</text>
+  <text x="1510" y="280" class="body" fill="#C8D8E0">a ternary arrangement where:</text>
+
+  <rect x="1510" y="320" width="300" height="90" rx="8" fill="#1A3D4A"/>
+  <text x="1530" y="355" class="big" font-size="15">L1 ~ L2 proximity</text>
+  <text x="1530" y="385" class="body" fill="#A8C0C8" font-size="14">ligands sit close in space</text>
+
+  <rect x="1510" y="430" width="300" height="90" rx="8" fill="#1A3D4A"/>
+  <text x="1530" y="465" class="big" font-size="15">Surfaces compatible</text>
+  <text x="1530" y="495" class="body" fill="#A8C0C8" font-size="14">no severe protein clash</text>
+
+  <rect x="1510" y="540" width="300" height="90" rx="8" fill="#0B6E6E"/>
+  <text x="1530" y="575" class="big" font-size="15">Glue hypothesis</text>
+  <text x="1530" y="605" class="body" fill="#B8E0E0" font-size="14">candidate for induced PPI</text>
+
+  <text x="1510" y="700" class="body" fill="#8AA0A8" font-size="14">Screen: 128 ligase-ligand</text>
+  <text x="1510" y="722" class="body" fill="#8AA0A8" font-size="14">targets x ~13k seeds</text>
+</svg>

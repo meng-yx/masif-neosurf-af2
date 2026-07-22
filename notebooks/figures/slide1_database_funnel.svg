@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs><style type="text/css">
+      .title { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 700; font-size: 42px; fill: #0F2A3A; }
+      .subtitle { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 20px; fill: #5A6A75; }
+      .step-title { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 22px; fill: #0F2A3A; }
+      .step-body { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 400; font-size: 16px; fill: #3D4F5A; }
+      .n { font-family: 'DejaVu Sans Mono', Menlo, monospace; font-weight: 600; font-size: 28px; fill: #0B6E6E; }
+      .label { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 500; font-size: 14px; fill: #5A6A75; }
+      .filter { font-family: 'DejaVu Sans Mono', Menlo, monospace; font-weight: 500; font-size: 13px; fill: #1F3A4A; }
+      .repo { font-family: 'DejaVu Sans Mono', Menlo, monospace; font-weight: 500; font-size: 14px; fill: #7A5C1E; }
+      .badge { font-family: 'DejaVu Sans', Helvetica, Arial, sans-serif; font-weight: 600; font-size: 13px; fill: #FFFFFF; }
+</style></defs>
+  <rect width="1920" height="1080" fill="#F7F4EC"/>
+  <rect x="0" y="0" width="1920" height="8" fill="#0B6E6E"/>
+
+  <text x="80" y="78" class="title">Building a ligand-bound human PDB chain database</text>
+  <text x="80" y="112" class="subtitle">From UniProt Human Reference Proteome to drug-like, intracellular ligand-protein complexes</text>
+  <rect x="80" y="130" width="720" height="28" rx="4" fill="#F0E6C8"/>
+  <text x="92" y="149" class="repo">ligand_viewer  |  branch full_proteome_query</text>
+
+  <rect x="80" y="200" width="1760" height="110" rx="10" fill="#FFFFFF" stroke="#C9D4DA" stroke-width="1.5"/>
+  <circle cx="130" cy="255" r="28" fill="#0B6E6E"/>
+  <text x="130" y="261" text-anchor="middle" class="badge" font-size="18">1</text>
+  <text x="180" y="242" class="step-title">Human Reference Proteome</text>
+  <text x="180" y="270" class="step-body">Collect UniProt IDs from the UniProt Human Reference Proteome</text>
+  <text x="1680" y="248" text-anchor="end" class="label">starting set</text>
+  <text x="1680" y="282" text-anchor="end" class="n">UniProt IDs</text>
+
+  <path d="M960 320 L960 345" stroke="#0B6E6E" stroke-width="3" fill="none"/>
+  <polygon points="952,345 968,345 960,358" fill="#0B6E6E"/>
+
+  <rect x="140" y="365" width="1640" height="110" rx="10" fill="#FFFFFF" stroke="#C9D4DA" stroke-width="1.5"/>
+  <circle cx="190" cy="420" r="28" fill="#0B6E6E"/>
+  <text x="190" y="426" text-anchor="middle" class="badge" font-size="18">2</text>
+  <text x="240" y="407" class="step-title">Map UniProt to PDB accessions</text>
+  <text x="240" y="435" class="step-body">Query UniProt API for PDB structures associated with each UniProt ID</text>
+  <text x="1620" y="413" text-anchor="end" class="n">126,025</text>
+  <text x="1620" y="442" text-anchor="end" class="label">PDB accessions</text>
+
+  <path d="M960 485 L960 510" stroke="#0B6E6E" stroke-width="3" fill="none"/>
+  <polygon points="952,510 968,510 960,523" fill="#0B6E6E"/>
+
+  <rect x="220" y="530" width="1480" height="110" rx="10" fill="#FFFFFF" stroke="#C9D4DA" stroke-width="1.5"/>
+  <circle cx="270" cy="585" r="28" fill="#0B6E6E"/>
+  <text x="270" y="591" text-anchor="middle" class="badge" font-size="18">3</text>
+  <text x="320" y="572" class="step-title">Keep ligand-bound chains</text>
+  <text x="320" y="600" class="step-body">For PDBs with ligands, resolve nearest-neighbor protein chain via PDB API</text>
+  <text x="1540" y="578" text-anchor="end" class="n">32,653</text>
+  <text x="1540" y="607" text-anchor="end" class="label">ligand-bound chains</text>
+
+  <path d="M960 650 L960 675" stroke="#0B6E6E" stroke-width="3" fill="none"/>
+  <polygon points="952,675 968,675 960,688" fill="#0B6E6E"/>
+
+  <rect x="320" y="695" width="1280" height="290" rx="10" fill="#FFFFFF" stroke="#0B6E6E" stroke-width="2.5"/>
+  <circle cx="370" cy="750" r="28" fill="#C47A12"/>
+  <text x="370" y="756" text-anchor="middle" class="badge" font-size="18">4</text>
+  <text x="420" y="737" class="step-title">Drug-like / intracellular filter</text>
+  <text x="420" y="765" class="step-body">Retain complexes compatible with intracellular proximity pharmacology</text>
+
+  <rect x="360" y="800" width="220" height="54" rx="8" fill="#EEF6F6" stroke="#9BC4C4"/>
+  <text x="470" y="822" text-anchor="middle" class="filter">intracellular domain</text>
+  <text x="470" y="842" text-anchor="middle" class="label">DeepTMHMM topology</text>
+
+  <rect x="600" y="800" width="200" height="54" rx="8" fill="#EEF6F6" stroke="#9BC4C4"/>
+  <text x="700" y="822" text-anchor="middle" class="filter">120-1000 Da</text>
+  <text x="700" y="842" text-anchor="middle" class="label">molecular weight</text>
+
+  <rect x="820" y="800" width="180" height="54" rx="8" fill="#EEF6F6" stroke="#9BC4C4"/>
+  <text x="910" y="822" text-anchor="middle" class="filter">QED &gt; 0.4</text>
+  <text x="910" y="842" text-anchor="middle" class="label">drug-likeness</text>
+
+  <rect x="1020" y="800" width="200" height="54" rx="8" fill="#EEF6F6" stroke="#9BC4C4"/>
+  <text x="1120" y="822" text-anchor="middle" class="filter">num_N_O &gt; 2</text>
+  <text x="1120" y="842" text-anchor="middle" class="label">heteroatom count</text>
+
+  <rect x="1240" y="800" width="240" height="54" rx="8" fill="#EEF6F6" stroke="#9BC4C4"/>
+  <text x="1360" y="822" text-anchor="middle" class="filter">uniprot_id_count &lt; 10</text>
+  <text x="1360" y="842" text-anchor="middle" class="label">ligand rarity / specificity</text>
+
+  <rect x="360" y="880" width="1200" height="70" rx="8" fill="#0B6E6E"/>
+  <text x="400" y="922" class="badge" font-size="22">Resulting database</text>
+  <text x="1480" y="912" text-anchor="end" font-family="DejaVu Sans Mono, Menlo, monospace" font-weight="700" font-size="36" fill="#FFFFFF">15,233</text>
+  <text x="1480" y="938" text-anchor="end" font-family="DejaVu Sans, Helvetica, Arial, sans-serif" font-size="14" fill="#B8E0E0">ligand-bound PDB chains</text>
+</svg>
