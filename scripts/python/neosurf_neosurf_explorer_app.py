@@ -30,11 +30,11 @@ Panels
   * Left sidebar: a lazily-rendered, re-orderable collapsible tree
     (target-protein -> target-id -> matched-protein -> matched-seed -> cluster
     -> pose). Clusters are expandable to reveal individual poses.
-  * Plotly scatter. The plotted set is fixed by the TOP level only (target
-    protein) -- only a top-level click changes which points are plotted.
-    Selecting anything deeper keeps the same set but greys-out non-selected
-    points; when a cluster is pinned, that cluster's individual poses are
-    overlaid as grey crosses so they can be clicked and visualized.
+  * Plotly scatter. By default only the selected tree branch is plotted (e.g. a
+    single target complex). Optionally enable "show all entries in this branch"
+    in the sidebar to keep the top-level scope visible with non-selected points
+    as grey crosses. When a cluster is pinned, that cluster's individual poses
+    are overlaid as grey crosses so they can be clicked and visualized.
   * py3Dmol viewer showing target + transform-superposed seed, both ligands as
     sticks.
   * UniProt entry iframe for the matched (or target) protein.
@@ -896,6 +896,12 @@ sidebar = html.Div(
         dcc.Input(id="tree-search", type="text", placeholder="Search gene / uniprot / id...",
                   debounce=True, style={"width": "100%", "marginBottom": "6px"}),
         html.Button("Collapse all", id="collapse-all", n_clicks=0, style={"fontSize": "10px", "marginBottom": "6px"}),
+        dcc.Checklist(
+            id="show-branch-scope-toggle",
+            options=[{"label": " Show all entries in this branch", "value": "on"}],
+            value=[],
+            style={"fontSize": "11px", "marginBottom": "6px"},
+        ),
         html.Div(
             id="tree-container",
             style={"height": "70vh", "overflowY": "auto", "overflowX": "auto",
@@ -1237,23 +1243,28 @@ def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
     Input("filter-store", "data"),
     Input("plot-cap-input", "value"),
     Input("flagged-store", "data"),
+    Input("show-branch-scope-toggle", "value"),
 )
-def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, flagged_idxs):
+def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, flagged_idxs, show_branch_scope):
     if not branch_str:
         return empty_fig("Select a node in the tree to plot its predictions."), ""
 
     cap = parse_cap(cap_value)
     path_df = strip_pose(json.loads(branch_str))
-    # The plotted set is fixed by the TOP level only (target protein). Selecting
-    # anything deeper does NOT change which points are plotted; it only re-styles
-    # them: the selected sub-branch keeps colour/shape, everything else in the
-    # top-level set becomes grey crosses.
-    scope_path = path_df[:1]
-
+    show_all_in_branch = "on" in (show_branch_scope or [])
     criteria = build_filtering_criteria(filter_store)
-    scope = apply_filtering_criteria(subframe_by_path(df, scope_path), criteria)
+
+    selected_rows = apply_filtering_criteria(subframe_by_path(df, path_df), criteria)
+    if show_all_in_branch:
+        # Plotted set is fixed by the TOP level only (target protein). Deeper selection
+        # re-styles points: selected sub-branch stays coloured, the rest become grey crosses.
+        scope_path = path_df[:1]
+        scope = apply_filtering_criteria(subframe_by_path(df, scope_path), criteria)
+    else:
+        scope = selected_rows
+
     n = len(scope)
-    n_unfiltered = len(subframe_by_path(df, scope_path))
+    n_unfiltered = len(subframe_by_path(df, path_df[:1] if show_all_in_branch else path_df))
     filt_note = f" (filtered from {n_unfiltered:,})" if criteria and n != n_unfiltered else ""
     if n == 0:
         return empty_fig("No rows in this branch after filtering."), f"0 rows{filt_note}"
@@ -1266,8 +1277,6 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, 
             f"{n:,} rows{filt_note} (exceeds cap of {cap:,})",
         )
 
-    # Selected sub-branch (colored) vs the rest of the scope (grey crosses).
-    selected_rows = apply_filtering_criteria(subframe_by_path(df, path_df), criteria)
     sel_plot = selected_rows.copy()
     sel_plot["_src"] = "dedup"
     sel_plot["_idx"] = sel_plot.index
@@ -1279,10 +1288,11 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, 
     fig.update_traces(marker={"size": 9})
     fig.update_layout(margin={"l": 40, "r": 20, "t": 30, "b": 40}, legend={"orientation": "h", "y": -0.18})
 
-    non_selected = scope.drop(selected_rows.index, errors="ignore")
-    grey = _grey_trace(non_selected, x, y, "dedup", "Other clusters in scope", 5)
-    if grey is not None:
-        fig.add_trace(grey)
+    if show_all_in_branch:
+        non_selected = scope.drop(selected_rows.index, errors="ignore")
+        grey = _grey_trace(non_selected, x, y, "dedup", "Other clusters in scope", 5)
+        if grey is not None:
+            fig.add_trace(grey)
 
     # If a specific cluster is pinned, overlay its individual poses.
     info_extra = ""
@@ -1321,7 +1331,11 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, 
             name="Selected", hoverinfo="skip", showlegend=False,
         ))
 
-    return fig, f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{info_extra}"
+    return fig, (
+        f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{info_extra}"
+        if show_all_in_branch
+        else f"{len(selected_rows):,} plotted{filt_note}{info_extra}"
+    )
 
 
 @app.callback(
