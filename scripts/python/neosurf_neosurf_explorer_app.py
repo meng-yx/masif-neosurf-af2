@@ -29,12 +29,14 @@ Data sources
 Panels
   * Left sidebar: a lazily-rendered, re-orderable collapsible tree
     (target-protein -> target-id -> matched-protein -> matched-seed -> cluster
-    -> pose). Clusters are expandable to reveal individual poses.
-  * Plotly scatter. By default only the selected tree branch is plotted (e.g. a
-    single target complex). Optionally enable "show all entries in this branch"
-    in the sidebar to keep the top-level scope visible with non-selected points
-    as grey crosses. When a cluster is pinned, that cluster's individual poses
-    are overlaid as grey crosses so they can be clicked and visualized.
+    -> pose). Clusters are expandable to reveal individual poses. Shift+click
+    siblings to multi-select (e.g. several target complexes); plain click
+    replaces the selection.
+  * Plotly scatter. By default only the selected tree branch(es) are plotted.
+    Optionally enable "show all entries in this branch" in the sidebar to keep
+    the top-level scope visible with non-selected points as grey crosses. When
+    a single cluster is pinned, that cluster's individual poses are overlaid
+    as grey crosses so they can be clicked and visualized.
   * py3Dmol viewer showing target + transform-superposed seed, both ligands as
     sticks.
   * UniProt entry iframe for the matched (or target) protein.
@@ -386,6 +388,15 @@ def _node_style(depth, is_leaf, is_selected):
     }
 
 
+def _selected_set(selected):
+    """Normalise selected-branch-store (list of path_str) to a set."""
+    if not selected:
+        return set()
+    if isinstance(selected, str):
+        return {selected}
+    return set(selected)
+
+
 def _pose_nodes(cluster_path, expanded, selected, depth, criteria=None):
     """Leaf nodes for the individual poses of a cluster (from df_all)."""
     key = cluster_key_from_path(cluster_path)
@@ -400,6 +411,7 @@ def _pose_nodes(cluster_path, expanded, selected, depth, criteria=None):
         return [html.Div("(all poses filtered out)",
                          style={"marginLeft": f"{depth * 12}px", "fontSize": "11px", "color": "#999"})]
     sub = sub.sort_values("score", ascending=False)
+    sel = _selected_set(selected)
     nodes = []
     for all_idx, prow in sub.iterrows():
         child_path = cluster_path + [[POSE_LEVEL, str(all_idx)]]
@@ -408,7 +420,7 @@ def _pose_nodes(cluster_path, expanded, selected, depth, criteria=None):
             f"• {pose_label(prow)}",
             id={"type": "tree-node", "path": path_str},
             n_clicks=0, title=pose_label(prow),
-            style=_node_style(depth, True, path_str == selected),
+            style=_node_style(depth, True, path_str in sel),
         )
         nodes.append(html.Div([button]))
     return nodes
@@ -419,6 +431,7 @@ def build_tree_nodes(path, order, expanded, selected, base, depth=0, criteria=No
 
     Sibling nodes are ordered by their number of immediate child nodes
     (descending), with best score as a tie-breaker.
+    ``selected`` is a list of path_str (multi-select via Shift+click).
     """
     level_idx = len(path)
     if level_idx >= len(order):
@@ -436,6 +449,7 @@ def build_tree_nodes(path, order, expanded, selected, base, depth=0, criteria=No
 
     next_level = order[level_idx + 1] if level_idx + 1 < len(order) else None
     next_col = GROUP_COL.get(next_level) if next_level else None
+    sel = _selected_set(selected)
 
     def child_count(value, ssub):
         """Number of immediate child nodes this node would expand into."""
@@ -467,13 +481,40 @@ def build_tree_nodes(path, order, expanded, selected, base, depth=0, criteria=No
             f"{marker} {label}{badge}",
             id={"type": "tree-node", "path": path_str},
             n_clicks=0, title=label,
-            style=_node_style(depth, False, path_str == selected),
+            style=_node_style(depth, False, path_str in sel),
         )
         block = [button]
         if is_expanded:
             block.append(html.Div(build_tree_nodes(child_path, order, expanded, selected, base, depth + 1, criteria)))
         nodes.append(html.Div(block))
     return nodes
+
+
+def rows_for_branches(branch_list, criteria):
+    """Union of filtered dedup rows for each selected path_str."""
+    frames = []
+    for path_str in branch_list or []:
+        path_df = strip_pose(json.loads(path_str))
+        frames.append(apply_filtering_criteria(subframe_by_path(df, path_df), criteria))
+    if not frames:
+        return df.iloc[0:0]
+    return pd.concat(frames).groupby(level=0).first()
+
+
+def branch_label_short(path_str):
+    """Short breadcrumb leaf label for one selected path."""
+    path = json.loads(path_str)
+    if not path:
+        return "?"
+    level, value = path[-1]
+    if level == POSE_LEVEL:
+        prow = resolve_ref({"src": "pose", "idx": int(value)})
+        return pose_label(prow) if prow is not None else "pose"
+    sub = subframe_by_path(df, strip_pose(path))
+    if sub.empty:
+        return str(value)
+    rep = df.loc[sub["score"].idxmax()]
+    return node_label(level, value, rep)
 
 
 def build_order(vals):
@@ -902,6 +943,8 @@ sidebar = html.Div(
             value=[],
             style={"fontSize": "11px", "marginBottom": "6px"},
         ),
+        html.Div("Shift+click siblings to multi-select",
+                 style={"fontSize": "10px", "color": "#999", "marginBottom": "6px"}),
         html.Div(
             id="tree-container",
             style={"height": "70vh", "overflowY": "auto", "overflowX": "auto",
@@ -1057,9 +1100,13 @@ app.layout = html.Div(
         dcc.Store(id="tree-order-store", data=DEFAULT_ORDER),
         dcc.Store(id="filter-store", data=[]),
         dcc.Store(id="expanded-store", data=[]),
-        dcc.Store(id="selected-branch-store", data=None),
+        # List of selected path_str; Shift+click adds/removes sibling paths.
+        dcc.Store(id="selected-branch-store", data=[]),
         dcc.Store(id="selected-row-store", data=None),
         dcc.Store(id="flagged-store", data=[]),
+        # Clientside packs {path, shift, t} so the server sees modifier + path together.
+        dcc.Store(id="tree-click-event", data=None),
+        dcc.Store(id="tree-shift-hook-ready", data=False),
         html.Div([expand_strip, sidebar, main], style={"display": "flex", "alignItems": "flex-start"}),
     ],
 )
@@ -1149,7 +1196,7 @@ def render_filter_rows(filter_store):
 )
 def update_order(o1, o2, o3, o4):
     # Changing nesting invalidates expanded paths and the selected branch.
-    return build_order([o1, o2, o3, o4]), [], None
+    return build_order([o1, o2, o3, o4]), [], []
 
 
 @app.callback(
@@ -1179,8 +1226,64 @@ def render_tree(order, expanded, selected, search, filter_store):
     if base.empty:
         return html.Div("No entries match the current search / filters.",
                         style={"fontSize": "12px", "color": "#999"})
-    nodes = build_tree_nodes([], order, expanded or [], selected, base, criteria=criteria)
+    nodes = build_tree_nodes([], order, expanded or [], selected or [], base, criteria=criteria)
     return nodes or html.Div("No data.", style={"fontSize": "12px", "color": "#999"})
+
+
+# Capture Shift on mousedown (capture phase) before the button click increments n_clicks.
+app.clientside_callback(
+    """
+    function(ready) {
+        if (window._neosurfTreeShiftHooked) {
+            return window.dash_clientside.no_update;
+        }
+        window._neosurfTreeShiftHooked = true;
+        window.__neosurfTreeShift = false;
+        document.addEventListener('mousedown', function(e) {
+            const btn = e.target.closest('button');
+            if (!btn || !btn.id || btn.id.indexOf('tree-node') === -1) {
+                return;
+            }
+            window.__neosurfTreeShift = !!e.shiftKey;
+        }, true);
+        return true;
+    }
+    """,
+    Output("tree-shift-hook-ready", "data"),
+    Input("tree-order-store", "data"),
+)
+
+
+# Pack path + shift into one event so the server callback has no race with set_props.
+app.clientside_callback(
+    """
+    function(n_clicks_list) {
+        const trig = dash_clientside.callback_context.triggered;
+        if (!trig || !trig.length || trig[0].value === undefined || trig[0].value === null) {
+            return window.dash_clientside.no_update;
+        }
+        // Ignore the mass re-render of n_clicks when the tree is rebuilt (all become 0/null).
+        if (!trig[0].value) {
+            return window.dash_clientside.no_update;
+        }
+        const prop = trig[0].prop_id;
+        const idStr = prop.slice(0, prop.lastIndexOf('.'));
+        let id;
+        try { id = JSON.parse(idStr); } catch (err) {
+            return window.dash_clientside.no_update;
+        }
+        if (!id || id.type !== 'tree-node' || !id.path) {
+            return window.dash_clientside.no_update;
+        }
+        const shift = !!window.__neosurfTreeShift;
+        window.__neosurfTreeShift = false;
+        return {path: id.path, shift: shift, t: Date.now()};
+    }
+    """,
+    Output("tree-click-event", "data"),
+    Input({"type": "tree-node", "path": ALL}, "n_clicks"),
+    prevent_initial_call=True,
+)
 
 
 @app.callback(
@@ -1188,31 +1291,47 @@ def render_tree(order, expanded, selected, search, filter_store):
     Output("selected-branch-store", "data", allow_duplicate=True),
     Output("selected-row-store", "data", allow_duplicate=True),
     Output("filter-store", "data", allow_duplicate=True),
-    Input({"type": "tree-node", "path": ALL}, "n_clicks"),
+    Input("tree-click-event", "data"),
     State("expanded-store", "data"),
+    State("selected-branch-store", "data"),
     State("tree-order-store", "data"),
     State("filter-store", "data"),
     State("plot-cap-input", "value"),
     prevent_initial_call=True,
 )
-def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
-    ctx = callback_context
-    if not ctx.triggered or not ctx.triggered[0]["value"]:
-        raise PreventUpdate  # fired due to node set changing (re-render), not a click
-    trig = ctx.triggered_id
-    if not isinstance(trig, dict):
+def on_tree_click(click_event, expanded, selected_branches, order, filter_store, cap_value):
+    if not isinstance(click_event, dict) or not click_event.get("path"):
         raise PreventUpdate
 
-    path_str = trig["path"]
+    path_str = click_event["path"]
+    shift = bool(click_event.get("shift"))
     path = json.loads(path_str)
     expanded = list(expanded or [])
+    selected = list(selected_branches or [])
     level = path[-1][0]
 
     if level == POSE_LEVEL:
-        # Leaf: select this exact pose.
-        return expanded, path_str, {"src": "pose", "idx": int(path[-1][1])}, no_update
+        # Leaf: always single-select this exact pose (Shift ignored).
+        return expanded, [path_str], {"src": "pose", "idx": int(path[-1][1])}, no_update
 
-    # Any df level -> toggle expansion + set as selected branch.
+    # Shift+click: toggle among siblings at the same depth / parent. No expand toggle.
+    if shift and selected:
+        ref_path = json.loads(selected[-1])
+        same_sibling = (
+            ref_path
+            and ref_path[-1][0] != POSE_LEVEL
+            and len(path) == len(ref_path)
+            and path[:-1] == ref_path[:-1]
+        )
+        if same_sibling:
+            if path_str in selected:
+                if len(selected) > 1:
+                    selected = [p for p in selected if p != path_str]
+            else:
+                selected = selected + [path_str]
+            return expanded, selected, no_update, no_update
+
+    # Plain click (or Shift on incompatible node): replace selection + toggle expand.
     if path_str in expanded:
         expanded.remove(path_str)
     else:
@@ -1230,8 +1349,8 @@ def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
         # Auto-select the cluster's representative (dedup) row for the viewer.
         sub = subframe_by_path(df, path)
         row_out = {"src": "dedup", "idx": int(sub.index[0])} if len(sub) else no_update
-        return expanded, path_str, row_out, filt_out
-    return expanded, path_str, no_update, filt_out
+        return expanded, [path_str], row_out, filt_out
+    return expanded, [path_str], no_update, filt_out
 
 
 @app.callback(
@@ -1245,26 +1364,37 @@ def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
     Input("flagged-store", "data"),
     Input("show-branch-scope-toggle", "value"),
 )
-def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, flagged_idxs, show_branch_scope):
-    if not branch_str:
+def update_plot(branch_list, x, y, color, selected_ref, filter_store, cap_value, flagged_idxs, show_branch_scope):
+    branches = branch_list if isinstance(branch_list, list) else ([branch_list] if branch_list else [])
+    if not branches:
         return empty_fig("Select a node in the tree to plot its predictions."), ""
 
     cap = parse_cap(cap_value)
-    path_df = strip_pose(json.loads(branch_str))
+    paths = [strip_pose(json.loads(p)) for p in branches]
     show_all_in_branch = "on" in (show_branch_scope or [])
     criteria = build_filtering_criteria(filter_store)
 
-    selected_rows = apply_filtering_criteria(subframe_by_path(df, path_df), criteria)
+    selected_rows = rows_for_branches(branches, criteria)
     if show_all_in_branch:
-        # Plotted set is fixed by the TOP level only (target protein). Deeper selection
-        # re-styles points: selected sub-branch stays coloured, the rest become grey crosses.
-        scope_path = path_df[:1]
-        scope = apply_filtering_criteria(subframe_by_path(df, scope_path), criteria)
+        # Union of each selection's top-level (target protein) scope.
+        scope_frames = []
+        for path_df in paths:
+            scope_frames.append(
+                apply_filtering_criteria(subframe_by_path(df, path_df[:1]), criteria)
+            )
+        scope = pd.concat(scope_frames).groupby(level=0).first() if scope_frames else selected_rows
     else:
         scope = selected_rows
 
     n = len(scope)
-    n_unfiltered = len(subframe_by_path(df, path_df[:1] if show_all_in_branch else path_df))
+    if show_all_in_branch:
+        n_unfiltered = len(pd.concat(
+            [subframe_by_path(df, p[:1]) for p in paths]
+        ).groupby(level=0).first()) if paths else 0
+    else:
+        n_unfiltered = len(pd.concat(
+            [subframe_by_path(df, p) for p in paths]
+        ).groupby(level=0).first()) if paths else 0
     filt_note = f" (filtered from {n_unfiltered:,})" if criteria and n != n_unfiltered else ""
     if n == 0:
         return empty_fig("No rows in this branch after filtering."), f"0 rows{filt_note}"
@@ -1294,10 +1424,10 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, 
         if grey is not None:
             fig.add_trace(grey)
 
-    # If a specific cluster is pinned, overlay its individual poses.
+    # Pose overlay only when a single cluster is pinned.
     info_extra = ""
-    if len(path_df) >= 5:  # all four levels + cluster present
-        key = cluster_key_from_path(path_df)
+    if len(branches) == 1 and len(paths[0]) >= 5:
+        key = cluster_key_from_path(paths[0])
         pose_idxs = POSE_GROUPS.get(key)
         if pose_idxs:
             poses = apply_filtering_criteria(df_all.loc[pose_idxs], criteria)
@@ -1331,10 +1461,11 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, 
             name="Selected", hoverinfo="skip", showlegend=False,
         ))
 
+    multi_note = f" | {len(branches)} branches" if len(branches) > 1 else ""
     return fig, (
-        f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{info_extra}"
+        f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{multi_note}{info_extra}"
         if show_all_in_branch
-        else f"{len(selected_rows):,} plotted{filt_note}{info_extra}"
+        else f"{len(selected_rows):,} plotted{filt_note}{multi_note}{info_extra}"
     )
 
 
@@ -1421,10 +1552,15 @@ def on_point_click(click_data):
     Output("breadcrumb", "children"),
     Input("selected-branch-store", "data"),
 )
-def update_breadcrumb(branch_str):
-    if not branch_str:
+def update_breadcrumb(branch_list):
+    branches = branch_list if isinstance(branch_list, list) else ([branch_list] if branch_list else [])
+    if not branches:
         return "No branch selected."
-    path = json.loads(branch_str)
+    if len(branches) > 1:
+        labels = [branch_label_short(p) for p in branches]
+        return f"{len(branches)} selected: " + "  |  ".join(labels)
+
+    path = json.loads(branches[0])
     labels = []
     for i in range(1, len(path) + 1):
         level, value = path[i - 1]
