@@ -13,15 +13,18 @@ different target AND a different seed, each carrying its own ligand.
 Data sources
   * ``df_preprocess_ok.csv`` -> per-structure metadata (uniprot/gene/name,
     pdb_path, ligand identity), keyed by the unique ``target`` id. Source of
-    metadata for BOTH targets and seeds.
-  * ``df_results_dedup.csv`` -> PRIMARY source. One enriched row per
-    (target, matched_protein, cluster_id) cluster; drives the tree and the
-    colored scatter points.
+    metadata for BOTH targets and seeds. ``pdb_path`` values are rewritten at
+    load time to ``data/preprocess/data_preparation/01-benchmark_pdbs/``.
+  * ``df_results_dedup.csv`` -> PRIMARY source (``4_enrich_metrics``). One
+    enriched row per (target, matched_protein, cluster_id) cluster; drives the
+    tree and the colored scatter points. Includes ``target_mw``,
+    ``total_n_patches``, and cluster_size normalisations.
   * ``df_results_all.csv``   -> every individual pose (unique target_vix +
-    matched_patch_id within a cluster). Loaded once into memory and indexed by
-    cluster key. Poses are populated reactively: only when the user expands a
-    cluster in the tree. Poses inherit all metadata from their cluster; only the
-    superposition transform / patch identity / score differ per pose.
+    matched_patch_id within a cluster), also from ``4_enrich_metrics``. Loaded
+    once into memory and indexed by cluster key. Poses are populated reactively:
+    only when the user expands a cluster in the tree. Poses inherit all metadata
+    from their cluster; only the superposition transform / patch identity /
+    score differ per pose.
 
 Panels
   * Left sidebar: a lazily-rendered, re-orderable collapsible tree
@@ -35,12 +38,18 @@ Panels
   * py3Dmol viewer showing target + transform-superposed seed, both ligands as
     sticks.
   * UniProt entry iframe for the matched (or target) protein.
+  * Flag / unflag the currently selected dedup cluster (pose selections map to
+    their parent cluster). Flagged rows live in an in-memory store, are marked
+    on the scatter, and can be exported to a user-specified CSV with the same
+    columns as ``df_results_dedup.csv`` plus a generated ``pymol_cmd`` column
+    (fetch / transform / align sequence matching the notebook visualiser).
 
 The legacy app is intentionally left untouched.
 """
 
 import copy
 import json
+import os
 import uuid
 
 import numpy as np
@@ -56,8 +65,13 @@ from dash.exceptions import PreventUpdate
 # Data paths
 # --------------------------------------------------------------------------- #
 PREPROCESS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/2_masif_preprocess/df_preprocess_ok.csv"
-RESULTS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/3_masif_search/df_results_dedup.csv"
-RESULTS_ALL_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/3_masif_search/df_results_all.csv"
+RESULTS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_results_dedup.csv"
+RESULTS_ALL_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_results_all.csv"
+DEFAULT_FLAGGED_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_flagged.csv"
+# Preprocess CSV still records the old ``data/input/`` location; PDBs now live here.
+BENCHMARK_PDB_DIR = "/scratch/ymeng/Neosurf_Neosurf/data/preprocess/data_preparation/01-benchmark_pdbs"
+# Original on-disk columns of RESULTS_CSV (enriched cols like g_* are excluded on save).
+DEDUP_CSV_COLS = list(pd.read_csv(RESULTS_CSV, nrows=0).columns)
 
 # Max rows a selected branch's scope may contain before we refuse to plot
 # (guardrail so Plotly is never handed tens of thousands of interactive points).
@@ -101,7 +115,8 @@ PRESET_B = ["target_protein", "matched_protein", "target_id", "matched_seed_id"]
 CANDIDATE_NUMERIC = [
     "score", "desc_dist_score", "iface_score", "mean_desc_dist_score", "desc_dist",
     "cluster_size", "cluster_mean_rmsd", "clashing_ca", "clashing_heavy",
-    "n_match_ligands", "matched_mw",
+    "n_match_ligands", "matched_mw", "target_mw", "total_n_patches",
+    "cluster_size_patch_normalized", "cluster_size_mw_normalized",
 ]
 
 
@@ -208,6 +223,13 @@ def _add_grouping_cols(frame):
 def load_data():
     """Load all three tables and build the enriched frames used throughout."""
     pre = pd.read_csv(PREPROCESS_CSV)
+    # Rewrite stale ``data/input/`` paths to the current benchmark PDB directory.
+    if "pdb_path" in pre.columns:
+        pre["pdb_path"] = pre["pdb_path"].map(
+            lambda p: os.path.join(BENCHMARK_PDB_DIR, os.path.basename(str(p)))
+            if pd.notna(p) and str(p).strip()
+            else p
+        )
     pre_idx = pre.set_index("target")
 
     # ---- Primary (dedup) frame: authoritative, already enriched in the CSV ----
@@ -265,6 +287,11 @@ def load_data():
 
 
 pre_df, df, df_all = load_data()
+
+# target id -> {pdb_id, pdb_protein_chain, pdb_ligand_chain} for PyMOL cmds.
+_TARGET_INFO = pre_df.set_index("target")[
+    ["pdb_id", "pdb_protein_chain", "pdb_ligand_chain"]
+].to_dict("index")
 
 # Cluster-key -> pose row indices, precomputed once for O(1) lazy expansion.
 POSE_GROUPS = {k: list(v) for k, v in df_all.groupby(["target", "matched_protein", "g_cluster_id"]).groups.items()}
@@ -473,6 +500,100 @@ def resolve_ref(ref):
     if idx in frame.index:
         return frame.loc[idx]
     return None
+
+
+def dedup_idx_from_ref(ref):
+    """Map a selected-row ref to a dedup ``df`` index, or None.
+
+    Pose refs resolve to the parent cluster's representative dedup row via
+    ``(target, matched_protein, g_cluster_id)``.
+    """
+    if not isinstance(ref, dict):
+        return None
+    src, idx = ref.get("src"), ref.get("idx")
+    if src == "dedup":
+        return int(idx) if idx in df.index else None
+    if src != "pose" or idx not in df_all.index:
+        return None
+    prow = df_all.loc[idx]
+    hit = df[
+        (df["target"] == prow["target"])
+        & (df["matched_protein"] == prow["matched_protein"])
+        & (df["g_cluster_id"] == prow["g_cluster_id"])
+    ]
+    if hit.empty:
+        return None
+    return int(hit.index[0])
+
+
+def _get_target_info(target_id):
+    """Return (pdb_id, chain_list) for a target/seed id via the preprocess manifest.
+
+    Falls back to splitting on the last underscore when the id is missing from
+    the manifest (same convention as the notebook visualiser).
+    """
+    if target_id in _TARGET_INFO:
+        info = _TARGET_INFO[target_id]
+        chains = [info["pdb_protein_chain"]]
+        if info["pdb_ligand_chain"] != info["pdb_protein_chain"]:
+            chains.append(info["pdb_ligand_chain"])
+        return info["pdb_id"], chains
+    parts = str(target_id).rsplit("_", 1)
+    chains = list(parts[1]) if len(parts) > 1 else []
+    return parts[0], chains
+
+
+def _fmt_patch_id(value):
+    if pd.isna(value):
+        return "?"
+    f = float(value)
+    return str(int(f)) if f.is_integer() else str(value)
+
+
+def pymol_cmd_for_row(row):
+    """Build a single-line PyMOL command sequence for one dedup result row.
+
+    Matches the format in ``data/df_results_dedup_pymol.csv``: fetch target +
+    matched chains, apply the flattened transform, merge into one object, then
+    clean up and align/orient to ``reference``.
+    """
+    target = row["target"]
+    matched = row["matched_protein"]
+    patch = _fmt_patch_id(row["matched_patch_id"])
+    transform = row["flattened_transform"]
+
+    target_pdb, target_chains = _get_target_info(target)
+    matched_pdb, matched_chains = _get_target_info(matched)
+    target_chains_str = "chain " + " chain ".join(str(c) for c in target_chains)
+    matched_chains_str = "chain " + " chain ".join(str(c) for c in matched_chains)
+
+    complex_obj = f"{target}_{matched}_{patch}"
+    matched_obj = f"{matched}_{patch}"
+
+    return "; ".join([
+        f"fetch {target_pdb}, {complex_obj}",
+        f"remove {complex_obj} AND (not {target_chains_str})",
+        f"fetch {matched_pdb}, {matched_obj}",
+        f"remove {matched_obj} AND (not {matched_chains_str})",
+        f"apply_transform {matched_obj}, '{transform}'",
+        f"copy_to {complex_obj}, {matched_obj}",
+        f"delete {matched_obj}",
+        "remove (hydro)",
+        "remove resn hoh",
+        "show lines",
+        f"align {complex_obj}, reference",
+        f"orient {complex_obj}",
+    ])
+
+
+def flagged_frame(idxs):
+    """Return flagged dedup rows with original CSV columns plus ``pymol_cmd``."""
+    cols = DEDUP_CSV_COLS + ["pymol_cmd"]
+    if not idxs:
+        return pd.DataFrame(columns=cols)
+    out = df.loc[list(idxs), DEDUP_CSV_COLS].copy()
+    out["pymol_cmd"] = out.apply(pymol_cmd_for_row, axis=1)
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -891,6 +1012,34 @@ main = html.Div(
             ],
             style={"padding": "10px", "border": "1px solid #ddd", "borderRadius": "6px", "marginTop": "12px"},
         ),
+        html.Div(
+            [
+                html.H4("Flagged clusters", style={"marginTop": "0", "marginBottom": "8px"}),
+                html.Div(
+                    [
+                        html.Button("Flag", id="flag-toggle-btn", n_clicks=0,
+                                    style={"fontSize": "12px", "marginRight": "8px"}),
+                        html.Span(id="flag-status", children="Flagged: 0",
+                                  style={"fontSize": "12px", "color": "#555"}),
+                    ],
+                    style={"marginBottom": "8px"},
+                ),
+                html.Div(
+                    [
+                        dcc.Input(
+                            id="flagged-path-input", type="text", value=DEFAULT_FLAGGED_CSV,
+                            debounce=True, style={"flex": "1", "fontSize": "12px", "minWidth": "0"},
+                        ),
+                        html.Button("Save flagged", id="save-flagged-btn", n_clicks=0,
+                                    style={"fontSize": "12px", "marginLeft": "8px"}),
+                    ],
+                    style={"display": "flex", "alignItems": "center", "marginBottom": "4px"},
+                ),
+                html.Div(id="flag-save-status", children="",
+                         style={"fontSize": "11px", "color": "#666", "minHeight": "16px"}),
+            ],
+            style={"padding": "10px", "border": "1px solid #ddd", "borderRadius": "6px", "marginTop": "12px"},
+        ),
         html.Div([html.H4("Selected row"), html.Div(id="row-detail", children="No point selected.")],
                  style={"padding": "10px", "border": "1px solid #ddd", "borderRadius": "6px", "marginTop": "12px"}),
     ],
@@ -904,6 +1053,7 @@ app.layout = html.Div(
         dcc.Store(id="expanded-store", data=[]),
         dcc.Store(id="selected-branch-store", data=None),
         dcc.Store(id="selected-row-store", data=None),
+        dcc.Store(id="flagged-store", data=[]),
         html.Div([expand_strip, sidebar, main], style={"display": "flex", "alignItems": "flex-start"}),
     ],
 )
@@ -1086,8 +1236,9 @@ def on_tree_click(_all_clicks, expanded, order, filter_store, cap_value):
     Input("selected-row-store", "data"),
     Input("filter-store", "data"),
     Input("plot-cap-input", "value"),
+    Input("flagged-store", "data"),
 )
-def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value):
+def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value, flagged_idxs):
     if not branch_str:
         return empty_fig("Select a node in the tree to plot its predictions."), ""
 
@@ -1146,6 +1297,21 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value):
                 fig.add_trace(pose_trace)
             info_extra = f" | {len(poses)} poses overlaid"
 
+    # Gold stars for flagged dedup rows currently in scope.
+    flagged_set = set(flagged_idxs or [])
+    if flagged_set:
+        flagged_in_scope = scope.loc[scope.index.intersection(flagged_set)]
+        if not flagged_in_scope.empty and x in flagged_in_scope.columns and y in flagged_in_scope.columns:
+            fig.add_trace(go.Scatter(
+                x=flagged_in_scope[x], y=flagged_in_scope[y], mode="markers",
+                marker={
+                    "symbol": "star", "size": 14, "color": "gold",
+                    "line": {"width": 1, "color": "darkorange"},
+                },
+                name="Flagged", hoverinfo="skip", showlegend=True,
+            ))
+            info_extra += f" | {len(flagged_in_scope)} flagged"
+
     # Red X for the specific selected row (dedup rep or a pose).
     sel_row = resolve_ref(selected_ref)
     if sel_row is not None and x in sel_row and y in sel_row and pd.notna(sel_row[x]) and pd.notna(sel_row[y]):
@@ -1156,6 +1322,67 @@ def update_plot(branch_str, x, y, color, selected_ref, filter_store, cap_value):
         ))
 
     return fig, f"{len(selected_rows):,} selected / {n:,} in scope{filt_note}{info_extra}"
+
+
+@app.callback(
+    Output("flagged-store", "data"),
+    Input("flag-toggle-btn", "n_clicks"),
+    State("selected-row-store", "data"),
+    State("flagged-store", "data"),
+    prevent_initial_call=True,
+)
+def toggle_flag(_n_clicks, selected_ref, flagged_idxs):
+    idx = dedup_idx_from_ref(selected_ref)
+    if idx is None:
+        raise PreventUpdate
+    flagged = set(flagged_idxs or [])
+    if idx in flagged:
+        flagged.remove(idx)
+    else:
+        flagged.add(idx)
+    return sorted(flagged)
+
+
+@app.callback(
+    Output("flag-toggle-btn", "children"),
+    Output("flag-status", "children"),
+    Input("selected-row-store", "data"),
+    Input("flagged-store", "data"),
+)
+def update_flag_controls(selected_ref, flagged_idxs):
+    flagged = flagged_idxs or []
+    n = len(flagged)
+    idx = dedup_idx_from_ref(selected_ref)
+    if idx is None:
+        return "Flag", f"Flagged: {n} — select a cluster or pose first"
+    if idx in flagged:
+        return "Unflag", f"Flagged: {n} — current cluster is flagged"
+    return "Flag", f"Flagged: {n} — current cluster not flagged"
+
+
+@app.callback(
+    Output("flag-save-status", "children"),
+    Input("save-flagged-btn", "n_clicks"),
+    State("flagged-path-input", "value"),
+    State("flagged-store", "data"),
+    prevent_initial_call=True,
+)
+def save_flagged(_n_clicks, path, flagged_idxs):
+    flagged = flagged_idxs or []
+    if not flagged:
+        return "Nothing to save."
+    path = (path or "").strip()
+    if not path:
+        return "Enter a CSV path first."
+    try:
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        out = flagged_frame(flagged)
+        out.to_csv(path, index=False)
+        return f"Saved {len(out)} rows to {path}"
+    except OSError as exc:
+        return f"Save failed: {exc}"
 
 
 @app.callback(
