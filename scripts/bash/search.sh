@@ -18,8 +18,9 @@ if [[ -z "${QUERY_TARGET}" || -z "${OUT_DIR}" || -z "${SEED_SUBSET}" ]]; then
     exit 1
 fi
 
-if [[ ! -f scripts/config.sh ]]; then
-    echo "Error: run from masif-neosurf repo root (scripts/config.sh not found in $(pwd))" >&2
+CONFIG_FILE="${CONFIG_FILE:-scripts/config.sh}"
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+    echo "Error: run from masif-neosurf repo root (${CONFIG_FILE} not found; run from repo root, set CONFIG_FILE to override)" >&2
     exit 1
 fi
 
@@ -28,7 +29,7 @@ if [[ ! -f "${SEED_SUBSET}" ]]; then
     exit 1
 fi
 
-source scripts/config.sh
+source "${CONFIG_FILE}"
 
 AUTO_FLAGS=()
 if [[ "${TARGET_AUTO_NEOSURF:-0}" == "1" ]]; then

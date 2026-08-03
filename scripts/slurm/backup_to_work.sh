@@ -16,11 +16,16 @@ Submit from repo root:
   sbatch scripts/slurm/backup_to_work.sh                    # processing/ + masif_search tar
   sbatch scripts/slurm/backup_to_work.sh --dry-run          # preview, no writes
   sbatch scripts/slurm/backup_to_work.sh --with-preprocess  # also rsync the ~105 GB preprocess tree
+  sbatch scripts/slurm/backup_to_work.sh --run-dir=vhl_cutoff6  # back up one isolated run subtree
 
-Backs up:
+Backs up (default):
   data/processing   -> /work/.../processing                                    (result tables)
   data/masif_search -> /work/.../human_reference_.../masif_search.tar.gz       (re-tarred, atomic)
   data/preprocess   -> /work/.../preprocess          (only with --with-preprocess)
+
+With --run-dir=NAME, instead backs up an isolated run subtree:
+  data/NAME/processing   -> /work/.../NAME/processing
+  data/NAME/masif_search -> /work/.../NAME/masif_search.tar.gz  (re-tarred, atomic)
 
 restore_from_work.sh reads masif_search back from that tar.gz, so this keeps the
 round trip working. rsync is append/update only (no --delete): stale files on the
@@ -33,14 +38,16 @@ DEST_ROOT=/work/upthomae/Meng/Neosurf_Neosurf
 SRC_ROOT="$(pwd)/data"
 DRY_RUN=0
 WITH_PREPROCESS=0
+RUN_DIR=""
 
 for arg in "$@"; do
     case "$arg" in
         --dry-run) DRY_RUN=1 ;;
         --with-preprocess) WITH_PREPROCESS=1 ;;
-        -h|--help) sed -n "2,25p" "$0"; exit 0 ;;
+        --run-dir=*) RUN_DIR="${arg#*=}" ;;
+        -h|--help) sed -n "2,30p" "$0"; exit 0 ;;
         *) echo "Unknown argument: $arg" >&2
-           echo "Usage: sbatch $0 [--dry-run] [--with-preprocess]" >&2; exit 1 ;;
+           echo "Usage: sbatch $0 [--dry-run] [--with-preprocess] [--run-dir=NAME]" >&2; exit 1 ;;
     esac
 done
 
@@ -65,6 +72,42 @@ echo "Started:    $(date)"
 echo
 df -h "$DEST_ROOT" "$SRC_ROOT" 2>/dev/null || true
 echo
+
+# ---- Isolated run subtree mode (data/NAME -> /work/.../NAME) ----
+if [[ -n "$RUN_DIR" ]]; then
+    src="$SRC_ROOT/$RUN_DIR"
+    dest="$DEST_ROOT/$RUN_DIR"
+    [[ -d "$src" ]] || { echo "Error: run subtree missing: $src" >&2; exit 1; }
+    echo "=== isolated run backup: $src -> $dest ==="
+    fail=0
+
+    if [[ -d "$src/processing" ]]; then
+        echo "rsync  $src/processing/  ->  $dest/processing/"
+        mkdir -p "$dest/processing"
+        rsync "${RSYNC_FLAGS[@]}" "$src/processing/" "$dest/processing/" || fail=1
+    fi
+
+    if [[ -d "$src/masif_search" ]]; then
+        TAR_DEST="$dest/masif_search.tar.gz"
+        echo "re-tar  $src/masif_search  ->  $TAR_DEST"
+        if [[ "$DRY_RUN" -eq 1 ]]; then
+            echo "[dry-run] would tar $src/masif_search -> $TAR_DEST"
+        else
+            mkdir -p "$dest"
+            tmp="${TAR_DEST}.tmp.${SLURM_JOB_ID:-$$}"
+            if tar -czf "$tmp" -C "$src" masif_search; then
+                mv -f "$tmp" "$TAR_DEST"
+                echo "OK: wrote $TAR_DEST ($(du -sh "$TAR_DEST" 2>/dev/null | awk '{print $1}'))"
+            else
+                echo "FAILED: tar $RUN_DIR/masif_search" >&2; rm -f "$tmp"; fail=1
+            fi
+        fi
+    fi
+    echo
+    echo "Finished:  $(date)"
+    echo "Exit code: $fail"
+    exit "$fail"
+fi
 
 fail=0
 

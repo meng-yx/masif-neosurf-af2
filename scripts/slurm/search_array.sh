@@ -38,12 +38,14 @@ if [[ -z "$QUERY_TARGET" || -z "$OUT_DIR" || -z "$SEED_SUBSET_DIR" ]]; then
     exit 1
 fi
 
-if [[ ! -f scripts/config.sh ]]; then
-    echo "Error: run sbatch from masif-neosurf repo root (scripts/config.sh not found in $(pwd))" >&2
+CONFIG_FILE="${CONFIG_FILE:-scripts/config.sh}"
+export CONFIG_FILE
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+    echo "Error: run sbatch from masif-neosurf repo root (${CONFIG_FILE} not found; run from repo root, set CONFIG_FILE to override)" >&2
     exit 1
 fi
 
-source scripts/config.sh
+source "${CONFIG_FILE}"
 
 : "${SLURM_ARRAY_TASK_ID:=1}"
 SEED_SUBSET="${SEED_SUBSET_DIR}/${SLURM_ARRAY_TASK_ID}"

@@ -66,10 +66,20 @@ from dash.exceptions import PreventUpdate
 # --------------------------------------------------------------------------- #
 # Data paths
 # --------------------------------------------------------------------------- #
-PREPROCESS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/2_masif_preprocess/df_preprocess_ok.csv"
-RESULTS_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_results_dedup.csv"
-RESULTS_ALL_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_results_all.csv"
-DEFAULT_FLAGGED_CSV = "/scratch/ymeng/Neosurf_Neosurf/data/processing/4_enrich_metrics/df_flagged.csv"
+# The enriched result tables the app reads live under a "4_enrich_metrics" dir.
+# Point the app at a different run (e.g. the VHL CUTOFF=6 screen) without editing
+# code by setting NEOSURF_ENRICH_DIR (absolute, or relative to the repo root):
+#   NEOSURF_ENRICH_DIR=data/vhl_cutoff6/processing/4_enrich_metrics \
+#       python scripts/python/neosurf_neosurf_explorer_app.py
+_REPO = "/scratch/ymeng/Neosurf_Neosurf"
+ENRICH_DIR = os.environ.get("NEOSURF_ENRICH_DIR", os.path.join(_REPO, "data/processing/4_enrich_metrics"))
+if not os.path.isabs(ENRICH_DIR):
+    ENRICH_DIR = os.path.join(_REPO, ENRICH_DIR)
+
+PREPROCESS_CSV = os.path.join(_REPO, "data/processing/2_masif_preprocess/df_preprocess_ok.csv")
+RESULTS_CSV = os.path.join(ENRICH_DIR, "df_results_dedup.csv")
+RESULTS_ALL_CSV = os.path.join(ENRICH_DIR, "df_results_all.csv")
+DEFAULT_FLAGGED_CSV = os.path.join(ENRICH_DIR, "df_flagged.csv")
 # Preprocess CSV still records the old ``data/input/`` location; PDBs now live here.
 BENCHMARK_PDB_DIR = "/scratch/ymeng/Neosurf_Neosurf/data/preprocess/data_preparation/01-benchmark_pdbs"
 # Original on-disk columns of RESULTS_CSV (enriched cols like g_* are excluded on save).

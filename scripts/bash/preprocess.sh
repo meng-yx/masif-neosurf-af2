@@ -6,12 +6,13 @@ LIGAND=$3
 LIGAND_PATH=$4
 OUTPUT_DIR=$5
 
-if [[ ! -f scripts/config.sh ]]; then
-    echo "Error: run from masif-neosurf repo root (scripts/config.sh not found in $(pwd))" >&2
+CONFIG_FILE="${CONFIG_FILE:-scripts/config.sh}"
+if [[ ! -f "${CONFIG_FILE}" ]]; then
+    echo "Error: run from masif-neosurf repo root (${CONFIG_FILE} not found; run from repo root, set CONFIG_FILE to override)" >&2
     exit 1
 fi
 
-source scripts/config.sh
+source "${CONFIG_FILE}"
 
 PREPROCESS_PY_ARGS=(--infer_reduce_het_dict)
 if [[ "${PREPROCESS_OVERWRITE:-0}" == "1" ]]; then
